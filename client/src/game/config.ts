@@ -15,6 +15,10 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
   backgroundColor: '#0a0a1a',
   scene: [TitleScene, WorldMapScene, DialogueScene, BattleScene, RankingScene, PvpLobbyScene],
   pixelArt: true,
+  input: {
+    touch: true,
+    activePointers: 1,
+  },
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
