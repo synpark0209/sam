@@ -3,13 +3,14 @@ import { UnitClass } from '@shared/types/index.ts';
 import { TileType } from '@shared/types/index.ts';
 import { TILE_SIZE } from '@shared/constants.ts';
 
-const FRAME_W = TILE_SIZE;
+const FRAME_W = TILE_SIZE; // 48 (타일 크기)
 const FRAME_H = TILE_SIZE;
 const ANIM_COLS = 4;
 const ANIM_ROWS = 5;
-const SCALE = 2; // 24x24 논리 → 48x48 실제
-const LW = FRAME_W / SCALE; // 논리 너비 = 24
-const LH = FRAME_H / SCALE; // 논리 높이 = 24
+
+// 유닛 스프라이트는 96x96으로 그린 후 48x48로 축소
+const UNIT_RES = 96;
+const TILE_RES = TILE_SIZE; // 타일은 48x48
 
 type Faction = 'player' | 'enemy';
 
@@ -31,463 +32,612 @@ function addCanvasAsSpriteSheet(
   }
 }
 
-// 24x24 워킹 버퍼 (1px = 1 논리 픽셀)
-// 워킹 버퍼에 1px 찍기
-function setPixel(data: Uint32Array, x: number, y: number, color: number) {
-  if (x < 0 || x >= LW || y < 0 || y >= LH) return;
-  data[y * LW + x] = color;
+function rect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, color: string) {
+  ctx.fillStyle = color;
+  ctx.fillRect(Math.round(x), Math.round(y), w, h);
 }
 
-function getPixel(data: Uint32Array, x: number, y: number): number {
-  if (x < 0 || x >= LW || y < 0 || y >= LH) return 0;
-  return data[y * LW + x];
+function pixel(ctx: CanvasRenderingContext2D, x: number, y: number, color: string) {
+  rect(ctx, x, y, 1, 1, color);
 }
 
-// RGBA → Uint32 (little endian)
-function rgba(r: number, g: number, b: number, a = 255): number {
-  return (a << 24) | (b << 16) | (g << 8) | r;
-}
-
-// 워킹 버퍼 → 자동 아웃라인 추가 → 대상 캔버스에 2x 업스케일 블릿
-function blitWithOutline(
-  data: Uint32Array,
-  target: CanvasRenderingContext2D,
-  tx: number, ty: number,
-) {
-  const OUTLINE = rgba(16, 16, 24, 255);
-  const imgData = target.createImageData(FRAME_W, FRAME_H);
-  const out = new Uint32Array(imgData.data.buffer);
-
-  for (let sy = 0; sy < LH; sy++) {
-    for (let sx = 0; sx < LW; sx++) {
-      const c = data[sy * LW + sx];
-      if (c !== 0) {
-        // 원본 픽셀 → 2x
-        for (let dy = 0; dy < SCALE; dy++) {
-          for (let dx = 0; dx < SCALE; dx++) {
-            out[(sy * SCALE + dy) * FRAME_W + (sx * SCALE + dx)] = c;
-          }
-        }
-      } else {
-        // 투명 픽셀이지만 인접에 불투명 있으면 아웃라인
-        let hasNeighbor = false;
-        for (const [nx, ny] of [[sx-1,sy],[sx+1,sy],[sx,sy-1],[sx,sy+1]]) {
-          if (getPixel(data, nx, ny) !== 0) { hasNeighbor = true; break; }
-        }
-        if (hasNeighbor) {
-          for (let dy = 0; dy < SCALE; dy++) {
-            for (let dx = 0; dx < SCALE; dx++) {
-              out[(sy * SCALE + dy) * FRAME_W + (sx * SCALE + dx)] = OUTLINE;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  target.putImageData(imgData, tx, ty);
+function outlinedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, fill: string, outline: string) {
+  rect(ctx, x, y, w, h, outline);
+  rect(ctx, x + 1, y + 1, w - 2, h - 2, fill);
 }
 
 // ═══════════════════════════════════════
-// 컬러 팔레트 (조조전 스타일)
+// 색상 팔레트 (삼국지 조조전 스타일)
 // ═══════════════════════════════════════
 
 function pal(faction: Faction) {
   const p = faction === 'player';
   return {
-    skin: rgba(240, 200, 160),     skinS: rgba(200, 152, 104),  skinL: rgba(255, 228, 200),
-    armor: p ? rgba(56, 104, 184) : rgba(192, 56, 56),
-    armorS: p ? rgba(32, 56, 112) : rgba(128, 32, 32),
-    armorL: p ? rgba(88, 144, 224) : rgba(224, 96, 96),
-    cloth: p ? rgba(72, 120, 192) : rgba(208, 72, 72),
-    clothS: p ? rgba(40, 80, 160) : rgba(168, 40, 40),
-    gold: rgba(232, 200, 48),      goldS: rgba(176, 144, 32),
-    steel: rgba(192, 200, 216),    steelS: rgba(128, 136, 152), steelL: rgba(224, 232, 240),
-    boot: rgba(80, 56, 32),        bootS: rgba(48, 24, 16),
-    hair: rgba(48, 40, 40),        hairL: rgba(72, 64, 56),
-    eye: rgba(16, 16, 24),         eyeW: rgba(240, 240, 240),
-    horse: rgba(139, 94, 60),      horseS: rgba(92, 56, 32),    horseMane: rgba(48, 32, 24),
-    wood: rgba(160, 120, 56),      woodS: rgba(112, 72, 32),
-    white: rgba(240, 240, 240),    whiteS: rgba(192, 192, 192),
-    shadow: rgba(0, 0, 0, 60),
+    skin: '#f0c8a0', skinS: '#c89868', skinL: '#ffe4c8', skinD: '#a07048',
+    armor: p ? '#3868b8' : '#c03838',
+    armorS: p ? '#203870' : '#802020',
+    armorL: p ? '#5890e0' : '#e06060',
+    armorH: p ? '#78b0f0' : '#f08888',
+    armorD: p ? '#182850' : '#601010',
+    cloth: p ? '#4878c0' : '#d04848',
+    clothS: p ? '#285098' : '#a83030',
+    clothL: p ? '#6898d8' : '#e87070',
+    gold: '#e8c830', goldS: '#b09020', goldL: '#f8e068', goldD: '#886810',
+    steel: '#c0c8d8', steelS: '#808898', steelL: '#e0e8f0', steelD: '#606878',
+    boot: '#503820', bootS: '#301810', bootL: '#785838',
+    hair: '#302828', hairL: '#484038', hairD: '#181010',
+    eye: '#101018', eyeW: '#f0f0f0',
+    horse: '#8b5e3c', horseS: '#5c3820', horseL: '#b08060', horseMane: '#302018',
+    wood: '#a07838', woodS: '#704820', woodL: '#c89850',
+    white: '#f0f0f0', whiteS: '#c0c0c0',
+    outline: '#101018',
+    shadow: 'rgba(0,0,0,0.25)',
   };
 }
 
 // ═══════════════════════════════════════
-// 유닛 그리기 (치비 SD 스타일, 24x24 논리 해상도)
+// 96x96 유닛 그리기 (삼국지 조조전 스타일)
 // ═══════════════════════════════════════
 
-type DrawFn = (buf: Uint32Array, f: Faction, anim: string, frame: number) => void;
+type DrawCtxFn = (ctx: CanvasRenderingContext2D, f: Faction, anim: string, frame: number) => void;
 
-// ── 편의 함수 ──
-function fillRect(buf: Uint32Array, x: number, y: number, w: number, h: number, c: number) {
-  for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) setPixel(buf, x + dx, y + dy, c);
-}
-
-function drawHead(buf: Uint32Array, x: number, y: number, c: ReturnType<typeof pal>, hasHelmet: boolean, helmetType: 'armor' | 'cloth' | 'gold' = 'armor') {
-  // 투구/두건
-  if (hasHelmet) {
-    const hc = helmetType === 'gold' ? c.gold : helmetType === 'cloth' ? c.cloth : c.armor;
-    const hcS = helmetType === 'gold' ? c.goldS : helmetType === 'cloth' ? c.clothS : c.armorS;
-    const hcL = helmetType === 'gold' ? c.gold : helmetType === 'cloth' ? c.cloth : c.armorL;
-    fillRect(buf, x, y, 8, 1, hcL);
-    fillRect(buf, x, y + 1, 8, 2, hc);
-    fillRect(buf, x + 1, y + 2, 6, 1, hcS);
-  }
-  // 머리카락 (투구 없을 때)
-  if (!hasHelmet) {
-    fillRect(buf, x, y, 8, 2, c.hair);
-    fillRect(buf, x + 1, y, 6, 1, c.hairL);
-  }
-  // 얼굴
-  const fy = hasHelmet ? y + 3 : y + 2;
-  fillRect(buf, x, fy, 8, 5, c.skin);
-  fillRect(buf, x + 1, fy, 6, 1, c.skinL);
+// ── 공통 ──
+function drawFace96(ctx: CanvasRenderingContext2D, cx: number, y: number, c: ReturnType<typeof pal>) {
+  // 얼굴 윤곽
+  outlinedRect(ctx, cx - 10, y, 20, 16, c.skin, c.skinD);
+  rect(ctx, cx - 9, y + 1, 18, 2, c.skinL);
   // 눈
-  setPixel(buf, x + 1, fy + 2, c.eyeW);
-  setPixel(buf, x + 2, fy + 2, c.eye);
-  setPixel(buf, x + 5, fy + 2, c.eye);
-  setPixel(buf, x + 6, fy + 2, c.eyeW);
+  rect(ctx, cx - 8, y + 6, 4, 3, c.eyeW);
+  rect(ctx, cx + 4, y + 6, 4, 3, c.eyeW);
+  rect(ctx, cx - 6, y + 6, 2, 3, c.eye);
+  rect(ctx, cx + 6, y + 6, 2, 3, c.eye);
+  // 눈썹
+  rect(ctx, cx - 8, y + 4, 5, 1, c.hairD);
+  rect(ctx, cx + 3, y + 4, 5, 1, c.hairD);
+  // 코
+  rect(ctx, cx - 1, y + 10, 2, 2, c.skinS);
   // 입
-  setPixel(buf, x + 3, fy + 4, c.skinS);
-  setPixel(buf, x + 4, fy + 4, c.skinS);
+  rect(ctx, cx - 2, y + 13, 4, 1, c.skinD);
 }
 
-const drawInfantry: DrawFn = (buf, faction, anim, frame) => {
+function drawHelmet96(ctx: CanvasRenderingContext2D, cx: number, y: number, c: ReturnType<typeof pal>) {
+  // 투구 본체
+  outlinedRect(ctx, cx - 12, y, 24, 8, c.armor, c.armorD);
+  rect(ctx, cx - 11, y + 1, 22, 2, c.armorL);
+  rect(ctx, cx - 11, y + 3, 22, 1, c.armorH);
+  rect(ctx, cx - 12, y + 6, 24, 2, c.armorS);
+  // 투구 뿔/장식
+  rect(ctx, cx - 2, y - 6, 4, 6, c.gold);
+  rect(ctx, cx - 1, y - 7, 2, 1, c.goldL);
+  rect(ctx, cx - 3, y - 4, 1, 3, c.goldS);
+  rect(ctx, cx + 2, y - 4, 1, 3, c.goldS);
+  // 깃털
+  rect(ctx, cx + 4, y - 10, 2, 8, c.white);
+  rect(ctx, cx + 5, y - 11, 2, 4, c.whiteS);
+  pixel(ctx, cx + 3, y - 8, c.whiteS);
+  pixel(ctx, cx + 6, y - 10, c.whiteS);
+  // 이마 장식
+  rect(ctx, cx - 4, y + 4, 8, 2, c.gold);
+}
+
+function drawClothCap96(ctx: CanvasRenderingContext2D, cx: number, y: number, c: ReturnType<typeof pal>) {
+  outlinedRect(ctx, cx - 11, y, 22, 6, c.cloth, c.clothS);
+  rect(ctx, cx - 10, y + 1, 20, 2, c.clothL);
+  // 매듭
+  rect(ctx, cx - 13, y + 2, 3, 2, c.clothS);
+  rect(ctx, cx + 10, y + 2, 3, 2, c.clothS);
+  rect(ctx, cx + 11, y + 4, 4, 2, c.cloth);
+  rect(ctx, cx + 12, y + 6, 3, 2, c.clothS);
+}
+
+function drawScholarCap96(ctx: CanvasRenderingContext2D, cx: number, y: number, c: ReturnType<typeof pal>) {
+  // 관모
+  outlinedRect(ctx, cx - 6, y - 10, 12, 10, c.gold, c.goldD);
+  rect(ctx, cx - 5, y - 9, 10, 3, c.goldL);
+  rect(ctx, cx - 6, y - 1, 12, 2, c.goldS);
+  // 날개
+  rect(ctx, cx - 12, y - 2, 6, 2, c.goldS);
+  rect(ctx, cx + 6, y - 2, 6, 2, c.goldS);
+  // 머리카락
+  rect(ctx, cx - 11, y + 1, 22, 3, c.hair);
+  rect(ctx, cx - 10, y + 1, 20, 1, c.hairL);
+}
+
+// ── 보병 (96x96) ──
+const drawInfantry96: DrawCtxFn = (ctx, faction, anim, frame) => {
   const c = pal(faction);
-  const ox = 5, oy = anim === 'idle' ? (frame % 2 === 0 ? 1 : 2) : 1;
-  const atkOff = anim === 'attack' ? (frame < 2 ? frame * 2 : (3 - frame) * 2) : 0;
+  const cx = 48;
+  const by = anim === 'idle' ? (frame % 2 === 0 ? 16 : 18) : 16;
+  const atkOff = anim === 'attack' ? (frame < 2 ? frame * 5 : (3 - frame) * 5) : 0;
 
   // 그림자
-  for (let dx = -4; dx <= 4; dx++) setPixel(buf, ox + 4 + dx, 22, c.shadow);
+  ctx.fillStyle = c.shadow;
+  ctx.beginPath();
+  ctx.ellipse(cx, 90, 16, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
 
-  // 머리
-  drawHead(buf, ox, oy, c, true);
+  // 투구
+  drawHelmet96(ctx, cx, by, c);
+  // 얼굴
+  drawFace96(ctx, cx, by + 8, c);
 
   // 갑옷 몸통
-  fillRect(buf, ox - 1, oy + 8, 10, 2, c.armorL);
-  fillRect(buf, ox - 1, oy + 10, 10, 3, c.armor);
-  fillRect(buf, ox, oy + 12, 8, 1, c.armorS);
+  outlinedRect(ctx, cx - 14, by + 24, 28, 8, c.armorL, c.armorD);
+  outlinedRect(ctx, cx - 14, by + 32, 28, 10, c.armor, c.armorD);
+  rect(ctx, cx - 12, by + 41, 24, 2, c.armorS);
+  // 흉갑 디테일
+  rect(ctx, cx - 6, by + 26, 12, 4, c.armorH);
+  rect(ctx, cx - 4, by + 28, 8, 2, c.armorL);
   // 금장 띠
-  fillRect(buf, ox, oy + 11, 8, 1, c.gold);
-  // 어깨
-  fillRect(buf, ox - 2, oy + 8, 2, 3, c.armor);
-  fillRect(buf, ox + 8, oy + 8, 2, 3, c.armor);
+  rect(ctx, cx - 12, by + 36, 24, 3, c.gold);
+  rect(ctx, cx - 11, by + 38, 22, 1, c.goldS);
+  // 어깨 갑옷
+  outlinedRect(ctx, cx - 20, by + 24, 8, 10, c.armorL, c.armorD);
+  outlinedRect(ctx, cx + 12, by + 24, 8, 10, c.armorL, c.armorD);
+  rect(ctx, cx - 19, by + 24, 6, 2, c.armorH);
+  rect(ctx, cx + 13, by + 24, 6, 2, c.armorH);
+  // 어깨 금장
+  rect(ctx, cx - 18, by + 26, 4, 2, c.gold);
+  rect(ctx, cx + 14, by + 26, 4, 2, c.gold);
 
-  // 팔 (피부)
-  fillRect(buf, ox - 2, oy + 11, 2, 2, c.skin);
-  fillRect(buf, ox + 8, oy + 11, 2, 2, c.skin);
+  // 팔
+  rect(ctx, cx - 20, by + 34, 6, 8, c.cloth);
+  rect(ctx, cx + 14, by + 34, 6, 8, c.cloth);
+  rect(ctx, cx - 20, by + 34, 6, 2, c.clothL);
+  rect(ctx, cx + 14, by + 34, 6, 2, c.clothL);
+  // 손
+  rect(ctx, cx - 20, by + 42, 5, 4, c.skin);
+  rect(ctx, cx + 15, by + 42, 5, 4, c.skin);
 
   // 다리
-  const legSpread = anim === 'walk' ? (frame % 2) : 0;
-  fillRect(buf, ox + 1 - legSpread, oy + 13, 3, 4, c.clothS);
-  fillRect(buf, ox + 4 + legSpread, oy + 13, 3, 4, c.clothS);
+  const ls = anim === 'walk' ? (frame % 2) * 3 : 0;
+  outlinedRect(ctx, cx - 10 - ls, by + 43, 8, 14, c.clothS, c.armorD);
+  outlinedRect(ctx, cx + 2 + ls, by + 43, 8, 14, c.clothS, c.armorD);
+  // 무릎 갑옷
+  rect(ctx, cx - 9 - ls, by + 43, 6, 5, c.armor);
+  rect(ctx, cx + 3 + ls, by + 43, 6, 5, c.armor);
   // 부츠
-  fillRect(buf, ox + 1 - legSpread, oy + 17, 3, 2, c.boot);
-  fillRect(buf, ox + 4 + legSpread, oy + 17, 3, 2, c.boot);
+  outlinedRect(ctx, cx - 12 - ls, by + 57, 10, 6, c.boot, c.bootS);
+  outlinedRect(ctx, cx + 2 + ls, by + 57, 10, 6, c.boot, c.bootS);
+  rect(ctx, cx - 11 - ls, by + 57, 8, 2, c.bootL);
+  rect(ctx, cx + 3 + ls, by + 57, 8, 2, c.bootL);
 
   // 검
-  const sx = ox + 10 + atkOff;
+  const sx = cx + 22 + atkOff;
   if (anim === 'attack' && frame === 2) {
     // 횡베기
-    fillRect(buf, ox + 8, oy + 6, 8, 1, c.steelL);
-    fillRect(buf, ox + 8, oy + 7, 8, 1, c.steel);
-    setPixel(buf, ox + 8, oy + 8, c.gold);
+    for (let i = 0; i < 20; i++) {
+      rect(ctx, cx + 10 + i, by + 16 - Math.floor(i / 4), 2, 2, c.steelL);
+      rect(ctx, cx + 10 + i, by + 18 - Math.floor(i / 4), 2, 2, c.steel);
+    }
+    rect(ctx, cx + 8, by + 22, 4, 2, c.gold);
   } else {
-    fillRect(buf, sx, oy + 2, 1, 7, c.steel);
-    setPixel(buf, sx, oy + 1, c.steelL);
-    setPixel(buf, sx - 1, oy + 9, c.gold);
-    setPixel(buf, sx + 1, oy + 9, c.gold);
-    fillRect(buf, sx, oy + 10, 1, 2, c.wood);
+    // 검 블레이드
+    rect(ctx, sx, by + 4, 3, 22, c.steel);
+    rect(ctx, sx, by + 4, 1, 22, c.steelL);
+    rect(ctx, sx + 2, by + 4, 1, 22, c.steelS);
+    // 검 끝
+    rect(ctx, sx, by + 2, 3, 2, c.steelL);
+    pixel(ctx, sx + 1, by + 1, c.steelL);
+    // 코등이
+    rect(ctx, sx - 2, by + 26, 7, 2, c.gold);
+    // 손잡이
+    rect(ctx, sx, by + 28, 3, 6, c.wood);
+    rect(ctx, sx + 1, by + 28, 1, 6, c.woodL);
+    // 폼멜
+    rect(ctx, sx, by + 34, 3, 2, c.goldS);
   }
 };
 
-const drawCavalry: DrawFn = (buf, faction, anim, frame) => {
+// ── 기병 (96x96) ──
+const drawCavalry96: DrawCtxFn = (ctx, faction, anim, frame) => {
   const c = pal(faction);
-  const ox = 3, oy = 0;
-  const legOff = anim === 'walk' ? (frame % 2) : 0;
+  const cx = 48;
+  const legOff = anim === 'walk' ? (frame % 2) * 3 : 0;
 
-  // 그림자
-  for (let dx = -6; dx <= 6; dx++) setPixel(buf, 12 + dx, 23, c.shadow);
+  ctx.fillStyle = c.shadow;
+  ctx.beginPath();
+  ctx.ellipse(cx, 92, 22, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
 
   // 말 몸통
-  fillRect(buf, ox, oy + 13, 16, 4, c.horse);
-  fillRect(buf, ox + 1, oy + 13, 14, 1, c.horseS);
+  outlinedRect(ctx, cx - 20, 50, 42, 16, c.horse, c.horseS);
+  rect(ctx, cx - 18, 50, 38, 4, c.horseL);
+  rect(ctx, cx - 20, 62, 42, 4, c.horseS);
   // 안장
-  fillRect(buf, ox + 5, oy + 12, 6, 2, c.armor);
-  fillRect(buf, ox + 6, oy + 12, 4, 1, c.armorL);
+  outlinedRect(ctx, cx - 8, 46, 18, 8, c.armor, c.armorD);
+  rect(ctx, cx - 6, 46, 14, 3, c.armorL);
+  rect(ctx, cx - 6, 49, 14, 2, c.armorH);
+  rect(ctx, cx - 8, 53, 18, 1, c.gold);
+  // 등자
+  rect(ctx, cx - 10, 58, 2, 4, c.steelS);
+  rect(ctx, cx + 10, 58, 2, 4, c.steelS);
   // 말 머리
-  fillRect(buf, ox + 14, oy + 10, 4, 5, c.horse);
-  fillRect(buf, ox + 15, oy + 10, 2, 2, c.horseS);
-  setPixel(buf, ox + 16, oy + 11, c.eye);
+  outlinedRect(ctx, cx + 18, 38, 12, 20, c.horse, c.horseS);
+  rect(ctx, cx + 20, 38, 8, 6, c.horseL);
+  rect(ctx, cx + 26, 42, 4, 4, c.eye);
+  rect(ctx, cx + 27, 42, 2, 3, c.eyeW);
   // 갈기
-  fillRect(buf, ox + 13, oy + 9, 2, 5, c.horseMane);
+  rect(ctx, cx + 14, 34, 6, 18, c.horseMane);
   // 말 귀
-  setPixel(buf, ox + 15, oy + 9, c.horse);
+  rect(ctx, cx + 22, 34, 3, 5, c.horse);
+  rect(ctx, cx + 23, 33, 2, 2, c.horseL);
+  // 코
+  outlinedRect(ctx, cx + 26, 54, 6, 4, c.horseS, c.horseS);
   // 말 다리
-  fillRect(buf, ox + 1, oy + 17, 2, 4 - legOff, c.horseS);
-  fillRect(buf, ox + 5, oy + 17, 2, 4 + legOff, c.horseS);
-  fillRect(buf, ox + 10, oy + 17, 2, 4 + legOff, c.horseS);
-  fillRect(buf, ox + 14, oy + 17, 2, 4 - legOff, c.horseS);
-  // 말 꼬리
-  fillRect(buf, ox - 1, oy + 13, 2, 3, c.horseMane);
+  rect(ctx, cx - 18, 66, 5, 14 - legOff, c.horseS);
+  rect(ctx, cx - 8, 66, 5, 14 + legOff, c.horseS);
+  rect(ctx, cx + 5, 66, 5, 14 + legOff, c.horseS);
+  rect(ctx, cx + 15, 66, 5, 14 - legOff, c.horseS);
+  // 발굽
+  rect(ctx, cx - 18, 79 - legOff, 5, 3, c.bootS);
+  rect(ctx, cx - 8, 79 + legOff, 5, 3, c.bootS);
+  rect(ctx, cx + 5, 79 + legOff, 5, 3, c.bootS);
+  rect(ctx, cx + 15, 79 - legOff, 5, 3, c.bootS);
+  // 꼬리
+  rect(ctx, cx - 24, 50, 5, 10, c.horseMane);
+  rect(ctx, cx - 26, 56, 3, 6, c.horseMane);
 
-  // 기수 머리
-  drawHead(buf, ox + 4, oy, c, true);
+  // 기수 투구
+  drawHelmet96(ctx, cx - 2, 2, c);
+  // 기수 얼굴
+  drawFace96(ctx, cx - 2, 10, c);
 
   // 기수 갑옷
-  fillRect(buf, ox + 3, oy + 8, 10, 4, c.armor);
-  fillRect(buf, ox + 4, oy + 8, 8, 1, c.armorL);
-  fillRect(buf, ox + 4, oy + 10, 8, 1, c.gold);
+  outlinedRect(ctx, cx - 14, 26, 26, 18, c.armor, c.armorD);
+  rect(ctx, cx - 12, 26, 22, 4, c.armorL);
+  rect(ctx, cx - 12, 34, 22, 3, c.gold);
+  // 어깨
+  outlinedRect(ctx, cx - 18, 26, 6, 8, c.armorL, c.armorD);
+  outlinedRect(ctx, cx + 10, 26, 6, 8, c.armorL, c.armorD);
 
   // 창
-  const spx = ox + 16;
-  fillRect(buf, spx, oy, 1, 12, c.wood);
-  setPixel(buf, spx - 1, oy, c.steel);
-  setPixel(buf, spx, oy - 1 < 0 ? 0 : oy - 1, c.steelL);
-  setPixel(buf, spx + 1, oy, c.steel);
+  const spx = cx + 26;
+  rect(ctx, spx, 0, 3, 46, c.wood);
+  rect(ctx, spx, 0, 1, 46, c.woodL);
+  // 창날
+  rect(ctx, spx - 2, 0, 7, 3, c.steel);
+  rect(ctx, spx - 1, 0, 5, 1, c.steelL);
+  pixel(ctx, spx + 1, 0, c.steelL);
+  // 깃발
+  rect(ctx, spx + 3, 6, 8, 6, c.armor);
+  rect(ctx, spx + 4, 7, 6, 4, c.armorL);
 };
 
-const drawArcher: DrawFn = (buf, faction, anim, frame) => {
+// ── 궁병 (96x96) ──
+const drawArcher96: DrawCtxFn = (ctx, faction, anim, frame) => {
   const c = pal(faction);
-  const ox = 6, oy = anim === 'idle' ? (frame % 2 === 0 ? 1 : 2) : 1;
+  const cx = 48;
+  const by = anim === 'idle' ? (frame % 2 === 0 ? 12 : 14) : 12;
 
-  for (let dx = -4; dx <= 4; dx++) setPixel(buf, ox + 3 + dx, 22, c.shadow);
+  ctx.fillStyle = c.shadow;
+  ctx.beginPath();
+  ctx.ellipse(cx, 90, 14, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
 
-  // 머리 (두건)
-  drawHead(buf, ox - 1, oy, c, true, 'cloth');
+  drawClothCap96(ctx, cx, by, c);
+  drawFace96(ctx, cx, by + 6, c);
 
-  // 경갑
-  fillRect(buf, ox - 2, oy + 8, 10, 5, c.cloth);
-  fillRect(buf, ox - 1, oy + 8, 8, 2, c.armor);
-  fillRect(buf, ox, oy + 11, 6, 1, c.wood); // 벨트
+  // 경갑 + 옷
+  outlinedRect(ctx, cx - 13, by + 22, 26, 6, c.armor, c.armorD);
+  rect(ctx, cx - 12, by + 22, 24, 2, c.armorL);
+  outlinedRect(ctx, cx - 12, by + 28, 24, 12, c.cloth, c.clothS);
+  rect(ctx, cx - 11, by + 28, 22, 2, c.clothL);
+  // 벨트
+  rect(ctx, cx - 10, by + 36, 20, 3, c.wood);
+  rect(ctx, cx - 9, by + 36, 18, 1, c.woodL);
 
   // 팔
-  fillRect(buf, ox - 3, oy + 8, 2, 4, c.skin);
-  fillRect(buf, ox + 7, oy + 8, 2, 4, c.skin);
+  rect(ctx, cx - 18, by + 22, 6, 12, c.cloth);
+  rect(ctx, cx + 12, by + 22, 6, 12, c.cloth);
+  rect(ctx, cx - 18, by + 34, 5, 6, c.skin);
+  rect(ctx, cx + 13, by + 34, 5, 6, c.skin);
 
   // 다리
-  const legSpread = anim === 'walk' ? (frame % 2) : 0;
-  fillRect(buf, ox - 1 - legSpread, oy + 13, 3, 4, c.clothS);
-  fillRect(buf, ox + 3 + legSpread, oy + 13, 3, 4, c.clothS);
-  fillRect(buf, ox - 1 - legSpread, oy + 17, 3, 2, c.boot);
-  fillRect(buf, ox + 3 + legSpread, oy + 17, 3, 2, c.boot);
+  const ls = anim === 'walk' ? (frame % 2) * 3 : 0;
+  outlinedRect(ctx, cx - 8 - ls, by + 40, 7, 14, c.clothS, c.clothS);
+  outlinedRect(ctx, cx + 1 + ls, by + 40, 7, 14, c.clothS, c.clothS);
+  outlinedRect(ctx, cx - 10 - ls, by + 54, 9, 6, c.boot, c.bootS);
+  outlinedRect(ctx, cx + 1 + ls, by + 54, 9, 6, c.boot, c.bootS);
+  rect(ctx, cx - 9 - ls, by + 54, 7, 2, c.bootL);
+  rect(ctx, cx + 2 + ls, by + 54, 7, 2, c.bootL);
 
   // 활
-  const bowX = ox - 5;
-  fillRect(buf, bowX, oy + 6, 1, 8, c.wood);
-  setPixel(buf, bowX - 1, oy + 5, c.wood);
-  setPixel(buf, bowX - 1, oy + 14, c.wood);
+  ctx.strokeStyle = c.woodS;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(cx - 22, by + 30, 14, -Math.PI * 0.7, Math.PI * 0.7, false);
+  ctx.stroke();
+  ctx.strokeStyle = c.woodL;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(cx - 22, by + 30, 13, -Math.PI * 0.6, Math.PI * 0.6, false);
+  ctx.stroke();
   // 시위
-  fillRect(buf, bowX + 1, oy + 5, 1, 10, c.whiteS);
+  ctx.strokeStyle = c.whiteS;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx - 28, by + 18);
+  ctx.lineTo(cx - 28, by + 42);
+  ctx.stroke();
+
   // 화살 (공격 시)
   if (anim === 'attack' && frame >= 2) {
-    fillRect(buf, ox + 8, oy + 9, 8, 1, c.wood);
-    setPixel(buf, ox + 16 > 23 ? 23 : ox + 16, oy + 9, c.steelL);
+    rect(ctx, cx + 10, by + 28, 24, 2, c.wood);
+    rect(ctx, cx + 32, by + 26, 4, 2, c.steelL);
+    rect(ctx, cx + 32, by + 28, 4, 2, c.steel);
+    rect(ctx, cx + 32, by + 30, 4, 2, c.steelL);
   }
+
   // 화살통
-  fillRect(buf, ox + 7, oy + 7, 2, 5, c.wood);
-  setPixel(buf, ox + 7, oy + 6, c.white);
-  setPixel(buf, ox + 8, oy + 6, c.white);
+  outlinedRect(ctx, cx + 10, by + 16, 5, 14, c.wood, c.woodS);
+  rect(ctx, cx + 11, by + 16, 3, 14, c.woodL);
+  rect(ctx, cx + 10, by + 14, 5, 2, c.white);
+  rect(ctx, cx + 11, by + 13, 1, 1, c.steelL);
+  rect(ctx, cx + 13, by + 13, 1, 1, c.steelL);
 };
 
-const drawStrategist: DrawFn = (buf, faction, anim, frame) => {
+// ── 책사 (96x96) ──
+const drawStrategist96: DrawCtxFn = (ctx, faction, anim, frame) => {
   const c = pal(faction);
-  const ox = 5, oy = anim === 'idle' ? (frame % 2 === 0 ? 0 : 1) : 0;
+  const cx = 48;
+  const by = anim === 'idle' ? (frame % 2 === 0 ? 8 : 10) : 8;
 
-  for (let dx = -4; dx <= 4; dx++) setPixel(buf, ox + 4 + dx, 22, c.shadow);
+  ctx.fillStyle = c.shadow;
+  ctx.beginPath();
+  ctx.ellipse(cx, 92, 18, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
 
-  // 관모 (높은 모자)
-  fillRect(buf, ox + 2, oy, 4, 2, c.gold);
-  fillRect(buf, ox + 3, oy - 1 < 0 ? 0 : oy - 1, 2, 1, c.goldS);
-
-  // 머리카락
-  fillRect(buf, ox, oy + 2, 8, 1, c.hair);
-
-  // 얼굴
-  fillRect(buf, ox, oy + 3, 8, 5, c.skin);
-  fillRect(buf, ox + 1, oy + 3, 6, 1, c.skinL);
-  setPixel(buf, ox + 1, oy + 5, c.eyeW);
-  setPixel(buf, ox + 2, oy + 5, c.eye);
-  setPixel(buf, ox + 5, oy + 5, c.eye);
-  setPixel(buf, ox + 6, oy + 5, c.eyeW);
+  drawScholarCap96(ctx, cx, by, c);
+  drawFace96(ctx, cx, by + 4, c);
   // 수염
-  setPixel(buf, ox + 2, oy + 7, c.hair);
-  setPixel(buf, ox + 3, oy + 7, c.hair);
-  setPixel(buf, ox + 4, oy + 7, c.hair);
-  setPixel(buf, ox + 5, oy + 7, c.hair);
+  rect(ctx, cx - 4, by + 19, 2, 6, c.hair);
+  rect(ctx, cx + 2, by + 19, 2, 6, c.hair);
+  rect(ctx, cx - 2, by + 21, 4, 2, c.hairL);
 
-  // 로브 (넓어지는 삼각형)
-  for (let dy = 0; dy < 10; dy++) {
-    const w = 8 + dy;
-    const lx = ox + 4 - Math.floor(w / 2);
-    const co = dy < 3 ? c.armor : dy < 7 ? c.cloth : c.clothS;
-    fillRect(buf, lx, oy + 8 + dy, w, 1, co);
+  // 로브
+  for (let dy = 0; dy < 36; dy++) {
+    const w = 24 + Math.floor(dy * 0.9);
+    const lx = cx - Math.floor(w / 2);
+    let co: string;
+    if (dy < 6) co = c.armorL;
+    else if (dy < 10) co = c.armor;
+    else if (dy < 24) co = c.cloth;
+    else co = c.clothS;
+    rect(ctx, lx, by + 24 + dy, w, 1, co);
   }
-  // 중앙 세로줄
-  for (let dy = 0; dy < 10; dy++) fillRect(buf, ox + 3, oy + 8 + dy, 2, 1, c.armorS);
+  // 여밈
+  for (let dy = 0; dy < 36; dy++) {
+    rect(ctx, cx - 2, by + 24 + dy, 4, 1, c.armorS);
+  }
   // 금장 띠
-  for (let dy = 0; dy < 1; dy++) {
-    const w = 10;
-    fillRect(buf, ox + 4 - Math.floor(w / 2), oy + 11, w, 1, c.gold);
-  }
+  const bw = 28;
+  rect(ctx, cx - Math.floor(bw / 2), by + 38, bw, 4, c.gold);
+  rect(ctx, cx - Math.floor(bw / 2) + 1, by + 41, bw - 2, 1, c.goldS);
+  // 옥 장식
+  rect(ctx, cx - 1, by + 38, 2, 4, c.goldL);
 
-  // 부채 (오른손)
-  const fanX = ox + 9;
-  const fanY = oy + 5;
+  // 소매
+  rect(ctx, cx - 20, by + 26, 8, 16, c.cloth);
+  rect(ctx, cx + 12, by + 26, 8, 16, c.cloth);
+  rect(ctx, cx - 20, by + 26, 8, 3, c.clothL);
+  rect(ctx, cx + 12, by + 26, 8, 3, c.clothL);
+  rect(ctx, cx - 20, by + 40, 8, 2, c.clothS);
+  rect(ctx, cx + 12, by + 40, 8, 2, c.clothS);
+  // 손
+  rect(ctx, cx - 22, by + 42, 6, 4, c.skin);
+  rect(ctx, cx + 16, by + 42, 6, 4, c.skin);
+
+  // 부채
+  const fanX = cx + 20;
+  const fanY = by + 28;
   if (anim === 'attack') {
-    // 부채 펼치기
-    fillRect(buf, fanX, fanY - frame, 4 + frame, 3 + frame, c.white);
-    fillRect(buf, fanX + 1, fanY - frame + 1, 2 + frame, 1 + frame, c.whiteS);
+    const sp = 3 + frame * 3;
+    rect(ctx, fanX, fanY - sp, 10 + frame * 2, 6 + sp * 2, c.white);
+    rect(ctx, fanX + 2, fanY - sp + 2, 6 + frame * 2, 2 + sp * 2, c.whiteS);
+    rect(ctx, fanX, fanY, 2, 10, c.woodS);
   } else {
-    fillRect(buf, fanX, fanY, 3, 4, c.white);
-    fillRect(buf, fanX + 1, fanY + 1, 1, 2, c.whiteS);
+    outlinedRect(ctx, fanX, fanY, 6, 10, c.white, c.whiteS);
+    rect(ctx, fanX + 1, fanY + 1, 4, 8, c.whiteS);
+    rect(ctx, fanX, fanY + 9, 2, 3, c.woodS);
   }
 
   // 부츠
-  fillRect(buf, ox + 1, oy + 18, 3, 2, c.boot);
-  fillRect(buf, ox + 5, oy + 18, 3, 2, c.boot);
+  outlinedRect(ctx, cx - 8, by + 58, 7, 4, c.boot, c.bootS);
+  outlinedRect(ctx, cx + 1, by + 58, 7, 4, c.boot, c.bootS);
 };
 
-const drawBandit: DrawFn = (buf, faction, anim, frame) => {
+// ── 도적 (96x96) ──
+const drawBandit96: DrawCtxFn = (ctx, faction, anim, frame) => {
   const c = pal(faction);
-  const ox = 5, oy = anim === 'idle' ? (frame % 2 === 0 ? 1 : 2) : 1;
-  const atkOff = anim === 'attack' ? (frame < 2 ? frame : 3 - frame) : 0;
+  const cx = 48;
+  const by = anim === 'idle' ? (frame % 2 === 0 ? 16 : 18) : 16;
+  const atkOff = anim === 'attack' ? (frame < 2 ? frame * 4 : (3 - frame) * 4) : 0;
 
-  for (let dx = -4; dx <= 4; dx++) setPixel(buf, ox + 4 + dx, 22, c.shadow);
+  ctx.fillStyle = c.shadow;
+  ctx.beginPath();
+  ctx.ellipse(cx, 90, 14, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
 
-  // 두건 (검정)
-  fillRect(buf, ox, oy, 8, 2, c.armorS);
-  fillRect(buf, ox + 1, oy, 6, 1, c.armor);
+  // 두건
+  outlinedRect(ctx, cx - 10, by, 20, 6, c.armorS, c.armorD);
+  rect(ctx, cx - 9, by + 1, 18, 2, c.armor);
+  rect(ctx, cx + 10, by + 2, 6, 2, c.armorS);
+  rect(ctx, cx + 10, by + 4, 5, 3, c.armor);
+
   // 얼굴 (마스크)
-  fillRect(buf, ox, oy + 2, 8, 3, c.skin);
-  setPixel(buf, ox + 1, oy + 3, c.eye);
-  setPixel(buf, ox + 6, oy + 3, c.eye);
-  fillRect(buf, ox, oy + 5, 8, 2, c.armorS); // 마스크
+  rect(ctx, cx - 10, by + 6, 20, 8, c.skin);
+  rect(ctx, cx - 7, by + 8, 4, 3, c.eyeW);
+  rect(ctx, cx + 3, by + 8, 4, 3, c.eyeW);
+  rect(ctx, cx - 5, by + 8, 2, 3, c.eye);
+  rect(ctx, cx + 5, by + 8, 2, 3, c.eye);
+  outlinedRect(ctx, cx - 10, by + 14, 20, 4, c.armorS, c.armorD);
 
   // 경갑
-  fillRect(buf, ox - 1, oy + 7, 10, 5, c.cloth);
-  fillRect(buf, ox, oy + 7, 3, 2, c.armor); // 어깨패드
-  fillRect(buf, ox + 5, oy + 7, 3, 2, c.armor);
-  fillRect(buf, ox, oy + 10, 8, 1, c.wood); // 벨트
+  outlinedRect(ctx, cx - 14, by + 18, 28, 16, c.cloth, c.clothS);
+  rect(ctx, cx - 13, by + 18, 26, 3, c.clothL);
+  // 어깨패드
+  outlinedRect(ctx, cx - 16, by + 18, 5, 6, c.armor, c.armorD);
+  outlinedRect(ctx, cx + 11, by + 18, 5, 6, c.armor, c.armorD);
+  // 벨트
+  rect(ctx, cx - 10, by + 30, 20, 3, c.wood);
+  rect(ctx, cx - 1, by + 30, 2, 3, c.gold);
 
   // 팔
-  fillRect(buf, ox - 2, oy + 7, 2, 4, c.skin);
-  fillRect(buf, ox + 8, oy + 7, 2, 4, c.skin);
+  rect(ctx, cx - 18, by + 24, 5, 10, c.skin);
+  rect(ctx, cx + 13, by + 24, 5, 10, c.skin);
 
   // 다리
-  fillRect(buf, ox + 1, oy + 12, 3, 5, c.clothS);
-  fillRect(buf, ox + 4, oy + 12, 3, 5, c.clothS);
-  fillRect(buf, ox + 1, oy + 17, 3, 2, c.boot);
-  fillRect(buf, ox + 4, oy + 17, 3, 2, c.boot);
+  outlinedRect(ctx, cx - 8, by + 34, 7, 16, c.clothS, c.armorD);
+  outlinedRect(ctx, cx + 1, by + 34, 7, 16, c.clothS, c.armorD);
+  outlinedRect(ctx, cx - 10, by + 50, 9, 6, c.boot, c.bootS);
+  outlinedRect(ctx, cx + 1, by + 50, 9, 6, c.boot, c.bootS);
+  rect(ctx, cx - 9, by + 50, 7, 2, c.bootL);
+  rect(ctx, cx + 2, by + 50, 7, 2, c.bootL);
 
   // 쌍단검
-  fillRect(buf, ox - 3 - atkOff, oy + 3, 1, 6, c.steel);
-  setPixel(buf, ox - 3 - atkOff, oy + 2, c.steelL);
-  fillRect(buf, ox + 10 + atkOff, oy + 3, 1, 6, c.steel);
-  setPixel(buf, ox + 10 + atkOff, oy + 2, c.steelL);
+  const lx = cx - 24 - atkOff;
+  const rx = cx + 20 + atkOff;
+  rect(ctx, lx, by + 6, 3, 18, c.steel);
+  rect(ctx, lx, by + 6, 1, 18, c.steelL);
+  rect(ctx, lx, by + 4, 3, 2, c.steelL);
+  rect(ctx, lx - 1, by + 24, 5, 2, c.gold);
+  rect(ctx, lx, by + 26, 3, 4, c.wood);
+
+  rect(ctx, rx, by + 6, 3, 18, c.steel);
+  rect(ctx, rx + 2, by + 6, 1, 18, c.steelS);
+  rect(ctx, rx, by + 4, 3, 2, c.steelL);
+  rect(ctx, rx - 1, by + 24, 5, 2, c.gold);
+  rect(ctx, rx, by + 26, 3, 4, c.wood);
 };
 
-const drawMartialArtist: DrawFn = (buf, faction, anim, frame) => {
+// ── 무도가 (96x96) ──
+const drawMartialArtist96: DrawCtxFn = (ctx, faction, anim, frame) => {
   const c = pal(faction);
-  const ox = 5, oy = anim === 'idle' ? (frame % 2 === 0 ? 1 : 2) : 1;
-  const atkOff = anim === 'attack' ? (frame < 2 ? frame * 2 : (3 - frame) * 2) : 0;
+  const cx = 48;
+  const by = anim === 'idle' ? (frame % 2 === 0 ? 14 : 16) : 14;
+  const atkOff = anim === 'attack' ? (frame < 2 ? frame * 5 : (3 - frame) * 5) : 0;
 
-  for (let dx = -4; dx <= 4; dx++) setPixel(buf, ox + 4 + dx, 22, c.shadow);
+  ctx.fillStyle = c.shadow;
+  ctx.beginPath();
+  ctx.ellipse(cx, 90, 16, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
 
-  // 머리 (짧은 머리 + 머리띠)
-  fillRect(buf, ox, oy, 8, 2, c.hair);
-  fillRect(buf, ox + 1, oy, 6, 1, c.hairL);
-  fillRect(buf, ox - 1, oy + 2, 10, 1, c.armor); // 머리띠
+  // 머리
+  rect(ctx, cx - 10, by, 20, 5, c.hair);
+  rect(ctx, cx - 9, by, 18, 2, c.hairL);
+  // 머리띠
+  outlinedRect(ctx, cx - 12, by + 5, 24, 3, c.armor, c.armorD);
+  rect(ctx, cx - 11, by + 5, 22, 1, c.armorL);
+  rect(ctx, cx + 12, by + 6, 5, 2, c.armor);
+  rect(ctx, cx + 12, by + 8, 4, 3, c.armorS);
 
   // 얼굴
-  fillRect(buf, ox, oy + 3, 8, 4, c.skin);
-  fillRect(buf, ox + 1, oy + 3, 6, 1, c.skinL);
-  setPixel(buf, ox + 1, oy + 4, c.eyeW);
-  setPixel(buf, ox + 2, oy + 4, c.eye);
-  setPixel(buf, ox + 5, oy + 4, c.eye);
-  setPixel(buf, ox + 6, oy + 4, c.eyeW);
-  setPixel(buf, ox + 3, oy + 6, c.skinS);
-  setPixel(buf, ox + 4, oy + 6, c.skinS);
+  drawFace96(ctx, cx, by + 8, c);
 
   // 도복
-  fillRect(buf, ox - 1, oy + 7, 10, 5, c.cloth);
-  fillRect(buf, ox, oy + 7, 4, 5, c.armor); // 앞여밈
-  fillRect(buf, ox - 1, oy + 10, 10, 1, c.gold); // 금띠
-  fillRect(buf, ox - 1, oy + 11, 10, 1, c.goldS);
+  outlinedRect(ctx, cx - 14, by + 24, 28, 16, c.cloth, c.clothS);
+  rect(ctx, cx - 13, by + 24, 26, 3, c.clothL);
+  // V자 앞여밈
+  for (let dy = 0; dy < 12; dy++) {
+    const vw = 4 + dy;
+    rect(ctx, cx - Math.floor(vw / 2), by + 24 + dy, Math.floor(vw / 2), 1, c.armor);
+    rect(ctx, cx, by + 24 + dy, Math.ceil(vw / 2), 1, c.armorL);
+  }
+  // 가슴 노출
+  rect(ctx, cx - 4, by + 24, 8, 5, c.skin);
+  rect(ctx, cx - 3, by + 24, 6, 3, c.skinL);
+  // 금띠
+  rect(ctx, cx - 14, by + 38, 28, 4, c.gold);
+  rect(ctx, cx - 13, by + 41, 26, 1, c.goldS);
+  rect(ctx, cx - 1, by + 38, 2, 4, c.goldL);
 
-  // 맨팔
-  fillRect(buf, ox - 2, oy + 7, 2, 4, c.skin);
-  fillRect(buf, ox + 8, oy + 7, 2, 4, c.skin);
+  // 맨팔 (근육)
+  rect(ctx, cx - 20, by + 24, 8, 12, c.skin);
+  rect(ctx, cx + 12, by + 24, 8, 12, c.skin);
+  rect(ctx, cx - 20, by + 24, 2, 12, c.skinS);
+  rect(ctx, cx + 18, by + 24, 2, 12, c.skinS);
+  rect(ctx, cx - 18, by + 26, 4, 4, c.skinL); // 근육 하이라이트
+  rect(ctx, cx + 14, by + 26, 4, 4, c.skinL);
+  // 팔보호대
+  rect(ctx, cx - 20, by + 30, 8, 3, c.cloth);
+  rect(ctx, cx + 12, by + 30, 8, 3, c.cloth);
   // 주먹
-  fillRect(buf, ox - 3 - atkOff, oy + 10, 2, 2, c.skin);
-  fillRect(buf, ox + 9 + atkOff, oy + 10, 2, 2, c.skin);
+  rect(ctx, cx - 24 - atkOff, by + 36, 8, 5, c.skin);
+  rect(ctx, cx + 16 + atkOff, by + 36, 8, 5, c.skin);
+  rect(ctx, cx - 23 - atkOff, by + 36, 6, 2, c.skinL);
+  rect(ctx, cx + 17 + atkOff, by + 36, 6, 2, c.skinL);
 
   // 넓은 바지
-  fillRect(buf, ox, oy + 12, 4, 5, c.clothS);
-  fillRect(buf, ox + 4, oy + 12, 4, 5, c.clothS);
-  fillRect(buf, ox + 1, oy + 17, 3, 2, c.boot);
-  fillRect(buf, ox + 5, oy + 17, 3, 2, c.boot);
+  outlinedRect(ctx, cx - 12, by + 42, 10, 16, c.clothS, c.armorD);
+  outlinedRect(ctx, cx + 2, by + 42, 10, 16, c.clothS, c.armorD);
+  rect(ctx, cx - 10, by + 42, 6, 16, c.cloth);
+  rect(ctx, cx + 4, by + 42, 6, 16, c.cloth);
+  // 부츠
+  outlinedRect(ctx, cx - 14, by + 58, 12, 5, c.boot, c.bootS);
+  outlinedRect(ctx, cx + 2, by + 58, 12, 5, c.boot, c.bootS);
+  rect(ctx, cx - 13, by + 58, 10, 2, c.bootL);
+  rect(ctx, cx + 3, by + 58, 10, 2, c.bootL);
 };
 
-const CLASS_DRAWERS: Record<string, DrawFn> = {
-  infantry: drawInfantry,
-  cavalry: drawCavalry,
-  archer: drawArcher,
-  strategist: drawStrategist,
-  bandit: drawBandit,
-  martial_artist: drawMartialArtist,
+const CLASS_DRAWERS_96: Record<string, DrawCtxFn> = {
+  infantry: drawInfantry96,
+  cavalry: drawCavalry96,
+  archer: drawArcher96,
+  strategist: drawStrategist96,
+  bandit: drawBandit96,
+  martial_artist: drawMartialArtist96,
 };
 
 // ═══════════════════════════════════════
-// 메인 생성 함수
+// 메인 생성 함수 (96x96 → 48x48 축소)
 // ═══════════════════════════════════════
 
 export function generateUnitSpritesheet(scene: Phaser.Scene, unitClass: UnitClass, faction: Faction): string {
   const key = `unit_${unitClass}_${faction}`;
   if (scene.textures.exists(key)) return key;
 
-  const width = FRAME_W * ANIM_COLS;
-  const height = FRAME_H * ANIM_ROWS;
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext('2d')!;
+  // 96x96으로 그린 후 48x48로 축소
+  const hiResCanvas = document.createElement('canvas');
+  hiResCanvas.width = UNIT_RES * ANIM_COLS;
+  hiResCanvas.height = UNIT_RES * ANIM_ROWS;
+  const hiCtx = hiResCanvas.getContext('2d')!;
 
-  const drawFn = CLASS_DRAWERS[unitClass] ?? CLASS_DRAWERS.infantry;
+  const outCanvas = document.createElement('canvas');
+  outCanvas.width = FRAME_W * ANIM_COLS;
+  outCanvas.height = FRAME_H * ANIM_ROWS;
+  const outCtx = outCanvas.getContext('2d')!;
+  outCtx.imageSmoothingEnabled = false;
+
+  const drawFn = CLASS_DRAWERS_96[unitClass] ?? CLASS_DRAWERS_96.infantry;
   const anims = ['idle', 'walk', 'attack', 'hit', 'die'];
-  const buf = new Uint32Array(LW * LH);
 
   for (let row = 0; row < ANIM_ROWS; row++) {
     for (let col = 0; col < ANIM_COLS; col++) {
-      buf.fill(0);
-      drawFn(buf, faction, anims[row], col);
+      hiCtx.save();
+      hiCtx.translate(col * UNIT_RES, row * UNIT_RES);
+      hiCtx.clearRect(0, 0, UNIT_RES, UNIT_RES);
 
-      // hit: 깜빡임
       if (anims[row] === 'hit' && col % 2 === 0) {
-        for (let i = 0; i < buf.length; i++) {
-          if (buf[i] !== 0) {
-            const a = (buf[i] >> 24) & 0xff;
-            buf[i] = (buf[i] & 0x00ffffff) | (Math.floor(a * 0.4) << 24);
-          }
-        }
+        hiCtx.globalAlpha = 0.4;
       }
-      // die: 점점 투명
       if (anims[row] === 'die') {
-        const alpha = 1 - col * 0.3;
-        for (let i = 0; i < buf.length; i++) {
-          if (buf[i] !== 0) {
-            const a = (buf[i] >> 24) & 0xff;
-            buf[i] = (buf[i] & 0x00ffffff) | (Math.floor(a * alpha) << 24);
-          }
-        }
+        hiCtx.globalAlpha = 1 - col * 0.3;
       }
 
-      blitWithOutline(buf, ctx, col * FRAME_W, row * FRAME_H);
+      drawFn(hiCtx, faction, anims[row], col);
+      hiCtx.restore();
+
+      // 96→48 축소
+      outCtx.drawImage(
+        hiResCanvas,
+        col * UNIT_RES, row * UNIT_RES, UNIT_RES, UNIT_RES,
+        col * FRAME_W, row * FRAME_H, FRAME_W, FRAME_H,
+      );
     }
   }
 
-  addCanvasAsSpriteSheet(scene, key, canvas, FRAME_W, FRAME_H);
+  addCanvasAsSpriteSheet(scene, key, outCanvas, FRAME_W, FRAME_H);
   return key;
 }
 
@@ -511,75 +661,73 @@ export function createUnitAnimations(scene: Phaser.Scene, textureKey: string): v
 }
 
 // ═══════════════════════════════════════
-// 타일셋 (자동 아웃라인 적용)
+// 타일셋
 // ═══════════════════════════════════════
 
-type TileDrawFn = (buf: Uint32Array) => void;
+type TileDrawCtxFn = (ctx: CanvasRenderingContext2D) => void;
 
-const drawPlainTile: TileDrawFn = (buf) => {
-  const base = rgba(106, 158, 76);
-  const grass1 = rgba(90, 142, 60);
-  const grass2 = rgba(122, 174, 92);
-  const dirt = rgba(138, 152, 100);
-  fillRect(buf, 0, 0, LW, LH, base);
-  for (let i = 0; i < 12; i++) {
-    const gx = (i * 7 + 3) % (LW - 1);
-    const gy = (i * 11 + 5) % (LH - 1);
-    setPixel(buf, gx, gy, grass1);
-    setPixel(buf, gx, gy > 0 ? gy - 1 : 0, grass2);
+const drawPlainTile: TileDrawCtxFn = (ctx) => {
+  const S = TILE_RES;
+  rect(ctx, 0, 0, S, S, '#6a9e4c');
+  for (let i = 0; i < 20; i++) {
+    const gx = (i * 7 + 3) % (S - 2);
+    const gy = (i * 11 + 5) % (S - 2);
+    pixel(ctx, gx, gy, '#5a8e3c');
+    pixel(ctx, gx + 1, gy, '#7aae5c');
   }
-  for (let i = 0; i < 4; i++) {
-    setPixel(buf, (i * 13 + 7) % LW, (i * 9 + 3) % LH, dirt);
+  for (let i = 0; i < 6; i++) {
+    pixel(ctx, (i * 13 + 7) % S, (i * 9 + 3) % S, '#8a9864');
   }
 };
 
-const drawForestTile: TileDrawFn = (buf) => {
-  fillRect(buf, 0, 0, LW, LH, rgba(74, 122, 48));
-  const trees: [number, number][] = [[5, 3], [14, 5], [9, 13], [18, 10]];
+const drawForestTile: TileDrawCtxFn = (ctx) => {
+  const S = TILE_RES;
+  rect(ctx, 0, 0, S, S, '#4a7a30');
+  const trees: [number, number][] = [[10, 6], [28, 10], [18, 26], [36, 20]];
   for (const [tx, ty] of trees) {
-    // 줄기
-    fillRect(buf, tx, ty + 5, 2, 4, rgba(90, 58, 26));
-    // 잎
-    fillRect(buf, tx - 3, ty, 8, 4, rgba(42, 90, 20));
-    fillRect(buf, tx - 2, ty - 1 < 0 ? 0 : ty - 1, 6, 2, rgba(58, 106, 36));
-    fillRect(buf, tx - 1, ty + 3, 4, 2, rgba(42, 90, 20));
-    setPixel(buf, tx - 1, ty, rgba(74, 138, 52)); // 하이라이트
+    rect(ctx, tx, ty + 10, 3, 8, '#5a3a1a');
+    rect(ctx, tx + 1, ty + 10, 1, 8, '#7a5a2a');
+    rect(ctx, tx - 5, ty + 2, 12, 8, '#2a5a14');
+    rect(ctx, tx - 4, ty, 10, 3, '#3a6a24');
+    rect(ctx, tx - 2, ty + 1, 4, 2, '#4a8a34');
   }
 };
 
-const drawMountainTile: TileDrawFn = (buf) => {
-  fillRect(buf, 0, 0, LW, LH, rgba(122, 112, 96));
-  for (let dy = 0; dy < 16; dy++) {
-    const w = 2 + dy;
-    const x0 = 12 - Math.floor(w / 2);
-    fillRect(buf, x0, 3 + dy, w, 1, rgba(90, 84, 72));
+const drawMountainTile: TileDrawCtxFn = (ctx) => {
+  const S = TILE_RES;
+  rect(ctx, 0, 0, S, S, '#7a7060');
+  for (let dy = 0; dy < 30; dy++) {
+    const w = 4 + dy * 1.2;
+    rect(ctx, S / 2 - Math.floor(w / 2), 6 + dy, Math.ceil(w), 1, dy < 5 ? '#a0a098' : '#6a6450');
   }
-  fillRect(buf, 10, 3, 4, 2, rgba(224, 224, 224));
-  fillRect(buf, 11, 5, 2, 1, rgba(208, 208, 208));
+  rect(ctx, S / 2 - 4, 6, 8, 4, '#e0e0e0');
+  rect(ctx, S / 2 - 3, 10, 6, 2, '#d0d0d0');
 };
 
-const drawWaterTile: TileDrawFn = (buf) => {
-  fillRect(buf, 0, 0, LW, LH, rgba(42, 90, 144));
-  for (let wy = 2; wy < LH; wy += 4) {
-    for (let wx = 0; wx < LW; wx += 2) {
-      const shade = ((wx + wy) % 4 === 0) ? rgba(58, 106, 160) : rgba(26, 74, 128);
-      setPixel(buf, wx, wy + (wx % 4 < 2 ? 0 : 1), shade);
+const drawWaterTile: TileDrawCtxFn = (ctx) => {
+  const S = TILE_RES;
+  rect(ctx, 0, 0, S, S, '#2a5a90');
+  for (let wy = 3; wy < S; wy += 6) {
+    for (let wx = 0; wx < S; wx += 3) {
+      const shade = ((wx + wy) % 6 < 3) ? '#3a6aa0' : '#1a4a80';
+      pixel(ctx, wx, wy + (wx % 6 < 3 ? 0 : 1), shade);
     }
   }
-  setPixel(buf, 8, 6, rgba(106, 170, 208));
-  setPixel(buf, 16, 14, rgba(106, 170, 208));
+  pixel(ctx, 12, 10, '#6aaad0');
+  pixel(ctx, 30, 22, '#6aaad0');
 };
 
-const drawBridgeTile: TileDrawFn = (buf) => {
-  fillRect(buf, 0, 0, LW, LH, rgba(42, 90, 144));
-  fillRect(buf, 2, 3, 20, 18, rgba(138, 106, 42));
-  fillRect(buf, 3, 4, 18, 16, rgba(160, 122, 58));
-  for (let i = 0; i < 5; i++) fillRect(buf, 3, 5 + i * 4, 18, 1, rgba(122, 90, 26));
-  fillRect(buf, 2, 2, 20, 1, rgba(106, 74, 16));
-  fillRect(buf, 2, 21, 20, 1, rgba(106, 74, 16));
+const drawBridgeTile: TileDrawCtxFn = (ctx) => {
+  const S = TILE_RES;
+  rect(ctx, 0, 0, S, S, '#2a5a90');
+  rect(ctx, 4, 6, S - 8, S - 12, '#a07a2a');
+  rect(ctx, 6, 8, S - 12, S - 16, '#c09a3a');
+  for (let i = 0; i < 6; i++) rect(ctx, 6, 10 + i * 6, S - 12, 1, '#7a5a10');
+  rect(ctx, 4, 4, S - 8, 2, '#6a4a10');
+  rect(ctx, 4, S - 6, S - 8, 2, '#6a4a10');
 };
 
-const TILE_DRAWERS: Record<string, TileDrawFn> = {
+const TILE_DRAWERS_CTX: Record<string, TileDrawCtxFn> = {
   [TileType.PLAIN]: drawPlainTile,
   [TileType.FOREST]: drawForestTile,
   [TileType.MOUNTAIN]: drawMountainTile,
@@ -596,25 +744,13 @@ export function generateTileset(scene: Phaser.Scene): string {
   canvas.width = FRAME_W * tileTypes.length;
   canvas.height = FRAME_H;
   const ctx = canvas.getContext('2d')!;
-  const buf = new Uint32Array(LW * LH);
 
   for (let i = 0; i < tileTypes.length; i++) {
-    buf.fill(0);
-    TILE_DRAWERS[tileTypes[i]]?.(buf);
-    // 타일은 아웃라인 없이 직접 2x 스케일
-    const imgData = ctx.createImageData(FRAME_W, FRAME_H);
-    const out = new Uint32Array(imgData.data.buffer);
-    for (let sy = 0; sy < LH; sy++) {
-      for (let sx = 0; sx < LW; sx++) {
-        const c = buf[sy * LW + sx];
-        for (let dy = 0; dy < SCALE; dy++) {
-          for (let dx = 0; dx < SCALE; dx++) {
-            out[(sy * SCALE + dy) * FRAME_W + (sx * SCALE + dx)] = c;
-          }
-        }
-      }
-    }
-    ctx.putImageData(imgData, i * FRAME_W, 0);
+    ctx.save();
+    ctx.translate(i * FRAME_W, 0);
+    ctx.clearRect(0, 0, FRAME_W, FRAME_H);
+    TILE_DRAWERS_CTX[tileTypes[i]]?.(ctx);
+    ctx.restore();
   }
 
   addCanvasAsSpriteSheet(scene, key, canvas, FRAME_W, FRAME_H);
@@ -637,27 +773,22 @@ export function generateEffectSprites(scene: Phaser.Scene): void {
     canvas.width = FRAME_W * 4;
     canvas.height = FRAME_H;
     const ctx = canvas.getContext('2d')!;
-    const buf = new Uint32Array(LW * LH);
-
     for (let i = 0; i < 4; i++) {
-      buf.fill(0);
-      // 불꽃 3줄기
-      const flames: [number, number][] = [[6, 18 + i * 2], [12, 15 + i * 3], [17, 12 + i * 2]];
-      for (const [fx, fh] of flames) {
-        for (let dy = 0; dy < fh; dy++) {
-          const w = Math.max(1, Math.floor((fh - dy) / 4) + 1);
-          const co = dy < fh * 0.3 ? rgba(255, 238, 68) : dy < fh * 0.6 ? rgba(255, 170, 0) : rgba(255, 68, 0, 200);
-          fillRect(buf, fx - Math.floor(w / 2), LH - 2 - dy, w, 1, co);
+      ctx.save();
+      ctx.translate(i * FRAME_W, 0);
+      const flames: [number, number, number][] = [[12, 35, 8 + i * 3], [24, 30, 12 + i * 4], [36, 25, 6 + i * 3]];
+      for (const [fx, startY, h] of flames) {
+        for (let dy = 0; dy < h; dy++) {
+          const w = Math.max(2, Math.floor((h - dy) / 3) + 2);
+          const ratio = dy / h;
+          const color = ratio < 0.3 ? '#ffee44' : ratio < 0.6 ? '#ffaa00' : 'rgba(255,68,0,0.8)';
+          rect(ctx, fx - Math.floor(w / 2), startY - dy, w, 1, color);
         }
       }
-      blitWithOutline(buf, ctx, i * FRAME_W, 0);
+      ctx.restore();
     }
     addCanvasAsSpriteSheet(scene, 'fx_fire', canvas, FRAME_W, FRAME_H);
-    scene.anims.create({
-      key: 'fx_fire_play',
-      frames: scene.anims.generateFrameNumbers('fx_fire', { start: 0, end: 3 }),
-      frameRate: 8, repeat: 0,
-    });
+    scene.anims.create({ key: 'fx_fire_play', frames: scene.anims.generateFrameNumbers('fx_fire', { start: 0, end: 3 }), frameRate: 8, repeat: 0 });
   }
 
   if (!scene.textures.exists('fx_heal')) {
@@ -665,30 +796,22 @@ export function generateEffectSprites(scene: Phaser.Scene): void {
     canvas.width = FRAME_W * 4;
     canvas.height = FRAME_H;
     const ctx = canvas.getContext('2d')!;
-    const buf = new Uint32Array(LW * LH);
-
     for (let i = 0; i < 4; i++) {
-      buf.fill(0);
-      const cx = 12, cy = 12;
-      // 빛 입자
+      ctx.save();
+      ctx.translate(i * FRAME_W, 0);
+      const ctr = FRAME_W / 2;
       const n = 4 + i * 2;
       for (let p = 0; p < n; p++) {
         const angle = (p / n) * Math.PI * 2 + i * 0.5;
-        const dist = 4 + i * 2;
-        const px2 = cx + Math.round(Math.cos(angle) * dist);
-        const py2 = cy + Math.round(Math.sin(angle) * dist) - i;
-        setPixel(buf, px2, py2, rgba(136, 255, 170));
+        const dist = 6 + i * 3;
+        rect(ctx, ctr + Math.round(Math.cos(angle) * dist), ctr + Math.round(Math.sin(angle) * dist) - i * 2, 2, 2, '#88ffaa');
       }
-      // 십자
-      fillRect(buf, cx, cy - 4 - i, 1, 8 + i * 2, rgba(255, 255, 255));
-      fillRect(buf, cx - 4 - i, cy, 8 + i * 2, 1, rgba(255, 255, 255));
-      blitWithOutline(buf, ctx, i * FRAME_W, 0);
+      const cs = 3 + i;
+      rect(ctx, ctr - 1, ctr - cs, 2, cs * 2, '#ffffff');
+      rect(ctx, ctr - cs, ctr - 1, cs * 2, 2, '#ffffff');
+      ctx.restore();
     }
     addCanvasAsSpriteSheet(scene, 'fx_heal', canvas, FRAME_W, FRAME_H);
-    scene.anims.create({
-      key: 'fx_heal_play',
-      frames: scene.anims.generateFrameNumbers('fx_heal', { start: 0, end: 3 }),
-      frameRate: 6, repeat: 0,
-    });
+    scene.anims.create({ key: 'fx_heal_play', frames: scene.anims.generateFrameNumbers('fx_heal', { start: 0, end: 3 }), frameRate: 6, repeat: 0 });
   }
 }
