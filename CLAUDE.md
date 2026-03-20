@@ -9,23 +9,25 @@
 - Phase 2 완료 (병종, 반격, 계략, 경험치, 장비)
 - Phase 3 완료 (스토리 캠페인: 대화/월드맵/타이틀/세이브)
 - Phase 4 완료 (온라인 서버: NestJS/PostgreSQL/JWT/서버세이브/랭킹)
-- 다음: Phase 5 (텔레그램 미니앱)
+- Phase 5 완료 (텔레그램 미니앱: 배포/자동로그인/모바일대응)
+- 다음: Phase 6 (확장 콘텐츠)
 
 ## 기술 스택
 - **게임 엔진**: Phaser.js 3 (2D)
 - **UI 레이어**: React + TypeScript
 - **빌드**: Vite 5
 - **백엔드**: NestJS + TypeORM + PostgreSQL
-- **인증**: JWT (passport-jwt, bcrypt)
-- **플랫폼**: 웹 브라우저 + Telegram Mini App (Phase 5 예정)
+- **인증**: JWT (passport-jwt, bcrypt) + Telegram initData 검증
+- **배포**: Vercel (프론트) + Railway (백엔드+PostgreSQL)
+- **플랫폼**: 웹 브라우저 + Telegram Mini App
 
 ## 개발 로드맵
 1. ~~Phase 1 - 프로토타입 (핵심 전투 시스템)~~ ✓
 2. ~~Phase 2 - 게임 시스템 확장 (병종, 지형, 계략, 레벨업, 장비)~~ ✓
 3. ~~Phase 3 - 스토리 & 콘텐츠 (대화, 챕터, 캠페인)~~ ✓
 4. ~~Phase 4 - 온라인 & 서버 (인증, 서버 세이브, 랭킹)~~ ✓
-5. Phase 5 - 텔레그램 미니앱 통합
-6. Phase 6 - 확장 콘텐츠 (신규 시나리오, 길드, 시즌)
+5. ~~Phase 5 - 텔레그램 미니앱 통합~~ ✓
+6. Phase 6 - 확장 콘텐츠 (카메라 스크롤, 모바일UI, 신규 시나리오, 길드, 시즌)
 
 ## 아키텍처
 - Phaser = 게임 렌더링, React = 오버레이 UI, EventBus로 통신
@@ -33,7 +35,7 @@
 - BattleScene FSM: IDLE→UNIT_SELECTED→MOVING→AWAITING_ACTION→[ATTACK|SKILL|WAIT]→ANIMATING→IDLE
 - 씬 흐름: TitleScene → WorldMapScene → DialogueScene → BattleScene → DialogueScene → WorldMapScene
 - CampaignManager: 서버 전용 세이브/로드 (localStorage 제거), 유닛 영속
-- 서버 API: POST /auth/register, POST /auth/login, GET /save, POST /save, GET /save/ranking
+- 서버 API: POST /auth/register, POST /auth/login, POST /auth/telegram, GET /save, POST /save, GET /save/ranking
 
 ## 핵심 시스템 (Phase 2)
 - **병종**: 보병/기병/궁병/책사/도적/무도가 (클래스별 지형 이동비용 차등)
