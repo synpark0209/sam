@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT } from '@shared/constants.ts';
 import { CampaignManager } from '../systems/CampaignManager.ts';
-import { isLoggedIn, getSavedUsername, logout } from '../../api/client.ts';
+import { isLoggedIn, getSavedUsername, logout, loginWithTelegram } from '../../api/client.ts';
+import { isTelegramMiniApp, getTelegramInitData, initTelegramApp } from '../../telegram.ts';
 import { EventBus } from '../EventBus.ts';
 
 const GAME_W = TILE_SIZE * MAP_WIDTH;
@@ -28,9 +29,34 @@ export class TitleScene extends Phaser.Scene {
 
     if (isLoggedIn()) {
       this.showLoggedInMenu();
+    } else if (isTelegramMiniApp()) {
+      this.tryTelegramLogin();
     } else {
       this.showLoginPrompt();
     }
+  }
+
+  private tryTelegramLogin(): void {
+    initTelegramApp();
+    const loadingText = this.add.text(GAME_W / 2, GAME_H * 0.5, '텔레그램 로그인 중...', {
+      fontSize: '16px', color: '#aaaaaa',
+    }).setOrigin(0.5);
+
+    const initData = getTelegramInitData();
+    if (!initData) {
+      loadingText.destroy();
+      this.showLoginPrompt();
+      return;
+    }
+
+    loginWithTelegram(initData).then((res) => {
+      localStorage.setItem('jojo_auth_username', res.username);
+      loadingText.destroy();
+      this.showLoggedInMenu();
+    }).catch(() => {
+      loadingText.destroy();
+      this.showLoginPrompt();
+    });
   }
 
   private showLoginPrompt(): void {
