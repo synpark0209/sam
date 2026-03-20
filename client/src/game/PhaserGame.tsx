@@ -48,5 +48,5 @@ export const PhaserGame = forwardRef<IRefPhaserGame>(function PhaserGame(_props,
     };
   }, [ref]);
 
-  return <div ref={containerRef} id="game-container" />;
+  return <div ref={containerRef} id="game-container" style={{ width: '100vw', height: '100dvh' }} />;
 });
