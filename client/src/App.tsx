@@ -23,7 +23,15 @@ function App() {
     const initData = getTelegramInitData();
     if (!initData) return;
 
-    loginWithTelegram(initData).catch((err) => {
+    loginWithTelegram(initData).then(() => {
+      const game = phaserRef.current?.game;
+      if (game) {
+        for (const s of game.scene.getScenes(true)) {
+          game.scene.stop(s.scene.key);
+        }
+        game.scene.start('TitleScene');
+      }
+    }).catch((err) => {
       console.warn('Telegram auto-login failed:', err);
     });
   }, []);
@@ -32,20 +40,26 @@ function App() {
     const onUnitSelected = (unit: UnitData | null) => {
       setSelectedUnit(unit ? { ...unit, stats: { ...unit.stats }, position: { ...unit.position } } : null);
     };
+    const restartTitleScene = () => {
+      const game = phaserRef.current?.game;
+      if (game) {
+        for (const s of game.scene.getScenes(true)) {
+          game.scene.stop(s.scene.key);
+        }
+        game.scene.start('TitleScene');
+      }
+    };
+
     const onShowAuth = () => {
-      // 텔레그램 환경에서는 인증 모달 대신 자동 로그인 시도
+      // 텔레그램 환경에서는 자동 로그인 시도, 실패 시 일반 모달
       if (isTelegramMiniApp()) {
         const initData = getTelegramInitData();
         if (initData) {
           loginWithTelegram(initData).then(() => {
-            const game = phaserRef.current?.game;
-            if (game) {
-              for (const s of game.scene.getScenes(true)) {
-                game.scene.stop(s.scene.key);
-              }
-              game.scene.start('TitleScene');
-            }
-          }).catch(() => {});
+            restartTitleScene();
+          }).catch(() => {
+            setShowAuth(true);
+          });
           return;
         }
       }
