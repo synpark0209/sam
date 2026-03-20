@@ -13,6 +13,9 @@ import {
   generateUnitSpritesheet, createUnitAnimations,
   generateTileset, getTileFrame, generateEffectSprites,
 } from '../systems/SpriteGenerator.ts';
+import {
+  preloadUnitImages, hasUnitImage, createImageSprite, playImageAnim,
+} from '../systems/UnitSpriteManager.ts';
 import { TEST_MAP, TEST_UNITS } from '../data/testBattle.ts';
 import { EventBus } from '../EventBus.ts';
 import type { CampaignManager } from '../systems/CampaignManager.ts';
@@ -62,6 +65,7 @@ export class BattleScene extends Phaser.Scene {
   private gameOverText!: Phaser.GameObjects.Text;
   private actionMenu: Phaser.GameObjects.Text[] = [];
   private _menuClickConsumed = false;
+  private imageUnits: Set<string> = new Set(); // 이미지 기반 유닛 ID 추적
 
   // 캠페인 모드
   private campaignMode = false;
@@ -99,6 +103,10 @@ export class BattleScene extends Phaser.Scene {
     void data?.pvpOpponentName;
   }
 
+  preload(): void {
+    preloadUnitImages(this);
+  }
+
   create(): void {
     // 씬 재시작 시 모든 상태 리셋 (Phaser는 인스턴스를 재사용함)
     this.interactionState = 'IDLE';
@@ -113,6 +121,7 @@ export class BattleScene extends Phaser.Scene {
     this.activeSkill = null;
     this.preMovePosition = null;
     this.unitSprites = new Map();
+    this.imageUnits = new Set();
     this.actionMenu = [];
     this._menuClickConsumed = false;
 
@@ -228,11 +237,18 @@ export class BattleScene extends Phaser.Scene {
     const container = this.add.container(x, y);
 
     const uc = unit.unitClass ?? UnitClass.INFANTRY;
-    const texKey = `unit_${uc}_${unit.faction}`;
+    const useImage = hasUnitImage(this, uc, unit.faction);
 
-    // 애니메이션 스프라이트
-    const sprite = this.add.sprite(0, 0, texKey, 0);
-    sprite.play(`${texKey}_idle`);
+    let sprite: Phaser.GameObjects.Sprite;
+    if (useImage) {
+      sprite = createImageSprite(this, uc, unit.faction)!;
+      this.imageUnits.add(unit.id);
+      playImageAnim(this, container, sprite, 'idle');
+    } else {
+      const texKey = `unit_${uc}_${unit.faction}`;
+      sprite = this.add.sprite(0, 0, texKey, 0);
+      sprite.play(`${texKey}_idle`);
+    }
 
     // 이름 라벨
     const label = this.add.text(0, -TILE_SIZE * 0.44, unit.name.charAt(0), {
@@ -299,11 +315,16 @@ export class BattleScene extends Phaser.Scene {
     const container = this.unitSprites.get(unit.id);
     if (!container) return;
     const sprite = container.getAt(0) as Phaser.GameObjects.Sprite;
-    const uc = unit.unitClass ?? UnitClass.INFANTRY;
-    const texKey = `unit_${uc}_${unit.faction}`;
-    const animKey = `${texKey}_${anim}`;
-    if (this.anims.exists(animKey)) {
-      sprite.play(animKey);
+
+    if (this.imageUnits.has(unit.id)) {
+      playImageAnim(this, container, sprite, anim);
+    } else {
+      const uc = unit.unitClass ?? UnitClass.INFANTRY;
+      const texKey = `unit_${uc}_${unit.faction}`;
+      const animKey = `${texKey}_${anim}`;
+      if (this.anims.exists(animKey)) {
+        sprite.play(animKey);
+      }
     }
   }
 
