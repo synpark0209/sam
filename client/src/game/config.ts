@@ -21,6 +21,8 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
   },
   scale: {
     mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH,
+    autoCenter: Phaser.Scale.CENTER_HORIZONTALLY,
+    width: TILE_SIZE * MAP_WIDTH,
+    height: TILE_SIZE * MAP_HEIGHT + 60,
   },
 };
