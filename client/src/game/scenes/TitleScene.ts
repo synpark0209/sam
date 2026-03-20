@@ -73,6 +73,12 @@ export class TitleScene extends Phaser.Scene {
   }
 
   private showLoginPrompt(): void {
+    // 디버그: 텔레그램 감지 상태 표시
+    const tg = window.Telegram?.WebApp;
+    this.add.text(GAME_W / 2, GAME_H * 0.38, `[debug] isTG: ${!!tg}, initData: ${tg?.initData?.length ?? 0}chars, platform: ${tg?.platform ?? 'none'}`, {
+      fontSize: '9px', color: '#ff6666', wordWrap: { width: GAME_W - 20 },
+    }).setOrigin(0.5);
+
     this.add.text(GAME_W / 2, GAME_H * 0.45, '게임을 시작하려면 로그인이 필요합니다', {
       fontSize: '14px', color: '#aaaaaa',
     }).setOrigin(0.5);
