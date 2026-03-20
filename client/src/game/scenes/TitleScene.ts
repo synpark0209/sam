@@ -38,24 +38,37 @@ export class TitleScene extends Phaser.Scene {
 
   private tryTelegramLogin(): void {
     initTelegramApp();
-    const loadingText = this.add.text(GAME_W / 2, GAME_H * 0.5, '텔레그램 로그인 중...', {
-      fontSize: '16px', color: '#aaaaaa',
-    }).setOrigin(0.5);
+
+    const debugText = this.add.text(GAME_W / 2, GAME_H * 0.45, '', {
+      fontSize: '11px', color: '#ff8888', wordWrap: { width: GAME_W - 40 },
+    }).setOrigin(0.5, 0);
+
+    const log = (msg: string) => {
+      debugText.setText(debugText.text + '\n' + msg);
+    };
+
+    log(`isTelegram: ${isTelegramMiniApp()}`);
+    log(`initData: ${getTelegramInitData()?.substring(0, 50) ?? 'null'}...`);
+    log(`API: ${import.meta.env.VITE_API_URL || 'not set'}`);
 
     const initData = getTelegramInitData();
     if (!initData) {
-      loadingText.destroy();
+      log('ERROR: no initData');
       this.showLoginPrompt();
       return;
     }
 
+    log('calling loginWithTelegram...');
+
     loginWithTelegram(initData).then((res) => {
       localStorage.setItem('jojo_auth_username', res.username);
-      loadingText.destroy();
-      this.showLoggedInMenu();
-    }).catch(() => {
-      loadingText.destroy();
-      this.showLoginPrompt();
+      log(`SUCCESS: ${res.username}`);
+      this.time.delayedCall(1000, () => {
+        debugText.destroy();
+        this.showLoggedInMenu();
+      });
+    }).catch((err) => {
+      log(`FAIL: ${err instanceof Error ? err.message : String(err)}`);
     });
   }
 
