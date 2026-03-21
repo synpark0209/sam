@@ -210,7 +210,16 @@ export class BattleScene extends Phaser.Scene {
 
     this.cameras.main.setZoom(zoom);
     this.cameras.main.setBounds(0, 0, worldW, worldH);
-    this.cameras.main.centerOn(worldW / 2, worldH / 2);
+
+    // 아군 유닛 중앙으로 포커싱
+    const playerUnits = this.battleState.units.filter(u => u.faction === 'player' && u.isAlive);
+    if (playerUnits.length > 0) {
+      const avgX = playerUnits.reduce((s, u) => s + u.position.x, 0) / playerUnits.length;
+      const avgY = playerUnits.reduce((s, u) => s + u.position.y, 0) / playerUnits.length;
+      this.cameras.main.centerOn(avgX * TILE_SIZE + TILE_SIZE / 2, avgY * TILE_SIZE + TILE_SIZE / 2);
+    } else {
+      this.cameras.main.centerOn(worldW / 2, worldH / 2);
+    }
   }
 
   private centerCameraOn(pos: Position, duration = 300): void {
@@ -358,29 +367,36 @@ export class BattleScene extends Phaser.Scene {
   // ── UI (화면 고정) ──
 
   private createUI(): void {
-    const sw = this.scale.width;
-    const sh = this.scale.height;
-    const uiY = sh - UI_BAR_H;
+    // UI 좌표는 줌 보정 필요: scrollFactor(0)은 줌의 영향을 받으므로
+    // 논리 해상도(게임 config의 width/height) 기준으로 배치
+    const zoom = this.cameras.main.zoom;
+    const sw = this.scale.width / zoom;
+    const sh = this.scale.height / zoom;
+    const uiY = sh - UI_BAR_H / zoom;
+    const barH = UI_BAR_H / zoom;
 
     const uiBg = this.add.graphics().setDepth(200).setScrollFactor(0);
     uiBg.fillStyle(0x1a1a2e, 1);
-    uiBg.fillRect(0, uiY, sw, UI_BAR_H);
-    uiBg.lineStyle(2, 0x4a4a6a, 1);
-    uiBg.strokeRect(0, uiY, sw, UI_BAR_H);
+    uiBg.fillRect(0, uiY, sw, barH);
+    uiBg.lineStyle(2 / zoom, 0x4a4a6a, 1);
+    uiBg.strokeRect(0, uiY, sw, barH);
 
-    this.turnText = this.add.text(16, uiY + 18, '', { fontSize: '18px', color: '#ffffff' })
-      .setDepth(201).setScrollFactor(0);
+    const fontSize = Math.round(18 / zoom);
+    this.turnText = this.add.text(16 / zoom, uiY + barH * 0.3, '', {
+      fontSize: `${fontSize}px`, color: '#ffffff',
+    }).setDepth(201).setScrollFactor(0);
 
-    this.endTurnButton = this.add.text(sw - 120, uiY + 14, '턴 종료', {
-      fontSize: '18px', color: '#ffffff', backgroundColor: '#4a4a6a', padding: { x: 14, y: 8 },
+    this.endTurnButton = this.add.text(sw - 120 / zoom, uiY + barH * 0.2, '턴 종료', {
+      fontSize: `${fontSize}px`, color: '#ffffff', backgroundColor: '#4a4a6a',
+      padding: { x: Math.round(14 / zoom), y: Math.round(8 / zoom) },
     }).setInteractive({ useHandCursor: true }).setDepth(201).setScrollFactor(0);
     this.endTurnButton.on('pointerdown', () => { this._menuClickConsumed = true; this.onEndTurnClicked(); });
     this.endTurnButton.on('pointerover', () => this.endTurnButton.setStyle({ backgroundColor: '#6a6a8a' }));
     this.endTurnButton.on('pointerout', () => this.endTurnButton.setStyle({ backgroundColor: '#4a4a6a' }));
 
     this.gameOverText = this.add.text(sw / 2, sh / 2, '', {
-      fontSize: '36px', color: '#ffffff', fontStyle: 'bold',
-      backgroundColor: '#000000aa', padding: { x: 30, y: 20 },
+      fontSize: `${Math.round(36 / zoom)}px`, color: '#ffffff', fontStyle: 'bold',
+      backgroundColor: '#000000aa', padding: { x: Math.round(30 / zoom), y: Math.round(20 / zoom) },
     }).setOrigin(0.5).setVisible(false).setDepth(300).setScrollFactor(0);
   }
 
@@ -396,11 +412,14 @@ export class BattleScene extends Phaser.Scene {
     this.hideActionMenu();
     this.interactionState = 'AWAITING_ACTION';
 
-    // 화면 중앙 하단에 메뉴 표시
-    const screenX = this.scale.width / 2 - 40;
-    const screenY = this.scale.height - UI_BAR_H - 160;
+    // 화면 중앙 하단에 메뉴 표시 (줌 보정)
+    const zoom = this.cameras.main.zoom;
+    const screenX = this.scale.width / zoom / 2 - 40 / zoom;
+    const screenY = this.scale.height / zoom - UI_BAR_H / zoom - 160 / zoom;
 
-    const menuStyle = { fontSize: '14px', color: '#ffffff', backgroundColor: '#2a2a4a', padding: { x: 10, y: 6 } };
+    const fs = Math.round(14 / zoom);
+    const pd = Math.round(10 / zoom);
+    const menuStyle = { fontSize: `${fs}px`, color: '#ffffff', backgroundColor: '#2a2a4a', padding: { x: pd, y: Math.round(6 / zoom) } };
 
     // 공격
     const attackRange = this.gridSystem.getAttackRange(unit.position, unit.stats.attackRange);
@@ -429,7 +448,8 @@ export class BattleScene extends Phaser.Scene {
 
     // 스킬
     const usableSkills = this.skillSystem.getUsableSkills(unit);
-    let yOffset = 28;
+    const itemGap = Math.round(28 / zoom);
+    let yOffset = itemGap;
 
     for (const skill of usableSkills) {
       const skillBtn = this.add.text(screenX, screenY + yOffset, `${skill.name} (MP${skill.mpCost})`, menuStyle)
@@ -440,7 +460,7 @@ export class BattleScene extends Phaser.Scene {
         this.enterSkillTargeting(unit, skill);
       });
       this.actionMenu.push(skillBtn);
-      yOffset += 28;
+      yOffset += itemGap;
     }
 
     // 대기
