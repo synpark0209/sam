@@ -396,9 +396,9 @@ export class BattleScene extends Phaser.Scene {
     this.hideActionMenu();
     this.interactionState = 'AWAITING_ACTION';
 
-    // 화면 오른쪽에 고정 위치로 메뉴 표시
-    const screenX = this.scale.width - 140;
-    const screenY = 20;
+    // 화면 중앙 하단에 메뉴 표시
+    const screenX = this.scale.width / 2 - 40;
+    const screenY = this.scale.height - UI_BAR_H - 160;
 
     const menuStyle = { fontSize: '14px', color: '#ffffff', backgroundColor: '#2a2a4a', padding: { x: 10, y: 6 } };
 
