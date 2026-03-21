@@ -182,9 +182,16 @@ export class BattleScene extends Phaser.Scene {
 
     this.drawGrid();
     this.createUnits();
+    this.setupCamera();
     this.createUI();
     this.setupInput();
-    this.setupCamera();
+
+    // 모든 기존 월드 오브젝트를 UI 카메라에서 숨기기
+    for (const child of this.children.list) {
+      if (!this.uiObjects.includes(child)) {
+        this.uiCam.ignore(child);
+      }
+    }
 
     this.turnSystem.startPlayerTurn();
     this.updateTurnUI();
@@ -364,40 +371,54 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  // ── UI (화면 고정) ──
+  // ── UI (별도 카메라로 줌 독립) ──
+
+  private uiCam!: Phaser.Cameras.Scene2D.Camera;
+  private uiObjects: Phaser.GameObjects.GameObject[] = [];
 
   private createUI(): void {
-    // UI 좌표는 줌 보정 필요: scrollFactor(0)은 줌의 영향을 받으므로
-    // 논리 해상도(게임 config의 width/height) 기준으로 배치
-    const zoom = this.cameras.main.zoom;
-    const sw = this.scale.width / zoom;
-    const sh = this.scale.height / zoom;
-    const uiY = sh - UI_BAR_H / zoom;
-    const barH = UI_BAR_H / zoom;
+    const gw = this.scale.width;  // 게임 논리 너비 (576)
+    const gh = this.scale.height; // 게임 논리 높이 (540)
+    const uiY = gh - UI_BAR_H;
 
-    const uiBg = this.add.graphics().setDepth(200).setScrollFactor(0);
+    // UI 전용 카메라 (줌 1, 스크롤 0)
+    this.uiCam = this.cameras.add(0, 0, gw, gh);
+    this.uiCam.setScroll(0, 0);
+    this.uiCam.setZoom(1);
+
+    const uiBg = this.add.graphics().setDepth(200);
     uiBg.fillStyle(0x1a1a2e, 1);
-    uiBg.fillRect(0, uiY, sw, barH);
-    uiBg.lineStyle(2 / zoom, 0x4a4a6a, 1);
-    uiBg.strokeRect(0, uiY, sw, barH);
+    uiBg.fillRect(0, uiY, gw, UI_BAR_H);
+    uiBg.lineStyle(2, 0x4a4a6a, 1);
+    uiBg.strokeRect(0, uiY, gw, UI_BAR_H);
 
-    const fontSize = Math.round(18 / zoom);
-    this.turnText = this.add.text(16 / zoom, uiY + barH * 0.3, '', {
-      fontSize: `${fontSize}px`, color: '#ffffff',
-    }).setDepth(201).setScrollFactor(0);
+    this.turnText = this.add.text(16, uiY + 18, '', {
+      fontSize: '18px', color: '#ffffff',
+    }).setDepth(201);
 
-    this.endTurnButton = this.add.text(sw - 120 / zoom, uiY + barH * 0.2, '턴 종료', {
-      fontSize: `${fontSize}px`, color: '#ffffff', backgroundColor: '#4a4a6a',
-      padding: { x: Math.round(14 / zoom), y: Math.round(8 / zoom) },
-    }).setInteractive({ useHandCursor: true }).setDepth(201).setScrollFactor(0);
+    this.endTurnButton = this.add.text(gw - 120, uiY + 14, '턴 종료', {
+      fontSize: '18px', color: '#ffffff', backgroundColor: '#4a4a6a',
+      padding: { x: 14, y: 8 },
+    }).setInteractive({ useHandCursor: true }).setDepth(201);
     this.endTurnButton.on('pointerdown', () => { this._menuClickConsumed = true; this.onEndTurnClicked(); });
     this.endTurnButton.on('pointerover', () => this.endTurnButton.setStyle({ backgroundColor: '#6a6a8a' }));
     this.endTurnButton.on('pointerout', () => this.endTurnButton.setStyle({ backgroundColor: '#4a4a6a' }));
 
-    this.gameOverText = this.add.text(sw / 2, sh / 2, '', {
-      fontSize: `${Math.round(36 / zoom)}px`, color: '#ffffff', fontStyle: 'bold',
-      backgroundColor: '#000000aa', padding: { x: Math.round(30 / zoom), y: Math.round(20 / zoom) },
-    }).setOrigin(0.5).setVisible(false).setDepth(300).setScrollFactor(0);
+    this.gameOverText = this.add.text(gw / 2, gh / 2, '', {
+      fontSize: '36px', color: '#ffffff', fontStyle: 'bold',
+      backgroundColor: '#000000aa', padding: { x: 30, y: 20 },
+    }).setOrigin(0.5).setVisible(false).setDepth(300);
+
+    // UI 요소를 메인 카메라에서 숨기기
+    this.uiObjects = [uiBg, this.turnText, this.endTurnButton, this.gameOverText];
+    for (const obj of this.uiObjects) {
+      this.cameras.main.ignore(obj);
+    }
+  }
+
+  /** 새로 생성된 오브젝트를 UI 카메라에서 숨기기 (월드 오브젝트) */
+  private ignoreFromUiCam(obj: Phaser.GameObjects.GameObject): void {
+    if (this.uiCam) this.uiCam.ignore(obj);
   }
 
   private updateTurnUI(): void {
@@ -412,14 +433,13 @@ export class BattleScene extends Phaser.Scene {
     this.hideActionMenu();
     this.interactionState = 'AWAITING_ACTION';
 
-    // 화면 중앙 하단에 메뉴 표시 (줌 보정)
-    const zoom = this.cameras.main.zoom;
-    const screenX = this.scale.width / zoom / 2 - 40 / zoom;
-    const screenY = this.scale.height / zoom - UI_BAR_H / zoom - 160 / zoom;
+    // UI 카메라 좌표 (줌 무관)
+    const gw = this.scale.width;
+    const gh = this.scale.height;
+    const screenX = gw / 2 - 40;
+    const screenY = gh - UI_BAR_H - 160;
 
-    const fs = Math.round(14 / zoom);
-    const pd = Math.round(10 / zoom);
-    const menuStyle = { fontSize: `${fs}px`, color: '#ffffff', backgroundColor: '#2a2a4a', padding: { x: pd, y: Math.round(6 / zoom) } };
+    const menuStyle = { fontSize: '14px', color: '#ffffff', backgroundColor: '#2a2a4a', padding: { x: 10, y: 6 } };
 
     // 공격
     const attackRange = this.gridSystem.getAttackRange(unit.position, unit.stats.attackRange);
@@ -430,7 +450,7 @@ export class BattleScene extends Phaser.Scene {
 
     const atkBtn = this.add.text(screenX, screenY, '공격', menuStyle)
       .setInteractive({ useHandCursor: true }).setDepth(90)
-      .setScrollFactor(0).setAlpha(hasEnemyInRange ? 1 : 0.4);
+      .setAlpha(hasEnemyInRange ? 1 : 0.4);
     if (hasEnemyInRange) {
       atkBtn.on('pointerdown', () => {
         this._menuClickConsumed = true;
@@ -448,12 +468,12 @@ export class BattleScene extends Phaser.Scene {
 
     // 스킬
     const usableSkills = this.skillSystem.getUsableSkills(unit);
-    const itemGap = Math.round(28 / zoom);
+    const itemGap = 28;
     let yOffset = itemGap;
 
     for (const skill of usableSkills) {
       const skillBtn = this.add.text(screenX, screenY + yOffset, `${skill.name} (MP${skill.mpCost})`, menuStyle)
-        .setInteractive({ useHandCursor: true }).setDepth(90).setScrollFactor(0);
+        .setInteractive({ useHandCursor: true }).setDepth(90);
       skillBtn.on('pointerdown', () => {
         this._menuClickConsumed = true;
         this.hideActionMenu();
@@ -481,13 +501,15 @@ export class BattleScene extends Phaser.Scene {
     if (this.preMovePosition) {
       const cancelBtn = this.add.text(screenX, screenY + yOffset, '취소', {
         ...menuStyle, color: '#ff8888',
-      }).setInteractive({ useHandCursor: true }).setDepth(90).setScrollFactor(0);
+      }).setInteractive({ useHandCursor: true }).setDepth(90);
       cancelBtn.on('pointerdown', () => {
         this._menuClickConsumed = true;
         this.cancelMove(unit);
       });
       this.actionMenu.push(cancelBtn);
     }
+
+    this.registerMenuAsUI();
   }
 
   private cancelMove(unit: UnitData): void {
@@ -505,6 +527,13 @@ export class BattleScene extends Phaser.Scene {
     }
 
     this.selectUnit(unit);
+  }
+
+  /** 액션 메뉴 버튼들을 UI 카메라 전용으로 설정 */
+  private registerMenuAsUI(): void {
+    for (const btn of this.actionMenu) {
+      this.cameras.main.ignore(btn);
+    }
   }
 
   private hideActionMenu(): void {
@@ -892,6 +921,7 @@ export class BattleScene extends Phaser.Scene {
     const text = this.add.text(x, y - 10, message, {
       fontSize: '16px', color, fontStyle: 'bold', stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0.5).setDepth(50);
+    this.ignoreFromUiCam(text);
     this.tweens.add({
       targets: text, y: y - 45, alpha: 0, duration: 1000, ease: 'Power2',
       onComplete: () => text.destroy(),
@@ -927,6 +957,7 @@ export class BattleScene extends Phaser.Scene {
     const text = this.add.text(x, y - 10, `-${damage}`, {
       fontSize: '20px', color, fontStyle: 'bold', stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0.5).setDepth(50);
+    this.ignoreFromUiCam(text);
     this.tweens.add({
       targets: text, y: y - 50, alpha: 0, duration: 800, ease: 'Power2',
       onComplete: () => text.destroy(),
