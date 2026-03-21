@@ -558,7 +558,7 @@ export class BattleScene extends Phaser.Scene {
   private setupInput(): void {
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (this._menuClickConsumed) {
-        this._menuClickConsumed = false;
+        // pointerup에서 소비하도록 플래그 유지
         return;
       }
       this.dragStartX = pointer.x;
@@ -569,12 +569,11 @@ export class BattleScene extends Phaser.Scene {
     });
 
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (!pointer.isDown) return;
+      if (!pointer.isDown || this._menuClickConsumed) return;
       const dx = pointer.x - this.dragStartX;
       const dy = pointer.y - this.dragStartY;
       if (!this.isDragging && (Math.abs(dx) > this.dragThreshold || Math.abs(dy) > this.dragThreshold)) {
         this.isDragging = true;
-        // 드래그 시작 시 액션 메뉴 닫기
         this.hideActionMenu();
       }
       if (this.isDragging) {
@@ -593,10 +592,8 @@ export class BattleScene extends Phaser.Scene {
         return;
       }
 
-      // UI 바 영역 클릭 무시 (화면 하단 60px)
       if (pointer.y >= this.scale.height - UI_BAR_H) return;
 
-      // 화면 좌표 → 월드 좌표 변환
       const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
       const gridX = Math.floor(worldPoint.x / TILE_SIZE);
       const gridY = Math.floor(worldPoint.y / TILE_SIZE);
