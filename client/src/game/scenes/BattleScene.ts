@@ -198,8 +198,18 @@ export class BattleScene extends Phaser.Scene {
   private setupCamera(): void {
     const worldW = this.mapW * TILE_SIZE;
     const worldH = this.mapH * TILE_SIZE;
+
+    // 모바일에서 적절한 줌 레벨 계산
+    // 화면에 가로 6~7칸 정도 보이도록 줌
+    const viewW = this.scale.width;
+    const viewH = this.scale.height - UI_BAR_H;
+    const desiredVisibleTiles = 7;
+    const zoomByWidth = viewW / (desiredVisibleTiles * TILE_SIZE);
+    const maxZoom = Math.min(viewW / (4 * TILE_SIZE), viewH / (4 * TILE_SIZE)); // 최소 4칸은 보이게
+    const zoom = Math.min(Math.max(zoomByWidth, 1), maxZoom);
+
+    this.cameras.main.setZoom(zoom);
     this.cameras.main.setBounds(0, 0, worldW, worldH);
-    // 맵이 뷰포트보다 작으면 중앙 정렬
     this.cameras.main.centerOn(worldW / 2, worldH / 2);
   }
 
@@ -577,8 +587,9 @@ export class BattleScene extends Phaser.Scene {
         this.hideActionMenu();
       }
       if (this.isDragging) {
-        this.cameras.main.scrollX = this.camStartX - dx;
-        this.cameras.main.scrollY = this.camStartY - dy;
+        const zoom = this.cameras.main.zoom;
+        this.cameras.main.scrollX = this.camStartX - dx / zoom;
+        this.cameras.main.scrollY = this.camStartY - dy / zoom;
       }
     });
 
