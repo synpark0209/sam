@@ -682,8 +682,19 @@ export class BattleScene extends Phaser.Scene {
     this.deselectUnit();
   }
 
-  private handleAwaitingActionClick(_pos: Position): void {
-    // 액션메뉴 외 그리드 클릭 → 무시
+  private handleAwaitingActionClick(pos: Position): void {
+    // 액션메뉴 외 그리드 클릭 → 메뉴 닫고 선택 해제 또는 다른 유닛 선택
+    if (!this.selectedUnit) { this.deselectUnit(); return; }
+
+    const unitAtPos = this.getUnitAt(pos);
+    if (unitAtPos && unitAtPos.faction === 'player' && !unitAtPos.hasActed && unitAtPos.isAlive && unitAtPos.id !== this.selectedUnit.id) {
+      // 다른 아군 클릭 → 현재 유닛 취소 후 새 유닛 선택
+      this.cancelMove(this.selectedUnit);
+      return;
+    }
+
+    // 빈 타일 클릭 → 이동 취소
+    this.cancelMove(this.selectedUnit);
   }
 
   private handleAwaitingAttackClick(pos: Position): void {
