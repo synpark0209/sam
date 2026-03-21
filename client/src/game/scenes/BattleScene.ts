@@ -396,14 +396,9 @@ export class BattleScene extends Phaser.Scene {
     this.hideActionMenu();
     this.interactionState = 'AWAITING_ACTION';
 
-    // 유닛의 월드 좌표를 화면 좌표로 변환
-    const worldPos = this.gridToPixel(unit.position);
-    const cam = this.cameras.main;
-    let screenX = (worldPos.x - cam.scrollX) * cam.zoom + TILE_SIZE;
-    let screenY = (worldPos.y - cam.scrollY) * cam.zoom;
-    // 화면 밖으로 나가지 않도록 클램핑
-    screenX = Math.min(screenX, this.scale.width - 130);
-    screenY = Math.max(screenY, 10);
+    // 화면 오른쪽에 고정 위치로 메뉴 표시
+    const screenX = this.scale.width - 140;
+    const screenY = 20;
 
     const menuStyle = { fontSize: '14px', color: '#ffffff', backgroundColor: '#2a2a4a', padding: { x: 10, y: 6 } };
 
@@ -765,7 +760,10 @@ export class BattleScene extends Phaser.Scene {
 
   private onMoveComplete(unit: UnitData): void {
     this.centerCameraOn(unit.position);
-    this.showActionMenu(unit);
+    // 카메라 팬 완료 후 메뉴 표시
+    this.time.delayedCall(350, () => {
+      this.showActionMenu(unit);
+    });
   }
 
   // ── 공격 ──
