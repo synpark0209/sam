@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { DialogueEvent } from '@shared/types/dialogue.ts';
 import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT } from '@shared/constants.ts';
+import type { AudioManager } from '../systems/AudioManager.ts';
 
 const GAME_W = TILE_SIZE * MAP_WIDTH;
 const GAME_H = TILE_SIZE * MAP_HEIGHT + 60;
@@ -33,6 +34,7 @@ export class DialogueScene extends Phaser.Scene {
   }
 
   create(): void {
+    (this.registry.get('audioManager') as AudioManager)?.playBgm('dialogue');
     // 배경
     this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GAME_W, GAME_H);
 

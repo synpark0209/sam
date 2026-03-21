@@ -4,6 +4,7 @@ import { CampaignManager } from '../systems/CampaignManager.ts';
 import { isLoggedIn, getSavedUsername, logout, loginWithTelegram } from '../../api/client.ts';
 import { isTelegramMiniApp, getTelegramInitData, initTelegramApp } from '../../telegram.ts';
 import { EventBus } from '../EventBus.ts';
+import type { AudioManager } from '../systems/AudioManager.ts';
 
 const GAME_W = TILE_SIZE * MAP_WIDTH;
 const GAME_H = TILE_SIZE * MAP_HEIGHT + 60;
@@ -16,6 +17,7 @@ export class TitleScene extends Phaser.Scene {
   }
 
   create(): void {
+    (this.registry.get('audioManager') as AudioManager)?.playBgm('title');
     this.campaignManager = new CampaignManager();
 
     this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GAME_W, GAME_H);
@@ -26,6 +28,18 @@ export class TitleScene extends Phaser.Scene {
     this.add.text(GAME_W / 2, GAME_H * 0.3, 'Romance of the Three Kingdoms', {
       fontSize: '14px', color: '#888888',
     }).setOrigin(0.5);
+
+    // 음소거 토글 버튼
+    const audio = this.registry.get('audioManager') as AudioManager;
+    const muteBtn = this.add.text(GAME_W - 40, 10, audio?.isMuted() ? '🔇' : '🔊', {
+      fontSize: '20px',
+    }).setInteractive({ useHandCursor: true });
+    muteBtn.on('pointerdown', () => {
+      if (!audio) return;
+      audio.setMuted(!audio.isMuted());
+      muteBtn.setText(audio.isMuted() ? '🔇' : '🔊');
+      if (!audio.isMuted()) audio.playBgm('title');
+    });
 
     if (isLoggedIn()) {
       this.showLoggedInMenu();

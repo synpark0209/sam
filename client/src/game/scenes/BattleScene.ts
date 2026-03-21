@@ -21,6 +21,7 @@ import { EventBus } from '../EventBus.ts';
 import type { CampaignManager } from '../systems/CampaignManager.ts';
 import type { Stage, BattleConfig } from '@shared/types/campaign.ts';
 import { pvpRecordResult } from '../../api/client.ts';
+import type { AudioManager, SfxName } from '../systems/AudioManager.ts';
 
 type InteractionState =
   | 'IDLE'
@@ -198,6 +199,17 @@ export class BattleScene extends Phaser.Scene {
 
     EventBus.on('end-turn-clicked', this.onEndTurnClicked, this);
     EventBus.emit('current-scene-ready', this);
+
+    // BGM 시작
+    this.getAudio()?.playBgm('battle');
+  }
+
+  private getAudio(): AudioManager | null {
+    return this.registry.get('audioManager') as AudioManager | null;
+  }
+
+  private playSfx(name: SfxName): void {
+    this.getAudio()?.playSfx(name);
   }
 
   // ── 카메라 설정 ──
@@ -792,6 +804,7 @@ export class BattleScene extends Phaser.Scene {
     if (!container) { onComplete(); return; }
 
     this.playUnitAnim(unit, 'walk');
+    this.playSfx('move');
 
     const tweens: Phaser.Types.Tweens.TweenBuilderConfig[] = [];
     for (let i = 1; i < path.length; i++) {
@@ -823,6 +836,7 @@ export class BattleScene extends Phaser.Scene {
     this.hideActionMenu();
 
     this.playUnitAnim(attacker, 'attack');
+    this.playSfx('attack_hit');
 
     const defenderTile = this.battleState.tiles[defender.position.y][defender.position.x];
     const attackerTile = this.battleState.tiles[attacker.position.y][attacker.position.x];
@@ -879,6 +893,7 @@ export class BattleScene extends Phaser.Scene {
 
     const result = this.skillSystem.executeSkill(caster, skill, targetPos, this.battleState.units);
 
+    this.playSfx('skill_cast');
     const casterPos = this.gridToPixel(caster.position);
     this.showFloatingText(casterPos.x, casterPos.y - 20, skill.name, '#cc88ff');
 
@@ -889,9 +904,11 @@ export class BattleScene extends Phaser.Scene {
         const pos = this.gridToPixel(unit.position);
 
         if (effect.damageDealt) {
+          this.playSfx('skill_fire');
           this.showDamageText(pos.x, pos.y, effect.damageDealt, '#cc44ff');
         }
         if (effect.healingDone) {
+          this.playSfx('skill_heal');
           this.showFloatingText(pos.x, pos.y, `+${effect.healingDone}`, '#44ff44');
         }
         if (effect.statusApplied) {
@@ -936,6 +953,7 @@ export class BattleScene extends Phaser.Scene {
 
     const levelUp = this.expSystem.addExp(unit, exp);
     if (levelUp) {
+      this.playSfx('level_up');
       this.time.delayedCall(400, () => {
         this.showFloatingText(pos.x, pos.y - 5, `LEVEL UP! Lv.${levelUp.newLevel}`, '#ffdd44');
         this.updateUnitSprite(unit);
@@ -944,6 +962,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private fadeOutUnit(unitId: string): void {
+    this.playSfx('unit_die');
     const sprite = this.unitSprites.get(unitId);
     if (sprite) {
       this.tweens.add({
@@ -1040,6 +1059,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     this.updateTurnUI();
+    this.playSfx('turn_start');
     this.battleState.units.forEach(u => this.updateUnitSprite(u));
     this.interactionState = 'IDLE';
 
@@ -1134,6 +1154,8 @@ export class BattleScene extends Phaser.Scene {
     this.clearOverlays();
     this.hideActionMenu();
     const message = winner === 'player' ? '승리!' : '패배...';
+    this.getAudio()?.stopBgm();
+    this.playSfx(winner === 'player' ? 'game_over_win' : 'game_over_lose');
     this.gameOverText.setText(message).setVisible(true);
     EventBus.emit('game-over', winner);
 

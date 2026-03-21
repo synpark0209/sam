@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT } from '@shared/constants.ts';
 import type { CampaignManager } from '../systems/CampaignManager.ts';
+import type { AudioManager } from '../systems/AudioManager.ts';
 
 const GAME_W = TILE_SIZE * MAP_WIDTH;
 const GAME_H = TILE_SIZE * MAP_HEIGHT + 60;
@@ -17,6 +18,7 @@ export class WorldMapScene extends Phaser.Scene {
   }
 
   create(): void {
+    (this.registry.get('audioManager') as AudioManager)?.playBgm('worldmap');
     const chapter = this.campaignManager.getCurrentChapter();
 
     // 배경
