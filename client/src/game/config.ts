@@ -17,7 +17,7 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
   pixelArt: true,
   input: {
     touch: true,
-    activePointers: 1,
+    activePointers: 2,
   },
   scale: {
     mode: Phaser.Scale.FIT,

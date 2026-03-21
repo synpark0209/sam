@@ -33,7 +33,7 @@ type InteractionState =
   | 'ENEMY_TURN'
   | 'GAME_OVER';
 
-const UI_BAR_Y = MAP_HEIGHT * TILE_SIZE;
+const UI_BAR_H = 60;
 
 export class BattleScene extends Phaser.Scene {
   private battleState!: BattleState;
@@ -43,6 +43,9 @@ export class BattleScene extends Phaser.Scene {
   private aiSystem!: AISystem;
   private skillSystem!: SkillSystem;
   private expSystem!: ExperienceSystem;
+
+  private mapW!: number;
+  private mapH!: number;
 
   private interactionState: InteractionState = 'IDLE';
   private selectedUnit: UnitData | null = null;
@@ -54,7 +57,7 @@ export class BattleScene extends Phaser.Scene {
   private enemyPreviewMoveTiles: Position[] = [];
   private enemyPreviewAttackTiles: Position[] = [];
   private activeSkill: SkillDef | null = null;
-  private preMovePosition: Position | null = null; // 이동 취소용 원래 위치
+  private preMovePosition: Position | null = null;
 
   // Phaser display objects
   private tileGraphics!: Phaser.GameObjects.Graphics;
@@ -65,7 +68,15 @@ export class BattleScene extends Phaser.Scene {
   private gameOverText!: Phaser.GameObjects.Text;
   private actionMenu: Phaser.GameObjects.Text[] = [];
   private _menuClickConsumed = false;
-  private imageUnits: Set<string> = new Set(); // 이미지 기반 유닛 ID 추적
+  private imageUnits: Set<string> = new Set();
+
+  // 카메라 드래그
+  private isDragging = false;
+  private dragStartX = 0;
+  private dragStartY = 0;
+  private camStartX = 0;
+  private camStartY = 0;
+  private readonly dragThreshold = 8;
 
   // 캠페인 모드
   private campaignMode = false;
@@ -77,7 +88,6 @@ export class BattleScene extends Phaser.Scene {
   // PvP 모드
   private pvpMode = false;
   private pvpOpponentId?: number;
-  // pvpOpponentName은 향후 UI 표시용으로 보존
 
   constructor() {
     super('BattleScene');
@@ -108,7 +118,6 @@ export class BattleScene extends Phaser.Scene {
   }
 
   create(): void {
-    // 씬 재시작 시 모든 상태 리셋 (Phaser는 인스턴스를 재사용함)
     this.interactionState = 'IDLE';
     this.selectedUnit = null;
     this.movementTiles = [];
@@ -124,17 +133,16 @@ export class BattleScene extends Phaser.Scene {
     this.imageUnits = new Set();
     this.actionMenu = [];
     this._menuClickConsumed = false;
+    this.isDragging = false;
 
     let units: UnitData[];
-    let mapW: number;
-    let mapH: number;
     let tiles: import('@shared/types/index.ts').TileData[][];
 
     const hasExternalConfig = this.externalBattleConfig && (this.campaignMode || this.pvpMode);
     if (hasExternalConfig && this.externalBattleConfig) {
       const bc = this.externalBattleConfig;
-      mapW = bc.mapWidth;
-      mapH = bc.mapHeight;
+      this.mapW = bc.mapWidth;
+      this.mapH = bc.mapHeight;
       tiles = bc.tiles;
       units = [
         ...(this.externalPlayerUnits ?? []).map(u => ({
@@ -147,8 +155,8 @@ export class BattleScene extends Phaser.Scene {
         })),
       ];
     } else {
-      mapW = MAP_WIDTH;
-      mapH = MAP_HEIGHT;
+      this.mapW = MAP_WIDTH;
+      this.mapH = MAP_HEIGHT;
       tiles = TEST_MAP;
       units = TEST_UNITS.map(u => ({
         ...u, position: { ...u.position }, stats: { ...u.stats },
@@ -158,11 +166,11 @@ export class BattleScene extends Phaser.Scene {
 
     this.battleState = {
       turn: 0, phase: 'player', units,
-      mapWidth: mapW, mapHeight: mapH, tiles,
+      mapWidth: this.mapW, mapHeight: this.mapH, tiles,
       selectedUnitId: null, gameOver: false, winner: null,
     };
 
-    this.gridSystem = new GridSystem(this.battleState.tiles, MAP_WIDTH, MAP_HEIGHT);
+    this.gridSystem = new GridSystem(this.battleState.tiles, this.mapW, this.mapH);
     this.combatSystem = new CombatSystem();
     this.turnSystem = new TurnSystem(this.battleState);
     this.aiSystem = new AISystem(this.gridSystem, this.combatSystem, this.turnSystem);
@@ -176,6 +184,7 @@ export class BattleScene extends Phaser.Scene {
     this.createUnits();
     this.createUI();
     this.setupInput();
+    this.setupCamera();
 
     this.turnSystem.startPlayerTurn();
     this.updateTurnUI();
@@ -184,13 +193,28 @@ export class BattleScene extends Phaser.Scene {
     EventBus.emit('current-scene-ready', this);
   }
 
+  // ── 카메라 설정 ──
+
+  private setupCamera(): void {
+    const worldW = this.mapW * TILE_SIZE;
+    const worldH = this.mapH * TILE_SIZE;
+    this.cameras.main.setBounds(0, 0, worldW, worldH);
+    // 맵이 뷰포트보다 작으면 중앙 정렬
+    this.cameras.main.centerOn(worldW / 2, worldH / 2);
+  }
+
+  private centerCameraOn(pos: Position, duration = 300): void {
+    const pixel = this.gridToPixel(pos);
+    this.cameras.main.pan(pixel.x, pixel.y, duration, 'Power2');
+  }
+
   // ── 그리드 렌더링 ──
 
   private drawGrid(): void {
     const tilesetKey = generateTileset(this);
 
-    for (let y = 0; y < MAP_HEIGHT; y++) {
-      for (let x = 0; x < MAP_WIDTH; x++) {
+    for (let y = 0; y < this.mapH; y++) {
+      for (let x = 0; x < this.mapW; x++) {
         const tile = this.battleState.tiles[y][x];
         const frame = getTileFrame(tile.type);
         const px = x * TILE_SIZE + TILE_SIZE / 2;
@@ -199,22 +223,20 @@ export class BattleScene extends Phaser.Scene {
       }
     }
 
-    // 격자선
     this.tileGraphics.clear();
     this.tileGraphics.lineStyle(1, 0x000000, 0.15);
     this.tileGraphics.setDepth(1);
-    for (let y = 0; y <= MAP_HEIGHT; y++) {
-      this.tileGraphics.lineBetween(0, y * TILE_SIZE, MAP_WIDTH * TILE_SIZE, y * TILE_SIZE);
+    for (let y = 0; y <= this.mapH; y++) {
+      this.tileGraphics.lineBetween(0, y * TILE_SIZE, this.mapW * TILE_SIZE, y * TILE_SIZE);
     }
-    for (let x = 0; x <= MAP_WIDTH; x++) {
-      this.tileGraphics.lineBetween(x * TILE_SIZE, 0, x * TILE_SIZE, MAP_HEIGHT * TILE_SIZE);
+    for (let x = 0; x <= this.mapW; x++) {
+      this.tileGraphics.lineBetween(x * TILE_SIZE, 0, x * TILE_SIZE, this.mapH * TILE_SIZE);
     }
   }
 
   // ── 유닛 렌더링 ──
 
   private createUnits(): void {
-    // 스프라이트시트 + 애니메이션 생성
     const classesUsed = new Set<string>();
     for (const unit of this.battleState.units) {
       const uc = unit.unitClass ?? UnitClass.INFANTRY;
@@ -250,22 +272,18 @@ export class BattleScene extends Phaser.Scene {
       sprite.play(`${texKey}_idle`);
     }
 
-    // 이름 라벨
     const label = this.add.text(0, -TILE_SIZE * 0.44, unit.name, {
       fontSize: '10px', color: '#ffffff', fontStyle: 'bold',
       stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5);
 
-    // HP 바 배경
     const hpBarBg = this.add.graphics();
     hpBarBg.fillStyle(0x000000, 0.6);
     hpBarBg.fillRect(-TILE_SIZE * 0.35, TILE_SIZE * 0.32, TILE_SIZE * 0.7, 4);
 
-    // HP 바
     const hpBar = this.add.graphics();
     this.drawHpBar(hpBar, unit);
 
-    // MP 바 (MP가 있으면)
     const mpBar = this.add.graphics();
     this.drawMpBar(mpBar, unit);
 
@@ -302,7 +320,6 @@ export class BattleScene extends Phaser.Scene {
     if (!container) return;
     if (!unit.isAlive) { container.setVisible(false); return; }
 
-    // HP/MP 바 업데이트 (인덱스: 0=sprite, 1=label, 2=hpBarBg, 3=hpBar, 4=mpBar)
     const hpBar = container.getAt(3) as Phaser.GameObjects.Graphics;
     this.drawHpBar(hpBar, unit);
     const mpBar = container.getAt(4) as Phaser.GameObjects.Graphics;
@@ -328,28 +345,33 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  // ── UI ──
+  // ── UI (화면 고정) ──
 
   private createUI(): void {
-    const uiBg = this.add.graphics();
+    const sw = this.scale.width;
+    const sh = this.scale.height;
+    const uiY = sh - UI_BAR_H;
+
+    const uiBg = this.add.graphics().setDepth(200).setScrollFactor(0);
     uiBg.fillStyle(0x1a1a2e, 1);
-    uiBg.fillRect(0, UI_BAR_Y, MAP_WIDTH * TILE_SIZE, 60);
+    uiBg.fillRect(0, uiY, sw, UI_BAR_H);
     uiBg.lineStyle(2, 0x4a4a6a, 1);
-    uiBg.strokeRect(0, UI_BAR_Y, MAP_WIDTH * TILE_SIZE, 60);
+    uiBg.strokeRect(0, uiY, sw, UI_BAR_H);
 
-    this.turnText = this.add.text(16, UI_BAR_Y + 18, '', { fontSize: '18px', color: '#ffffff' });
+    this.turnText = this.add.text(16, uiY + 18, '', { fontSize: '18px', color: '#ffffff' })
+      .setDepth(201).setScrollFactor(0);
 
-    this.endTurnButton = this.add.text(MAP_WIDTH * TILE_SIZE - 120, UI_BAR_Y + 14, '턴 종료', {
+    this.endTurnButton = this.add.text(sw - 120, uiY + 14, '턴 종료', {
       fontSize: '18px', color: '#ffffff', backgroundColor: '#4a4a6a', padding: { x: 14, y: 8 },
-    }).setInteractive({ useHandCursor: true });
+    }).setInteractive({ useHandCursor: true }).setDepth(201).setScrollFactor(0);
     this.endTurnButton.on('pointerdown', () => { this._menuClickConsumed = true; this.onEndTurnClicked(); });
     this.endTurnButton.on('pointerover', () => this.endTurnButton.setStyle({ backgroundColor: '#6a6a8a' }));
     this.endTurnButton.on('pointerout', () => this.endTurnButton.setStyle({ backgroundColor: '#4a4a6a' }));
 
-    this.gameOverText = this.add.text(
-      (MAP_WIDTH * TILE_SIZE) / 2, (MAP_HEIGHT * TILE_SIZE) / 2, '',
-      { fontSize: '36px', color: '#ffffff', fontStyle: 'bold', backgroundColor: '#000000aa', padding: { x: 30, y: 20 } },
-    ).setOrigin(0.5).setVisible(false).setDepth(100);
+    this.gameOverText = this.add.text(sw / 2, sh / 2, '', {
+      fontSize: '36px', color: '#ffffff', fontStyle: 'bold',
+      backgroundColor: '#000000aa', padding: { x: 30, y: 20 },
+    }).setOrigin(0.5).setVisible(false).setDepth(300).setScrollFactor(0);
   }
 
   private updateTurnUI(): void {
@@ -358,14 +380,21 @@ export class BattleScene extends Phaser.Scene {
     this.endTurnButton.setVisible(this.battleState.phase === 'player');
   }
 
-  // ── 액션 메뉴 ──
+  // ── 액션 메뉴 (화면 좌표) ──
 
   private showActionMenu(unit: UnitData): void {
     this.hideActionMenu();
     this.interactionState = 'AWAITING_ACTION';
 
-    const px = unit.position.x * TILE_SIZE + TILE_SIZE;
-    const py = unit.position.y * TILE_SIZE;
+    // 유닛의 월드 좌표를 화면 좌표로 변환
+    const worldPos = this.gridToPixel(unit.position);
+    const cam = this.cameras.main;
+    let screenX = (worldPos.x - cam.scrollX) * cam.zoom + TILE_SIZE;
+    let screenY = (worldPos.y - cam.scrollY) * cam.zoom;
+    // 화면 밖으로 나가지 않도록 클램핑
+    screenX = Math.min(screenX, this.scale.width - 130);
+    screenY = Math.max(screenY, 10);
+
     const menuStyle = { fontSize: '14px', color: '#ffffff', backgroundColor: '#2a2a4a', padding: { x: 10, y: 6 } };
 
     // 공격
@@ -375,9 +404,9 @@ export class BattleScene extends Phaser.Scene {
       return t && t.faction !== unit.faction && t.isAlive;
     });
 
-    const atkBtn = this.add.text(px, py, '공격', menuStyle)
+    const atkBtn = this.add.text(screenX, screenY, '공격', menuStyle)
       .setInteractive({ useHandCursor: true }).setDepth(90)
-      .setAlpha(hasEnemyInRange ? 1 : 0.4);
+      .setScrollFactor(0).setAlpha(hasEnemyInRange ? 1 : 0.4);
     if (hasEnemyInRange) {
       atkBtn.on('pointerdown', () => {
         this._menuClickConsumed = true;
@@ -398,8 +427,8 @@ export class BattleScene extends Phaser.Scene {
     let yOffset = 28;
 
     for (const skill of usableSkills) {
-      const skillBtn = this.add.text(px, py + yOffset, `${skill.name} (MP${skill.mpCost})`, menuStyle)
-        .setInteractive({ useHandCursor: true }).setDepth(90);
+      const skillBtn = this.add.text(screenX, screenY + yOffset, `${skill.name} (MP${skill.mpCost})`, menuStyle)
+        .setInteractive({ useHandCursor: true }).setDepth(90).setScrollFactor(0);
       skillBtn.on('pointerdown', () => {
         this._menuClickConsumed = true;
         this.hideActionMenu();
@@ -410,8 +439,8 @@ export class BattleScene extends Phaser.Scene {
     }
 
     // 대기
-    const waitBtn = this.add.text(px, py + yOffset, '대기', menuStyle)
-      .setInteractive({ useHandCursor: true }).setDepth(90);
+    const waitBtn = this.add.text(screenX, screenY + yOffset, '대기', menuStyle)
+      .setInteractive({ useHandCursor: true }).setDepth(90).setScrollFactor(0);
     waitBtn.on('pointerdown', () => {
       this._menuClickConsumed = true;
       this.hideActionMenu();
@@ -423,11 +452,11 @@ export class BattleScene extends Phaser.Scene {
     this.actionMenu.push(waitBtn);
     yOffset += 28;
 
-    // 취소 (원래 위치로 복귀)
+    // 취소
     if (this.preMovePosition) {
-      const cancelBtn = this.add.text(px, py + yOffset, '취소', {
+      const cancelBtn = this.add.text(screenX, screenY + yOffset, '취소', {
         ...menuStyle, color: '#ff8888',
-      }).setInteractive({ useHandCursor: true }).setDepth(90);
+      }).setInteractive({ useHandCursor: true }).setDepth(90).setScrollFactor(0);
       cancelBtn.on('pointerdown', () => {
         this._menuClickConsumed = true;
         this.cancelMove(unit);
@@ -443,7 +472,6 @@ export class BattleScene extends Phaser.Scene {
     const originalPos = this.preMovePosition;
     this.preMovePosition = null;
 
-    // 유닛을 원래 위치로 복귀
     unit.position = { ...originalPos };
     const container = this.unitSprites.get(unit.id);
     if (container) {
@@ -451,7 +479,6 @@ export class BattleScene extends Phaser.Scene {
       container.setPosition(pixel.x, pixel.y);
     }
 
-    // 다시 UNIT_SELECTED 상태로
     this.selectUnit(unit);
   }
 
@@ -477,49 +504,35 @@ export class BattleScene extends Phaser.Scene {
   private drawOverlays(): void {
     this.overlayGraphics.clear();
 
-    // 이동 범위 (파란색)
     for (const pos of this.movementTiles) {
       this.overlayGraphics.fillStyle(0x4169e1, 0.35);
       this.overlayGraphics.fillRect(pos.x * TILE_SIZE + 1, pos.y * TILE_SIZE + 1, TILE_SIZE - 2, TILE_SIZE - 2);
     }
-
-    // 공격 전체 범위 (연한 빨간색)
     for (const pos of this.attackRangeTiles) {
       this.overlayGraphics.fillStyle(0xff4444, 0.15);
       this.overlayGraphics.fillRect(pos.x * TILE_SIZE + 1, pos.y * TILE_SIZE + 1, TILE_SIZE - 2, TILE_SIZE - 2);
     }
-
-    // 공격 가능 적 위치 (진한 빨간색)
     for (const pos of this.attackTiles) {
       this.overlayGraphics.fillStyle(0xff4444, 0.45);
       this.overlayGraphics.fillRect(pos.x * TILE_SIZE + 1, pos.y * TILE_SIZE + 1, TILE_SIZE - 2, TILE_SIZE - 2);
     }
-
-    // 스킬 전체 범위 (연한 보라색)
     for (const pos of this.skillRangeTiles) {
       this.overlayGraphics.fillStyle(0x9944ff, 0.15);
       this.overlayGraphics.fillRect(pos.x * TILE_SIZE + 1, pos.y * TILE_SIZE + 1, TILE_SIZE - 2, TILE_SIZE - 2);
     }
-
-    // 스킬 타겟 가능 위치 (진한 보라색)
     for (const pos of this.skillTargetTiles) {
       this.overlayGraphics.fillStyle(0x9944ff, 0.45);
       this.overlayGraphics.fillRect(pos.x * TILE_SIZE + 1, pos.y * TILE_SIZE + 1, TILE_SIZE - 2, TILE_SIZE - 2);
     }
-
-    // 적 미리보기 이동 범위 (주황색)
     for (const pos of this.enemyPreviewMoveTiles) {
       this.overlayGraphics.fillStyle(0xff8800, 0.25);
       this.overlayGraphics.fillRect(pos.x * TILE_SIZE + 1, pos.y * TILE_SIZE + 1, TILE_SIZE - 2, TILE_SIZE - 2);
     }
-
-    // 적 미리보기 공격 범위 (연한 빨간색)
     for (const pos of this.enemyPreviewAttackTiles) {
       this.overlayGraphics.fillStyle(0xff4444, 0.2);
       this.overlayGraphics.fillRect(pos.x * TILE_SIZE + 1, pos.y * TILE_SIZE + 1, TILE_SIZE - 2, TILE_SIZE - 2);
     }
 
-    // 선택된 유닛 (노란색 테두리)
     if (this.selectedUnit) {
       const px = this.selectedUnit.position.x * TILE_SIZE;
       const py = this.selectedUnit.position.y * TILE_SIZE;
@@ -540,18 +553,53 @@ export class BattleScene extends Phaser.Scene {
     this.activeSkill = null;
   }
 
-  // ── 입력 처리 ──
+  // ── 입력 처리 (드래그 + 탭 구분) ──
 
   private setupInput(): void {
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      // 메뉴 버튼이 클릭을 소비했으면 무시
       if (this._menuClickConsumed) {
         this._menuClickConsumed = false;
         return;
       }
-      if (pointer.y >= UI_BAR_Y) return;
-      const gridX = Math.floor(pointer.x / TILE_SIZE);
-      const gridY = Math.floor(pointer.y / TILE_SIZE);
+      this.dragStartX = pointer.x;
+      this.dragStartY = pointer.y;
+      this.camStartX = this.cameras.main.scrollX;
+      this.camStartY = this.cameras.main.scrollY;
+      this.isDragging = false;
+    });
+
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (!pointer.isDown) return;
+      const dx = pointer.x - this.dragStartX;
+      const dy = pointer.y - this.dragStartY;
+      if (!this.isDragging && (Math.abs(dx) > this.dragThreshold || Math.abs(dy) > this.dragThreshold)) {
+        this.isDragging = true;
+        // 드래그 시작 시 액션 메뉴 닫기
+        this.hideActionMenu();
+      }
+      if (this.isDragging) {
+        this.cameras.main.scrollX = this.camStartX - dx;
+        this.cameras.main.scrollY = this.camStartY - dy;
+      }
+    });
+
+    this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+      if (this._menuClickConsumed) {
+        this._menuClickConsumed = false;
+        return;
+      }
+      if (this.isDragging) {
+        this.isDragging = false;
+        return;
+      }
+
+      // UI 바 영역 클릭 무시 (화면 하단 60px)
+      if (pointer.y >= this.scale.height - UI_BAR_H) return;
+
+      // 화면 좌표 → 월드 좌표 변환
+      const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+      const gridX = Math.floor(worldPoint.x / TILE_SIZE);
+      const gridY = Math.floor(worldPoint.y / TILE_SIZE);
       if (!this.gridSystem.isInBounds(gridX, gridY)) return;
       this.handleGridClick({ x: gridX, y: gridY });
     });
@@ -591,11 +639,11 @@ export class BattleScene extends Phaser.Scene {
     );
     this.attackTiles = [];
     this.drawOverlays();
+    this.centerCameraOn(unit.position);
     EventBus.emit('unit-selected', unit);
   }
 
   private handleUnitSelectedClick(pos: Position): void {
-    // 제자리 클릭 → 이동 없이 액션 메뉴
     if (this.selectedUnit && pos.x === this.selectedUnit.position.x && pos.y === this.selectedUnit.position.y) {
       this.preMovePosition = { ...this.selectedUnit.position };
       this.clearOverlays();
@@ -604,21 +652,18 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    // 적 유닛 클릭 → 적 이동/공격 범위 미리보기
     const unitAtPos = this.getUnitAt(pos);
     if (unitAtPos && unitAtPos.faction === 'enemy' && unitAtPos.isAlive) {
       this.showEnemyPreview(unitAtPos);
       return;
     }
 
-    // 다른 아군 클릭 → 선택 전환
     if (unitAtPos && unitAtPos.faction === 'player' && !unitAtPos.hasActed && unitAtPos.isAlive) {
       this.deselectUnit();
       this.selectUnit(unitAtPos);
       return;
     }
 
-    // 이동 가능 타일 클릭 → 이동
     const isMoveTile = this.movementTiles.some(t => t.x === pos.x && t.y === pos.y);
     if (isMoveTile && this.selectedUnit) {
       this.preMovePosition = { ...this.selectedUnit.position };
@@ -630,7 +675,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private handleAwaitingActionClick(_pos: Position): void {
-    // 액션메뉴 외 그리드 클릭 → 메뉴 무시 (메뉴 버튼으로만 조작)
+    // 액션메뉴 외 그리드 클릭 → 무시
   }
 
   private handleAwaitingAttackClick(pos: Position): void {
@@ -644,7 +689,6 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    // 공격 취소 → 액션 메뉴로 복귀
     this.clearOverlays();
     this.drawOverlays();
     this.showActionMenu(this.selectedUnit);
@@ -657,7 +701,6 @@ export class BattleScene extends Phaser.Scene {
     if (isTarget) {
       this.executeSkill(this.selectedUnit, this.activeSkill, pos);
     } else {
-      // 스킬 취소 → 액션 메뉴 복귀
       this.clearOverlays();
       this.drawOverlays();
       this.showActionMenu(this.selectedUnit);
@@ -702,7 +745,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private onMoveComplete(unit: UnitData): void {
-    // 이동 후 액션 메뉴 표시
+    this.centerCameraOn(unit.position);
     this.showActionMenu(unit);
   }
 
@@ -713,14 +756,12 @@ export class BattleScene extends Phaser.Scene {
     this.clearOverlays();
     this.hideActionMenu();
 
-    // 공격 애니메이션
     this.playUnitAnim(attacker, 'attack');
 
     const defenderTile = this.battleState.tiles[defender.position.y][defender.position.x];
     const attackerTile = this.battleState.tiles[attacker.position.y][attacker.position.x];
     const result = this.combatSystem.executeAttack(attacker, defender, defenderTile, attackerTile);
 
-    // 피격 애니메이션
     this.time.delayedCall(200, () => {
       this.playUnitAnim(defender, 'hit');
     });
@@ -735,7 +776,6 @@ export class BattleScene extends Phaser.Scene {
       this.fadeOutUnit(defender.id);
     }
 
-    // 경험치 부여
     this.awardExp(attacker, 'attack', defender.level ?? 1);
     if (result.defenderDied) this.awardExp(attacker, 'kill', defender.level ?? 1);
 
@@ -773,11 +813,9 @@ export class BattleScene extends Phaser.Scene {
 
     const result = this.skillSystem.executeSkill(caster, skill, targetPos, this.battleState.units);
 
-    // 스킬명 표시
     const casterPos = this.gridToPixel(caster.position);
     this.showFloatingText(casterPos.x, casterPos.y - 20, skill.name, '#cc88ff');
 
-    // 효과 표시
     this.time.delayedCall(300, () => {
       for (const effect of result.effects) {
         const unit = this.turnSystem.getUnitById(effect.unitId);
@@ -799,7 +837,6 @@ export class BattleScene extends Phaser.Scene {
 
         this.updateUnitSprite(unit);
 
-        // 스킬 경험치
         if (effect.damageDealt) {
           this.awardExp(caster, 'skill_damage', unit.level ?? 1);
           if (effect.unitDied) this.awardExp(caster, 'kill', unit.level ?? 1);
@@ -895,7 +932,6 @@ export class BattleScene extends Phaser.Scene {
     this.turnSystem.startEnemyTurn();
     this.updateTurnUI();
 
-    // 상태효과 틱
     this.skillSystem.tickStatusEffects(this.turnSystem.getUnitsByFaction('enemy'));
     for (const unit of this.turnSystem.getUnitsByFaction('enemy')) {
       this.skillSystem.tickCooldowns(unit);
@@ -912,13 +948,15 @@ export class BattleScene extends Phaser.Scene {
     const actions = this.aiSystem.planActions();
 
     for (const action of actions) {
+      // AI 유닛 액션 전에 카메라 이동
+      this.centerCameraOn(action.unit.position, 200);
+      await this.delay(200);
       await this.executeAIAction(action);
       await this.delay(400);
       const winner = this.turnSystem.checkVictory();
       if (winner) { this.onGameOver(winner); return; }
     }
 
-    // 아군 턴 시작 전 상태효과 틱
     this.turnSystem.startPlayerTurn();
     this.skillSystem.tickStatusEffects(this.turnSystem.getUnitsByFaction('player'));
     for (const unit of this.turnSystem.getUnitsByFaction('player')) {
@@ -936,6 +974,10 @@ export class BattleScene extends Phaser.Scene {
     this.updateTurnUI();
     this.battleState.units.forEach(u => this.updateUnitSprite(u));
     this.interactionState = 'IDLE';
+
+    // 아군 턴 시작 시 첫 번째 행동 가능 유닛으로 포커스
+    const firstAvail = this.turnSystem.getUnitsByFaction('player').find(u => !u.hasActed);
+    if (firstAvail) this.centerCameraOn(firstAvail.position, 400);
   }
 
   private executeAIAction(action: ReturnType<AISystem['planActions']>[number]): Promise<void> {
@@ -1027,7 +1069,6 @@ export class BattleScene extends Phaser.Scene {
     this.gameOverText.setText(message).setVisible(true);
     EventBus.emit('game-over', winner);
 
-    // 캠페인 모드: 클릭 시 다음 흐름으로 진행
     if (this.campaignMode && this.campaignManager && this.campaignStage) {
       this.time.delayedCall(1500, () => {
         this.gameOverText.setText(message + '\n\n(클릭하여 계속)');
@@ -1047,7 +1088,6 @@ export class BattleScene extends Phaser.Scene {
       });
     }
 
-    // PvP 모드: 결과 전송 → 로비 복귀
     if (this.pvpMode && this.pvpOpponentId !== undefined) {
       const won = winner === 'player';
       pvpRecordResult(this.pvpOpponentId, won).then(result => {
@@ -1073,11 +1113,9 @@ export class BattleScene extends Phaser.Scene {
 
   private showEnemyPreview(unit: UnitData): void {
     this.clearOverlays();
-    // 적의 이동 범위 (주황색으로 표시)
     this.enemyPreviewMoveTiles = this.gridSystem.getMovementRange(
       unit.position, unit.stats.moveRange, this.battleState.units, unit.faction, unit.unitClass,
     );
-    // 이동 가능 범위 + 현재 위치에서의 공격 범위 합산
     const allPositions = [unit.position, ...this.enemyPreviewMoveTiles];
     const attackSet = new Set<string>();
     for (const pos of allPositions) {
@@ -1086,7 +1124,6 @@ export class BattleScene extends Phaser.Scene {
         attackSet.add(`${ap.x},${ap.y}`);
       }
     }
-    // 이동 범위와 겹치는 타일은 제외
     const moveSet = new Set(this.enemyPreviewMoveTiles.map(p => `${p.x},${p.y}`));
     moveSet.add(`${unit.position.x},${unit.position.y}`);
     this.enemyPreviewAttackTiles = [...attackSet]
