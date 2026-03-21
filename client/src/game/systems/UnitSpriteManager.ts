@@ -59,7 +59,7 @@ export function createImageSprite(
   // 이미지를 TILE_SIZE에 맞게 스케일
   const tex = scene.textures.get(key);
   const frame = tex.get(0);
-  const scale = Math.min(TILE_SIZE / frame.width, TILE_SIZE / frame.height) * 0.9;
+  const scale = Math.max(TILE_SIZE / frame.width, TILE_SIZE / frame.height);
   sprite.setScale(scale);
   return sprite;
 }

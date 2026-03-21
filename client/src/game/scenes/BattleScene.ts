@@ -251,8 +251,8 @@ export class BattleScene extends Phaser.Scene {
     }
 
     // 이름 라벨
-    const label = this.add.text(0, -TILE_SIZE * 0.44, unit.name.charAt(0), {
-      fontSize: '11px', color: '#ffffff', fontStyle: 'bold',
+    const label = this.add.text(0, -TILE_SIZE * 0.44, unit.name, {
+      fontSize: '10px', color: '#ffffff', fontStyle: 'bold',
       stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5);
 
