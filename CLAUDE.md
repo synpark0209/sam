@@ -1,56 +1,40 @@
-# JOJO 프로젝트 - 삼국지 조조전 웹 게임
+# 방구석 여포뎐 - 프로젝트 가이드
 
 ## 프로젝트 개요
-1998년 KOEI 삼국지 조조전(SRPG)을 웹/텔레그램 미니앱으로 재현하는 프로젝트.
-원작을 충실히 구현한 후, 추가 콘텐츠와 온라인 요소를 확장하는 방식.
+삼국지 조조전(1998, KOEI) 시스템 기반의 턴제 전술 RPG(SRPG).
+현대인이 삼국지 여포로 환생하는 스토리 + 모바일 게임 요소.
+웹 브라우저 및 텔레그램 미니앱으로 서비스.
 
-## 현재 상태
-- Phase 1 완료 (기본 전투 프로토타입)
-- Phase 2 완료 (병종, 반격, 계략, 경험치, 장비)
-- Phase 3 완료 (스토리 캠페인: 대화/월드맵/타이틀/세이브)
-- Phase 4 완료 (온라인 서버: NestJS/PostgreSQL/JWT/서버세이브/랭킹)
-- Phase 5 완료 (텔레그램 미니앱: 배포/자동로그인/모바일대응)
-- 다음: Phase 6 (확장 콘텐츠)
+## 기본 원칙
+- **시나리오 우선**: 시나리오 장수만으로 시나리오 모드 100% 클리어 가능. 가챠는 PvP/던전용.
+- **원작 존중 + 현대화**: 조조전 전투 시스템 충실 구현 + 모바일 편의 기능(자동전투, 배속, 스태미나)
+- **에셋 독립**: 원작 에셋 사용 금지. 직접 제작 또는 AI 생성/오픈소스 사용.
+- **서버 권위적 구조**: 게임 로직은 미래 서버 이식을 고려하여 설계.
 
 ## 기술 스택
 - **게임 엔진**: Phaser.js 3 (2D)
 - **UI 레이어**: React + TypeScript
 - **빌드**: Vite 5
 - **백엔드**: NestJS + TypeORM + PostgreSQL
-- **인증**: JWT (passport-jwt, bcrypt) + Telegram initData 검증
+- **인증**: JWT + Telegram initData 검증
 - **배포**: Vercel (프론트) + Railway (백엔드+PostgreSQL)
 - **플랫폼**: 웹 브라우저 + Telegram Mini App
 
-## 개발 로드맵
-1. ~~Phase 1 - 프로토타입 (핵심 전투 시스템)~~ ✓
-2. ~~Phase 2 - 게임 시스템 확장 (병종, 지형, 계략, 레벨업, 장비)~~ ✓
-3. ~~Phase 3 - 스토리 & 콘텐츠 (대화, 챕터, 캠페인)~~ ✓
-4. ~~Phase 4 - 온라인 & 서버 (인증, 서버 세이브, 랭킹)~~ ✓
-5. ~~Phase 5 - 텔레그램 미니앱 통합~~ ✓
-6. Phase 6 - 확장 콘텐츠 (카메라 스크롤, 모바일UI, 신규 시나리오, 길드, 시즌)
-
-## 아키텍처
-- Phaser = 게임 렌더링, React = 오버레이 UI, EventBus로 통신
-- 게임 로직 시스템들은 Phaser 의존성 없는 순수 TS 클래스
-- BattleScene FSM: IDLE→UNIT_SELECTED→MOVING→AWAITING_ACTION→[ATTACK|SKILL|WAIT]→ANIMATING→IDLE
-- 씬 흐름: TitleScene → WorldMapScene → DialogueScene → BattleScene → DialogueScene → WorldMapScene
-- CampaignManager: 서버 전용 세이브/로드 (localStorage 제거), 유닛 영속
-- 서버 API: POST /auth/register, POST /auth/login, POST /auth/telegram, GET /save, POST /save, GET /save/ranking
-
-## 핵심 시스템 (Phase 2)
-- **병종**: 보병/기병/궁병/책사/도적/무도가 (클래스별 지형 이동비용 차등)
-- **반격**: 방어자 생존 시 50% 데미지 반격
-- **계략**: 화계/수계/회복/독계/혼란/격려/방어강화/화살비/돌격
-- **경험치**: 공격/킬/힐/스킬로 EXP 획득, 100 EXP당 레벨업
-- **장비**: 무기/방어구/악세서리 슬롯, 스탯 보정
-
-## 규칙 및 컨벤션
+## 코딩 컨벤션
 - TypeScript strict mode (erasableSyntaxOnly: false)
-- 서버 권위적 구조 (미래 서버 이식 대비)
 - 클라이언트/서버 공유 로직은 `shared/`에 배치
-- 에셋은 직접 제작 또는 오픈소스 사용 (원작 에셋 사용 금지)
+- 게임 로직 시스템들은 Phaser 의존성 없는 순수 TS 클래스
+- 스킬/장비/장수 데이터는 데이터 기반 (data 파일에 추가만으로 생성)
 - getEffectiveStats()가 base + 장비 + 상태효과를 합산하는 단일 진실 소스
-- 스킬은 데이터 기반 (shared/data/skillDefs.ts에 추가만으로 새 스킬 생성)
 
-## 대화 로그
-대화별 상세 기록은 `docs/conversations/` 디렉토리에 저장됩니다.
+## 문서 구조
+| 문서 | 경로 | 설명 |
+|------|------|------|
+| **게임 기획 문서 (GDD)** | `docs/GDD_방구석여포뎐.md` | 시나리오, 전투 시스템, 성장, 모드, 수익화 등 전체 기획 |
+| **시스템 구현 문서** | `docs/IMPLEMENTATION.md` | 아키텍처, API, 씬 흐름, 현재 구현 상태, 기술적 세부사항 |
+| **대화 로그** | `docs/conversations/` | 대화별 작업 기록 |
+
+## 현재 상태
+- 프로토타입 완료 (Phase 1~5): 기본 전투, 시나리오, 서버, 텔레그램 배포
+- 기획 문서 작성 완료: "방구석 여포뎐" GDD
+- 다음: 기획 기반 본격 개발 (시나리오 리빌드, 시스템 고도화)
