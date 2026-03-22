@@ -22,10 +22,10 @@ export class TitleScene extends Phaser.Scene {
 
     this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GAME_W, GAME_H);
 
-    this.add.text(GAME_W / 2, GAME_H * 0.2, '삼국지 조조전', {
+    this.add.text(GAME_W / 2, GAME_H * 0.2, '방구석 여포뎐', {
       fontSize: '36px', color: '#ffd700', fontStyle: 'bold',
     }).setOrigin(0.5);
-    this.add.text(GAME_W / 2, GAME_H * 0.3, 'Romance of the Three Kingdoms', {
+    this.add.text(GAME_W / 2, GAME_H * 0.3, '현대인이 여포가 되었다?!', {
       fontSize: '14px', color: '#888888',
     }).setOrigin(0.5);
 

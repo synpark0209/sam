@@ -7,27 +7,27 @@ import { saveToServer, loadServerSave } from '../../api/client.ts';
 function createDefaultPlayerUnits(): UnitData[] {
   return [
     {
-      id: 'p1', name: '조조', faction: 'player', unitClass: UnitClass.INFANTRY,
-      level: 1, exp: 0, mp: 20, maxMp: 20, skills: ['encourage'],
-      equipment: { weapon: 'steel_sword', armor: 'leather_armor' },
+      id: 'p1', name: '여포', faction: 'player', unitClass: UnitClass.CAVALRY,
+      level: 1, exp: 0, mp: 15, maxMp: 15, skills: ['charge'],
+      equipment: { weapon: 'steel_sword', armor: 'iron_armor' },
       position: { x: 0, y: 0 },
-      stats: { maxHp: 150, hp: 150, attack: 38, defense: 22, speed: 5, moveRange: 4, attackRange: 1 },
+      stats: { maxHp: 200, hp: 200, attack: 48, defense: 25, speed: 6, moveRange: 6, attackRange: 1 },
       hasActed: false, isAlive: true,
     },
     {
-      id: 'p2', name: '하후돈', faction: 'player', unitClass: UnitClass.CAVALRY,
-      level: 1, exp: 0, mp: 10, maxMp: 10, skills: ['charge'],
+      id: 'p2', name: '장료', faction: 'player', unitClass: UnitClass.INFANTRY,
+      level: 1, exp: 0, mp: 10, maxMp: 10, skills: ['encourage'],
       equipment: { weapon: 'iron_spear', armor: 'iron_armor' },
       position: { x: 0, y: 0 },
-      stats: { maxHp: 180, hp: 180, attack: 42, defense: 28, speed: 4, moveRange: 6, attackRange: 1 },
+      stats: { maxHp: 160, hp: 160, attack: 40, defense: 24, speed: 5, moveRange: 4, attackRange: 1 },
       hasActed: false, isAlive: true,
     },
     {
-      id: 'p3', name: '하후연', faction: 'player', unitClass: UnitClass.ARCHER,
-      level: 1, exp: 0, mp: 15, maxMp: 15, skills: ['arrow_rain'],
-      equipment: { weapon: 'longbow', armor: 'leather_armor' },
+      id: 'p3', name: '고순', faction: 'player', unitClass: UnitClass.INFANTRY,
+      level: 1, exp: 0, mp: 10, maxMp: 10, skills: ['encourage'],
+      equipment: { weapon: 'steel_sword', armor: 'leather_armor' },
       position: { x: 0, y: 0 },
-      stats: { maxHp: 100, hp: 100, attack: 35, defense: 12, speed: 6, moveRange: 3, attackRange: 2 },
+      stats: { maxHp: 170, hp: 170, attack: 38, defense: 28, speed: 4, moveRange: 4, attackRange: 1 },
       hasActed: false, isAlive: true,
     },
   ];
@@ -43,7 +43,7 @@ export class CampaignManager {
 
   createNew(): CampaignProgress {
     return {
-      currentChapterId: 'ch1',
+      currentChapterId: 'prologue',
       currentStageIdx: 0,
       completedStages: [],
       playerUnits: createDefaultPlayerUnits(),
