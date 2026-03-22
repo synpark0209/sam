@@ -11,7 +11,7 @@ export class GameSave {
   @Column({ type: 'jsonb' })
   campaignProgress: Record<string, unknown>;
 
-  @Column({ default: 'ch1' })
+  @Column({ default: 'prologue' })
   currentChapterId: string;
 
   @Column({ default: 0 })
