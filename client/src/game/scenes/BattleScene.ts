@@ -328,11 +328,6 @@ export class BattleScene extends Phaser.Scene {
       sprite.play(`${texKey}_idle`);
     }
 
-    const label = this.add.text(0, -TILE_SIZE * 0.44, unit.name, {
-      fontSize: '10px', color: '#ffffff', fontStyle: 'bold',
-      stroke: '#000000', strokeThickness: 2,
-    }).setOrigin(0.5);
-
     const hpBarBg = this.add.graphics();
     hpBarBg.fillStyle(0x000000, 0.6);
     hpBarBg.fillRect(-TILE_SIZE * 0.35, TILE_SIZE * 0.32, TILE_SIZE * 0.7, 4);
@@ -343,7 +338,7 @@ export class BattleScene extends Phaser.Scene {
     const mpBar = this.add.graphics();
     this.drawMpBar(mpBar, unit);
 
-    container.add([sprite, label, hpBarBg, hpBar, mpBar]);
+    container.add([sprite, hpBarBg, hpBar, mpBar]);
     container.setSize(TILE_SIZE, TILE_SIZE);
     container.setInteractive();
     container.setData('unitId', unit.id);
@@ -376,9 +371,10 @@ export class BattleScene extends Phaser.Scene {
     if (!container) return;
     if (!unit.isAlive) { container.setVisible(false); return; }
 
-    const hpBar = container.getAt(3) as Phaser.GameObjects.Graphics;
+    // 인덱스: 0=sprite, 1=hpBarBg, 2=hpBar, 3=mpBar
+    const hpBar = container.getAt(2) as Phaser.GameObjects.Graphics;
     this.drawHpBar(hpBar, unit);
-    const mpBar = container.getAt(4) as Phaser.GameObjects.Graphics;
+    const mpBar = container.getAt(3) as Phaser.GameObjects.Graphics;
     this.drawMpBar(mpBar, unit);
 
     container.setAlpha(unit.hasActed ? 0.5 : 1);
