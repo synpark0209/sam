@@ -205,6 +205,18 @@ export class BattleScene extends Phaser.Scene {
     this.getAudio()?.playBgm('battle');
   }
 
+  /** 유닛 스프라이트를 대상 방향으로 회전 (좌우 반전) */
+  private faceToward(unit: UnitData, targetPos: Position): void {
+    const container = this.unitSprites.get(unit.id);
+    if (!container) return;
+    const sprite = container.getAt(0) as Phaser.GameObjects.Sprite;
+    if (targetPos.x < unit.position.x) {
+      sprite.setFlipX(true);
+    } else if (targetPos.x > unit.position.x) {
+      sprite.setFlipX(false);
+    }
+  }
+
   private isDiagonalAttack(unit: UnitData): boolean {
     const cls = unit.unitClass ?? UnitClass.INFANTRY;
     return UNIT_CLASS_DEFS[cls]?.diagonalAttack ?? false;
@@ -824,6 +836,11 @@ export class BattleScene extends Phaser.Scene {
     const container = this.unitSprites.get(unit.id);
     if (!container) { onComplete(); return; }
 
+    // 이동 시작 시 방향 설정
+    if (path.length >= 2) {
+      this.faceToward(unit, path[path.length - 1]);
+    }
+
     this.playUnitAnim(unit, 'walk');
     this.playSfx('move');
 
@@ -856,6 +873,7 @@ export class BattleScene extends Phaser.Scene {
     this.clearOverlays();
     this.hideActionMenu();
 
+    this.faceToward(attacker, defender.position);
     this.playUnitAnim(attacker, 'attack');
     this.playSfx('attack_hit');
 
@@ -875,6 +893,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     this.time.delayedCall(200, () => {
+      this.faceToward(defender, attacker.position);
       this.playUnitAnim(defender, 'hit');
     });
 
@@ -1106,6 +1125,7 @@ export class BattleScene extends Phaser.Scene {
 
       const doAttack = (target: UnitData, onDone: () => void) => {
         this.centerCameraOn(target.position, 200);
+        this.faceToward(unit, target.position);
         const defTile = this.battleState.tiles[target.position.y][target.position.x];
         const atkTile = this.battleState.tiles[unit.position.y][unit.position.x];
         const result = this.combatSystem.executeAttack(unit, target, defTile, atkTile, this.battleState.units);
