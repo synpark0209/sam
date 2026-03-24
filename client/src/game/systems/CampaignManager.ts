@@ -15,11 +15,11 @@ function createDefaultPlayerUnits(): UnitData[] {
       hasActed: false, isAlive: true,
     },
     {
-      id: 'p2', name: '장료', faction: 'player', unitClass: UnitClass.INFANTRY,
-      level: 1, exp: 0, mp: 10, maxMp: 10, skills: ['encourage'],
+      id: 'p2', name: '장료', faction: 'player', unitClass: UnitClass.CAVALRY,
+      level: 1, exp: 0, mp: 10, maxMp: 10, skills: ['charge'],
       equipment: { weapon: 'iron_spear', armor: 'iron_armor' },
       position: { x: 0, y: 0 },
-      stats: { maxHp: 160, hp: 160, attack: 40, defense: 24, speed: 5, moveRange: 4, attackRange: 1 },
+      stats: { maxHp: 160, hp: 160, attack: 40, defense: 20, speed: 5, moveRange: 6, attackRange: 1 },
       hasActed: false, isAlive: true,
     },
     {

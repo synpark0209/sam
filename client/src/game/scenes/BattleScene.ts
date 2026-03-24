@@ -22,6 +22,7 @@ import type { CampaignManager } from '../systems/CampaignManager.ts';
 import type { Stage, BattleConfig } from '@shared/types/campaign.ts';
 import { pvpRecordResult } from '../../api/client.ts';
 import type { AudioManager, SfxName } from '../systems/AudioManager.ts';
+import { UNIT_CLASS_DEFS } from '@shared/data/unitClassDefs.ts';
 
 type InteractionState =
   | 'IDLE'
@@ -202,6 +203,11 @@ export class BattleScene extends Phaser.Scene {
 
     // BGM 시작
     this.getAudio()?.playBgm('battle');
+  }
+
+  private isDiagonalAttack(unit: UnitData): boolean {
+    const cls = unit.unitClass ?? UnitClass.INFANTRY;
+    return UNIT_CLASS_DEFS[cls]?.diagonalAttack ?? false;
   }
 
   private getAudio(): AudioManager | null {
@@ -469,7 +475,7 @@ export class BattleScene extends Phaser.Scene {
     const menuStyle = { fontSize: '14px', color: '#ffffff', backgroundColor: '#2a2a4a', padding: { x: 10, y: 6 } };
 
     // 공격
-    const attackRange = this.gridSystem.getAttackRange(unit.position, unit.stats.attackRange);
+    const attackRange = this.gridSystem.getAttackRange(unit.position, unit.stats.attackRange, this.isDiagonalAttack(unit));
     const hasEnemyInRange = attackRange.some(pos => {
       const t = this.getUnitAt(pos);
       return t && t.faction !== unit.faction && t.isAlive;
@@ -1238,7 +1244,7 @@ export class BattleScene extends Phaser.Scene {
     const allPositions = [unit.position, ...this.enemyPreviewMoveTiles];
     const attackSet = new Set<string>();
     for (const pos of allPositions) {
-      const atkRange = this.gridSystem.getAttackRange(pos, unit.stats.attackRange);
+      const atkRange = this.gridSystem.getAttackRange(pos, unit.stats.attackRange, this.isDiagonalAttack(unit));
       for (const ap of atkRange) {
         attackSet.add(`${ap.x},${ap.y}`);
       }

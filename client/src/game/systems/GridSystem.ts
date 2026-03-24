@@ -108,12 +108,18 @@ export class GridSystem {
       });
   }
 
-  getAttackRange(origin: Position, attackRange: number): Position[] {
+  getAttackRange(origin: Position, attackRange: number, diagonal = false): Position[] {
     const result: Position[] = [];
     for (let dx = -attackRange; dx <= attackRange; dx++) {
       for (let dy = -attackRange; dy <= attackRange; dy++) {
         if (dx === 0 && dy === 0) continue;
-        if (Math.abs(dx) + Math.abs(dy) > attackRange) continue;
+        if (diagonal) {
+          // 체비셰프 거리 (8방향): max(|dx|, |dy|) <= range
+          if (Math.max(Math.abs(dx), Math.abs(dy)) > attackRange) continue;
+        } else {
+          // 맨해튼 거리 (4방향): |dx| + |dy| <= range
+          if (Math.abs(dx) + Math.abs(dy) > attackRange) continue;
+        }
         const nx = origin.x + dx;
         const ny = origin.y + dy;
         if (this.isInBounds(nx, ny)) {

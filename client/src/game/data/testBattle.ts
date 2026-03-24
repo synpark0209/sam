@@ -55,12 +55,12 @@ export const TEST_UNITS: UnitData[] = [
   },
   {
     id: 'p2', name: '장료', faction: 'player',
-    unitClass: UnitClass.INFANTRY,
+    unitClass: UnitClass.CAVALRY,
     level: 1, exp: 0, mp: 10, maxMp: 10,
-    skills: ['encourage'],
+    skills: ['charge'],
     equipment: { weapon: 'iron_spear', armor: 'iron_armor' },
     position: { x: 2, y: 2 },
-    stats: { maxHp: 160, hp: 160, attack: 40, defense: 24, speed: 5, moveRange: 4, attackRange: 1 },
+    stats: { maxHp: 160, hp: 160, attack: 40, defense: 20, speed: 5, moveRange: 6, attackRange: 1 },
     hasActed: false, isAlive: true,
   },
   {

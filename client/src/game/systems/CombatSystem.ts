@@ -1,6 +1,7 @@
 import type { TileData, UnitData, UnitStats } from '@shared/types/index.ts';
 import { UnitClass } from '@shared/types/index.ts';
 import { EQUIPMENT_DEFS } from '@shared/data/equipmentDefs.ts';
+import { UNIT_CLASS_DEFS } from '@shared/data/unitClassDefs.ts';
 
 export interface CombatResult {
   attackerId: string;
@@ -145,8 +146,11 @@ export class CombatSystem {
   }
 
   isInAttackRange(attacker: UnitData, target: UnitData): boolean {
-    const dist = Math.abs(attacker.position.x - target.position.x) +
-                 Math.abs(attacker.position.y - target.position.y);
+    const dx = Math.abs(attacker.position.x - target.position.x);
+    const dy = Math.abs(attacker.position.y - target.position.y);
+    const cls = attacker.unitClass ?? UnitClass.INFANTRY;
+    const diagonal = UNIT_CLASS_DEFS[cls]?.diagonalAttack ?? false;
+    const dist = diagonal ? Math.max(dx, dy) : dx + dy;
     return dist <= attacker.stats.attackRange;
   }
 }

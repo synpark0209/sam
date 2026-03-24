@@ -30,6 +30,7 @@ export interface UnitClassDef {
   terrainCosts: Partial<Record<TileType, number>>;
   passableTerrain: TileType[];
   defaultAttackRange: number;
+  diagonalAttack: boolean; // true: 8방향 공격 (체비셰프), false: 4방향 (맨해튼)
   skillSlots: number;
   growthRates: GrowthRates;
 }
