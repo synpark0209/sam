@@ -47,6 +47,42 @@ const GACHA_POOL: GachaHero[] = [
 ];
 
 const FRAGMENT_MAP: Record<HeroGrade, number> = { N: 5, R: 10, SR: 20, SSR: 40, UR: 60 };
+
+/** 기본 시나리오 장수 (세이브 자동 생성 시 포함) */
+function createDefaultUnits(): Record<string, unknown>[] {
+  return [
+    {
+      id: 'p1', name: '여포', faction: 'player', unitClass: 'cavalry', grade: 'SR',
+      level: 1, exp: 0, mp: 20, maxMp: 20,
+      classSkillId: 'class_cavalry_1', uniqueSkill: 'musou', uniqueSkillUnlocked: false,
+      equippedSkills: ['encourage'], promotionLevel: 0,
+      equipment: { weapon: 'steel_sword', armor: 'iron_armor' },
+      position: { x: 0, y: 0 },
+      stats: { maxHp: 200, hp: 200, attack: 48, defense: 25, speed: 6, moveRange: 6, attackRange: 1 },
+      hasActed: false, isAlive: true,
+    },
+    {
+      id: 'p2', name: '장료', faction: 'player', unitClass: 'cavalry', grade: 'R',
+      level: 1, exp: 0, mp: 15, maxMp: 15,
+      classSkillId: 'class_cavalry_1', uniqueSkill: 'hebi_fury', uniqueSkillUnlocked: false,
+      equippedSkills: ['heal'], promotionLevel: 0,
+      equipment: { weapon: 'iron_spear', armor: 'iron_armor' },
+      position: { x: 0, y: 0 },
+      stats: { maxHp: 160, hp: 160, attack: 40, defense: 20, speed: 5, moveRange: 6, attackRange: 1 },
+      hasActed: false, isAlive: true,
+    },
+    {
+      id: 'p3', name: '고순', faction: 'player', unitClass: 'infantry', grade: 'R',
+      level: 1, exp: 0, mp: 15, maxMp: 15,
+      classSkillId: 'class_infantry_1', uniqueSkill: 'hamjin_charge', uniqueSkillUnlocked: false,
+      equippedSkills: ['heal'], promotionLevel: 0,
+      equipment: { weapon: 'steel_sword', armor: 'leather_armor' },
+      position: { x: 0, y: 0 },
+      stats: { maxHp: 170, hp: 170, attack: 38, defense: 28, speed: 4, moveRange: 4, attackRange: 1 },
+      hasActed: false, isAlive: true,
+    },
+  ];
+}
 const NORMAL_COST = 10000; // 금화
 const PREMIUM_COST = 300;  // 보석
 const PREMIUM_10_COST = 2700;
@@ -64,7 +100,7 @@ export class GachaService {
       // 세이브가 없으면 자동 생성
       save = this.saveRepo.create({
         userId,
-        campaignProgress: { currentChapterId: 'prologue', currentStageIdx: 0, completedStages: [], playerUnits: [], gold: 0, inventory: [] },
+        campaignProgress: { currentChapterId: 'prologue', currentStageIdx: 0, completedStages: [], playerUnits: createDefaultUnits(), gold: 0, inventory: [] },
         currentChapterId: 'prologue',
         currentStageIdx: 0,
         maxLevel: 1,
@@ -139,7 +175,7 @@ export class GachaService {
     if (!save) {
       save = this.saveRepo.create({
         userId,
-        campaignProgress: { currentChapterId: 'prologue', currentStageIdx: 0, completedStages: [], playerUnits: [], gold: 0, inventory: [] },
+        campaignProgress: { currentChapterId: 'prologue', currentStageIdx: 0, completedStages: [], playerUnits: createDefaultUnits(), gold: 0, inventory: [] },
         currentChapterId: 'prologue',
         currentStageIdx: 0,
         maxLevel: 1,
