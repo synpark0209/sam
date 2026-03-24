@@ -2,6 +2,7 @@ import type { UnitData } from '@shared/types/index.ts';
 import type { LevelUpResult } from '@shared/types/experience.ts';
 import { UNIT_CLASS_DEFS } from '@shared/data/unitClassDefs.ts';
 import { canPromote } from '@shared/data/promotionDefs.ts';
+import { getClassSkillId } from '@shared/data/classSkillDefs.ts';
 
 export class ExperienceSystem {
   readonly EXP_PER_LEVEL = 100;
@@ -66,9 +67,16 @@ export class ExperienceSystem {
               unit.equippedSkills.push(promotion.unlocksSkill);
             }
           }
+          // 병종 기본 스킬 자동 진화
+          unit.classSkillId = getClassSkillId(unit.unitClass, unit.promotionLevel);
           promoted = true;
           promotionName = promotion.toClassName;
         }
+      }
+
+      // Lv.20: 고유 스킬 해금
+      if (unit.level >= 20 && unit.uniqueSkill && !unit.uniqueSkillUnlocked) {
+        unit.uniqueSkillUnlocked = true;
       }
 
       return { unitId: unit.id, newLevel: unit.level, statGains, promoted, promotionName };

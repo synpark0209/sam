@@ -80,7 +80,35 @@ export const SKILL_DEFS: Record<string, SkillDef> = {
   },
 
   // ═══════════════════════════════════════
-  // 고유 스킬 (장수 전용)
+  // 병종 기본 스킬 (3단계 자동 진화)
+  // ═══════════════════════════════════════
+  // 기병
+  class_cavalry_1: { id: 'class_cavalry_1', name: '돌격', description: '강력한 돌격 공격', mpCost: 5, range: 1, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 40, cooldown: 0 },
+  class_cavalry_2: { id: 'class_cavalry_2', name: '기마돌파', description: '적 방어를 뚫는 돌격', mpCost: 8, range: 1, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 55, statusEffect: 'defense_down', statusDuration: 2, statusMagnitude: 5, cooldown: 0 },
+  class_cavalry_3: { id: 'class_cavalry_3', name: '추격', description: '도망가는 적을 추격하여 강타', mpCost: 10, range: 2, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 70, cooldown: 1 },
+  // 보병
+  class_infantry_1: { id: 'class_infantry_1', name: '방어', description: '방어 태세로 피해 감소', mpCost: 4, range: 0, aoeRadius: 0, targetType: SkillTargetType.SELF, effectType: SkillEffectType.BUFF, power: 0, statusEffect: 'defense_up', statusDuration: 2, statusMagnitude: 8, cooldown: 0 },
+  class_infantry_2: { id: 'class_infantry_2', name: '철벽방어', description: '강력한 방어 + 주변 아군 보호', mpCost: 8, range: 0, aoeRadius: 0, targetType: SkillTargetType.SELF, effectType: SkillEffectType.BUFF, power: 0, statusEffect: 'defense_up', statusDuration: 3, statusMagnitude: 15, cooldown: 0 },
+  class_infantry_3: { id: 'class_infantry_3', name: '무적방패', description: '절대 방어 + 반격 데미지 증가', mpCost: 12, range: 0, aoeRadius: 0, targetType: SkillTargetType.SELF, effectType: SkillEffectType.BUFF, power: 0, statusEffect: 'defense_up', statusDuration: 3, statusMagnitude: 25, cooldown: 1 },
+  // 궁병
+  class_archer_1: { id: 'class_archer_1', name: '조준사격', description: '정확한 사격으로 적 1체 공격', mpCost: 5, range: 3, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 35, cooldown: 0 },
+  class_archer_2: { id: 'class_archer_2', name: '정밀사격', description: '급소를 노린 사격', mpCost: 8, range: 3, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 50, cooldown: 0 },
+  class_archer_3: { id: 'class_archer_3', name: '백보천양', description: '100보 밖의 버들잎을 꿰뚫는 신궁', mpCost: 12, range: 4, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 70, cooldown: 1 },
+  // 책사
+  class_strategist_1: { id: 'class_strategist_1', name: '화진', description: '불로 적을 공격', mpCost: 6, range: 3, aoeRadius: 1, targetType: SkillTargetType.AREA_ENEMY, effectType: SkillEffectType.DAMAGE, power: 30, cooldown: 0 },
+  class_strategist_2: { id: 'class_strategist_2', name: '초열', description: '맹렬한 화염', mpCost: 10, range: 3, aoeRadius: 1, targetType: SkillTargetType.AREA_ENEMY, effectType: SkillEffectType.DAMAGE, power: 45, cooldown: 0 },
+  class_strategist_3: { id: 'class_strategist_3', name: '폭염', description: '모든 것을 태우는 극한의 화염', mpCost: 15, range: 4, aoeRadius: 2, targetType: SkillTargetType.AREA_ENEMY, effectType: SkillEffectType.DAMAGE, power: 65, cooldown: 1 },
+  // 무도가
+  class_martial_1: { id: 'class_martial_1', name: '강타', description: '강력한 일격', mpCost: 4, range: 1, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 38, cooldown: 0 },
+  class_martial_2: { id: 'class_martial_2', name: '연타', description: '연속 타격', mpCost: 7, range: 1, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 52, cooldown: 0 },
+  class_martial_3: { id: 'class_martial_3', name: '회심격', description: '전력을 다한 일격', mpCost: 10, range: 1, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 75, cooldown: 1 },
+  // 도적
+  class_bandit_1: { id: 'class_bandit_1', name: '암습', description: '기습 공격', mpCost: 4, range: 1, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 35, statusEffect: 'attack_down', statusDuration: 1, statusMagnitude: 5, cooldown: 0 },
+  class_bandit_2: { id: 'class_bandit_2', name: '기습', description: '방심한 틈을 노린 공격', mpCost: 7, range: 1, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 48, statusEffect: 'attack_down', statusDuration: 2, statusMagnitude: 8, cooldown: 0 },
+  class_bandit_3: { id: 'class_bandit_3', name: '급소공격', description: '치명적인 급소를 노린다', mpCost: 10, range: 1, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 68, statusEffect: 'defense_down', statusDuration: 2, statusMagnitude: 12, cooldown: 1 },
+
+  // ═══════════════════════════════════════
+  // 고유 스킬 (장수 전용, Lv.20 해금)
   // ═══════════════════════════════════════
   musou: {
     id: 'musou', name: '무쌍난무', description: '주변 적 전체를 강타한다 (여포 전용)',

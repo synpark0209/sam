@@ -2,16 +2,34 @@ import type { Position, UnitData, Faction } from '@shared/types/index.ts';
 import type { SkillDef, SkillResult, SkillEffect } from '@shared/types/skill.ts';
 import { SkillTargetType, SkillEffectType } from '@shared/types/skill.ts';
 import { SKILL_DEFS } from '@shared/data/skillDefs.ts';
+import { getClassSkillId } from '@shared/data/classSkillDefs.ts';
 import type { GridSystem } from './GridSystem.ts';
 
 export class SkillSystem {
-  /** 유닛이 보유한 모든 스킬 ID 목록 (고유 + 장착 + 레거시) */
+  /** 유닛의 4슬롯 스킬 ID 목록 반환 */
   getAllSkillIds(unit: UnitData): string[] {
     const ids: string[] = [];
-    if (unit.uniqueSkill) ids.push(unit.uniqueSkill);
-    if (unit.equippedSkills) ids.push(...unit.equippedSkills);
-    // 하위 호환: 기존 skills 필드도 지원
+
+    // 슬롯1: 병종 기본 스킬 (승급에 따라 자동 결정)
+    if (unit.unitClass) {
+      const classSkill = unit.classSkillId ?? getClassSkillId(unit.unitClass, unit.promotionLevel ?? 0);
+      ids.push(classSkill);
+    }
+
+    // 슬롯2: 장수 고유 스킬 (Lv.20 이상 시 해금)
+    if (unit.uniqueSkill && (unit.uniqueSkillUnlocked || (unit.level ?? 1) >= 20)) {
+      ids.push(unit.uniqueSkill);
+    }
+
+    // 슬롯3~4: 장착 스킬
+    if (unit.equippedSkills) {
+      const maxSlots = (unit.level ?? 1) >= 10 ? 2 : 1;
+      ids.push(...unit.equippedSkills.slice(0, maxSlots));
+    }
+
+    // 하위 호환: 위 시스템이 없으면 기존 skills 필드 사용
     if (ids.length === 0 && unit.skills) ids.push(...unit.skills);
+
     return ids;
   }
 
