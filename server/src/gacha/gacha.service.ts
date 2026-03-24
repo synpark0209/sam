@@ -60,7 +60,19 @@ export class GachaService {
 
   async pull(userId: number, type: 'normal' | 'premium', count: 1 | 10) {
     let save = await this.saveRepo.findOne({ where: { userId } });
-    if (!save) throw new BadRequestException('세이브 데이터가 없습니다');
+    if (!save) {
+      // 세이브가 없으면 자동 생성
+      save = this.saveRepo.create({
+        userId,
+        campaignProgress: { currentChapterId: 'prologue', currentStageIdx: 0, completedStages: [], playerUnits: [], gold: 0, inventory: [] },
+        currentChapterId: 'prologue',
+        currentStageIdx: 0,
+        maxLevel: 1,
+        gems: 1000,
+        gachaPity: 0,
+      });
+      await this.saveRepo.save(save);
+    }
 
     const progress = save.campaignProgress as Record<string, unknown>;
     const playerUnits = (progress.playerUnits ?? []) as Array<Record<string, unknown>>;
@@ -123,8 +135,19 @@ export class GachaService {
   }
 
   async getStatus(userId: number) {
-    const save = await this.saveRepo.findOne({ where: { userId } });
-    if (!save) return { gems: 1000, gold: 0, pity: 0 };
+    let save = await this.saveRepo.findOne({ where: { userId } });
+    if (!save) {
+      save = this.saveRepo.create({
+        userId,
+        campaignProgress: { currentChapterId: 'prologue', currentStageIdx: 0, completedStages: [], playerUnits: [], gold: 0, inventory: [] },
+        currentChapterId: 'prologue',
+        currentStageIdx: 0,
+        maxLevel: 1,
+        gems: 1000,
+        gachaPity: 0,
+      });
+      await this.saveRepo.save(save);
+    }
     const progress = save.campaignProgress as { gold?: number };
     return {
       gems: save.gems,
