@@ -416,6 +416,21 @@ export class BattleScene extends Phaser.Scene {
     this.endTurnButton.on('pointerover', () => this.endTurnButton.setStyle({ backgroundColor: '#6a6a8a' }));
     this.endTurnButton.on('pointerout', () => this.endTurnButton.setStyle({ backgroundColor: '#4a4a6a' }));
 
+    // 음소거 토글 버튼
+    const audio = this.getAudio();
+    const muteBtn = this.add.text(gw - 30, uiY + 18, audio?.isMuted() ? '🔇' : '🔊', {
+      fontSize: '20px',
+    }).setInteractive({ useHandCursor: true }).setDepth(201);
+    muteBtn.on('pointerdown', () => {
+      this._menuClickConsumed = true;
+      if (!audio) return;
+      audio.setMuted(!audio.isMuted());
+      muteBtn.setText(audio.isMuted() ? '🔇' : '🔊');
+      if (!audio.isMuted()) audio.playBgm('battle');
+    });
+    this.uiObjects.push(muteBtn);
+    this.cameras.main.ignore(muteBtn);
+
     this.gameOverText = this.add.text(gw / 2, gh / 2, '', {
       fontSize: '36px', color: '#ffffff', fontStyle: 'bold',
       backgroundColor: '#000000aa', padding: { x: 30, y: 20 },

@@ -21,6 +21,18 @@ export class WorldMapScene extends Phaser.Scene {
     (this.registry.get('audioManager') as AudioManager)?.playBgm('worldmap');
     const chapter = this.campaignManager.getCurrentChapter();
 
+    // 음소거 버튼
+    const audio = this.registry.get('audioManager') as AudioManager;
+    const muteBtn = this.add.text(GAME_W - 30, 10, audio?.isMuted() ? '🔇' : '🔊', {
+      fontSize: '20px',
+    }).setInteractive({ useHandCursor: true }).setDepth(100);
+    muteBtn.on('pointerdown', () => {
+      if (!audio) return;
+      audio.setMuted(!audio.isMuted());
+      muteBtn.setText(audio.isMuted() ? '🔇' : '🔊');
+      if (!audio.isMuted()) audio.playBgm('worldmap');
+    });
+
     // 배경
     this.add.graphics().fillStyle(0x0e0e1e, 1).fillRect(0, 0, GAME_W, GAME_H);
 

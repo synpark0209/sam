@@ -34,7 +34,20 @@ export class DialogueScene extends Phaser.Scene {
   }
 
   create(): void {
-    (this.registry.get('audioManager') as AudioManager)?.playBgm('dialogue');
+    const audio = this.registry.get('audioManager') as AudioManager;
+    audio?.playBgm('dialogue');
+
+    // 음소거 버튼
+    const muteBtn = this.add.text(GAME_W - 30, 10, audio?.isMuted() ? '🔇' : '🔊', {
+      fontSize: '20px',
+    }).setInteractive({ useHandCursor: true }).setDepth(100);
+    muteBtn.on('pointerdown', () => {
+      if (!audio) return;
+      audio.setMuted(!audio.isMuted());
+      muteBtn.setText(audio.isMuted() ? '🔇' : '🔊');
+      if (!audio.isMuted()) audio.playBgm('dialogue');
+    });
+
     // 배경
     this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GAME_W, GAME_H);
 
