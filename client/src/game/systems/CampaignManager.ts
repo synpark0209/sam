@@ -7,7 +7,7 @@ import { saveToServer, loadServerSave } from '../../api/client.ts';
 function createDefaultPlayerUnits(): UnitData[] {
   return [
     {
-      id: 'p1', name: '여포', faction: 'player', unitClass: UnitClass.CAVALRY,
+      id: 'p1', name: '여포', faction: 'player', unitClass: UnitClass.CAVALRY, grade: 'SR',
       level: 1, exp: 0, mp: 20, maxMp: 20,
       classSkillId: 'class_cavalry_1',
       uniqueSkill: 'musou', uniqueSkillUnlocked: false,
@@ -19,7 +19,7 @@ function createDefaultPlayerUnits(): UnitData[] {
       hasActed: false, isAlive: true,
     },
     {
-      id: 'p2', name: '장료', faction: 'player', unitClass: UnitClass.CAVALRY,
+      id: 'p2', name: '장료', faction: 'player', unitClass: UnitClass.CAVALRY, grade: 'R',
       level: 1, exp: 0, mp: 15, maxMp: 15,
       classSkillId: 'class_cavalry_1',
       uniqueSkill: 'hebi_fury', uniqueSkillUnlocked: false,
@@ -31,7 +31,7 @@ function createDefaultPlayerUnits(): UnitData[] {
       hasActed: false, isAlive: true,
     },
     {
-      id: 'p3', name: '고순', faction: 'player', unitClass: UnitClass.INFANTRY,
+      id: 'p3', name: '고순', faction: 'player', unitClass: UnitClass.INFANTRY, grade: 'R',
       level: 1, exp: 0, mp: 15, maxMp: 15,
       classSkillId: 'class_infantry_1',
       uniqueSkill: 'hamjin_charge', uniqueSkillUnlocked: false,

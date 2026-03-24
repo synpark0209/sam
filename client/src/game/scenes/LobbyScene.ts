@@ -5,7 +5,7 @@ import type { AudioManager } from '../systems/AudioManager.ts';
 import type { UnitData } from '@shared/types/index.ts';
 import { logout as doLogout } from '../../api/client.ts';
 import { rollPremiumGacha, gachaHeroToUnit, getGradeColor, getDuplicateFragments } from '@shared/data/gachaDefs.ts';
-import type { GachaHeroDef } from '@shared/data/gachaDefs.ts';
+import type { GachaHeroDef, HeroGrade } from '@shared/data/gachaDefs.ts';
 import { UNIT_CLASS_DEFS } from '@shared/data/unitClassDefs.ts';
 import { SKILL_DEFS } from '@shared/data/skillDefs.ts';
 import { EQUIPMENT_DEFS } from '@shared/data/equipmentDefs.ts';
@@ -132,10 +132,16 @@ export class LobbyScene extends Phaser.Scene {
       cardBg.lineStyle(1, isPlayer ? 0x3366aa : 0x663333, 1);
       cardBg.strokeRoundedRect(15, y, GW - 30, cardH - 5, 6);
 
-      // 이름 + 병종
+      // 등급 + 이름 + 병종
       const cls = unit.unitClass ? UNIT_CLASS_DEFS[unit.unitClass] : null;
       const className = unit.promotionClass ?? cls?.name ?? '';
-      this.add.text(25, y + 8, `${unit.name}`, {
+      const grade = unit.grade ?? 'N';
+      const gradeColor = getGradeColor(grade as HeroGrade);
+
+      this.add.text(25, y + 8, `[${grade}]`, {
+        fontSize: '13px', color: gradeColor, fontStyle: 'bold',
+      });
+      this.add.text(55, y + 8, `${unit.name}`, {
         fontSize: '16px', color: '#ffffff', fontStyle: 'bold',
       });
       this.add.text(25, y + 28, `${className} Lv.${unit.level ?? 1}`, {
@@ -177,8 +183,10 @@ export class LobbyScene extends Phaser.Scene {
     // 이름 + 병종
     const cls = unit.unitClass ? UNIT_CLASS_DEFS[unit.unitClass] : null;
     const className = unit.promotionClass ?? cls?.name ?? '';
-    this.add.text(GW / 2, 20, unit.name, {
-      fontSize: '28px', color: '#ffd700', fontStyle: 'bold',
+    const detailGrade = unit.grade ?? 'N';
+    const detailGradeColor = getGradeColor(detailGrade as HeroGrade);
+    this.add.text(GW / 2, 20, `[${detailGrade}] ${unit.name}`, {
+      fontSize: '26px', color: detailGradeColor, fontStyle: 'bold',
     }).setOrigin(0.5);
     this.add.text(GW / 2, 50, `${className}  Lv.${unit.level ?? 1}`, {
       fontSize: '14px', color: '#88aacc',

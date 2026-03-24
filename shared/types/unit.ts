@@ -35,6 +35,7 @@ export interface UnitData {
   hasActed: boolean;
   isAlive: boolean;
   unitClass?: UnitClass;
+  grade?: 'N' | 'R' | 'SR' | 'SSR' | 'UR';
   level?: number;
   exp?: number;
   mp?: number;

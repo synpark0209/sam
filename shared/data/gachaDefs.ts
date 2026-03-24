@@ -191,6 +191,7 @@ export function gachaHeroToUnit(def: GachaHeroDef): UnitData {
     name: def.name,
     faction: 'player',
     unitClass: def.unitClass,
+    grade: def.grade,
     level: 1,
     exp: 0,
     mp: def.maxMp,
