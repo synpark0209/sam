@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT } from '@shared/constants.ts';
 import { CampaignManager } from '../systems/CampaignManager.ts';
-import { isLoggedIn, getSavedUsername, logout, loginWithTelegram } from '../../api/client.ts';
+import { isLoggedIn, getSavedUsername, loginWithTelegram } from '../../api/client.ts';
 import { isTelegramMiniApp, getTelegramInitData, initTelegramApp } from '../../telegram.ts';
 import { EventBus } from '../EventBus.ts';
 import type { AudioManager } from '../systems/AudioManager.ts';
@@ -89,71 +89,17 @@ export class TitleScene extends Phaser.Scene {
 
   private showLoggedInMenu(): void {
     const username = getSavedUsername() ?? '유저';
-    this.add.text(GAME_W / 2, GAME_H * 0.38, `${username} 님 환영합니다`, {
+    this.add.text(GAME_W / 2, GAME_H * 0.42, `${username} 님 환영합니다`, {
       fontSize: '14px', color: '#88aa88',
     }).setOrigin(0.5);
 
-    const logoutBtn = this.add.text(GAME_W - 20, 10, '로그아웃', {
-      fontSize: '12px', color: '#aa6666', padding: { x: 6, y: 4 },
-    }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
-    logoutBtn.on('pointerdown', () => { logout(); this.scene.restart(); });
-
-    // 서버에서 세이브 확인 후 메뉴 표시
-    const loadingText = this.add.text(GAME_W / 2, GAME_H * 0.5, '데이터 로딩 중...', {
+    const loadingText = this.add.text(GAME_W / 2, GAME_H * 0.52, '데이터 로딩 중...', {
       fontSize: '14px', color: '#666666',
     }).setOrigin(0.5);
 
-    this.campaignManager.loadFromServer().then((hasSave) => {
+    this.campaignManager.loadFromServer().then(() => {
       loadingText.destroy();
-      this.showGameButtons(hasSave);
+      this.scene.start('LobbyScene', { campaignManager: this.campaignManager });
     });
-  }
-
-  private showGameButtons(hasSave: boolean): void {
-    const btnStyle = { fontSize: '20px', color: '#ffffff', backgroundColor: '#2a2a4a', padding: { x: 40, y: 12 } };
-
-    const newGameBtn = this.add.text(GAME_W / 2, GAME_H * 0.5, '새 게임', btnStyle)
-      .setOrigin(0.5).setInteractive({ useHandCursor: true });
-    newGameBtn.on('pointerover', () => newGameBtn.setStyle({ backgroundColor: '#3a3a5a' }));
-    newGameBtn.on('pointerout', () => newGameBtn.setStyle({ backgroundColor: '#2a2a4a' }));
-    newGameBtn.on('pointerdown', () => {
-      this.campaignManager.resetProgress();
-      this.startCampaign();
-    });
-
-    if (hasSave) {
-      const continueBtn = this.add.text(GAME_W / 2, GAME_H * 0.62, '이어하기', btnStyle)
-        .setOrigin(0.5).setInteractive({ useHandCursor: true });
-      continueBtn.on('pointerover', () => continueBtn.setStyle({ backgroundColor: '#3a3a5a' }));
-      continueBtn.on('pointerout', () => continueBtn.setStyle({ backgroundColor: '#2a2a4a' }));
-      continueBtn.on('pointerdown', () => this.startCampaign());
-    }
-
-    let nextY = hasSave ? 0.74 : 0.62;
-
-    // PvP 대전
-    if (hasSave) {
-      const pvpBtn = this.add.text(GAME_W / 2, GAME_H * nextY, 'PvP 대전', {
-        fontSize: '20px', color: '#ffffff', backgroundColor: '#aa3333', padding: { x: 40, y: 12 },
-      }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-      pvpBtn.on('pointerover', () => pvpBtn.setStyle({ backgroundColor: '#cc4444' }));
-      pvpBtn.on('pointerout', () => pvpBtn.setStyle({ backgroundColor: '#aa3333' }));
-      pvpBtn.on('pointerdown', () => {
-        this.scene.start('PvpLobbyScene', { campaignManager: this.campaignManager });
-      });
-      nextY += 0.12;
-    }
-
-    // 랭킹
-    const rankBtn = this.add.text(GAME_W / 2, GAME_H * nextY, '랭킹', {
-      fontSize: '16px', color: '#aaaaaa', backgroundColor: '#1a1a3a', padding: { x: 30, y: 8 },
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    rankBtn.on('pointerover', () => rankBtn.setStyle({ backgroundColor: '#2a2a4a' }));
-    rankBtn.on('pointerout', () => rankBtn.setStyle({ backgroundColor: '#1a1a3a' }));
-    rankBtn.on('pointerdown', () => this.scene.start('RankingScene'));
-  }
-
-  private startCampaign(): void {
-    this.scene.start('WorldMapScene', { campaignManager: this.campaignManager });
   }
 }

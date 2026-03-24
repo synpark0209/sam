@@ -5,6 +5,7 @@ import { DialogueScene } from './scenes/DialogueScene.ts';
 import { BattleScene } from './scenes/BattleScene.ts';
 import { RankingScene } from './scenes/RankingScene.ts';
 import { PvpLobbyScene } from './scenes/PvpLobbyScene.ts';
+import { LobbyScene } from './scenes/LobbyScene.ts';
 import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT } from '@shared/constants.ts';
 
 export const gameConfig: Phaser.Types.Core.GameConfig = {
@@ -13,7 +14,7 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
   width: TILE_SIZE * MAP_WIDTH,
   height: TILE_SIZE * MAP_HEIGHT + 60,
   backgroundColor: '#0a0a1a',
-  scene: [TitleScene, WorldMapScene, DialogueScene, BattleScene, RankingScene, PvpLobbyScene],
+  scene: [TitleScene, LobbyScene, WorldMapScene, DialogueScene, BattleScene, RankingScene, PvpLobbyScene],
   pixelArt: true,
   input: {
     touch: true,

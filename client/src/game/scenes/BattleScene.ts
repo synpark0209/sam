@@ -23,6 +23,7 @@ import type { Stage, BattleConfig } from '@shared/types/campaign.ts';
 import { pvpRecordResult } from '../../api/client.ts';
 import type { AudioManager, SfxName } from '../systems/AudioManager.ts';
 import { UNIT_CLASS_DEFS } from '@shared/data/unitClassDefs.ts';
+import { SKILL_DEFS } from '@shared/data/skillDefs.ts';
 
 type InteractionState =
   | 'IDLE'
@@ -733,6 +734,7 @@ export class BattleScene extends Phaser.Scene {
     this.attackTiles = [];
     this.drawOverlays();
     this.centerCameraOn(unit.position);
+    this.showUnitInfoPanel(unit);
     EventBus.emit('unit-selected', unit);
   }
 
@@ -1179,6 +1181,7 @@ export class BattleScene extends Phaser.Scene {
     this.battleState.selectedUnitId = null;
     this.clearOverlays();
     this.hideActionMenu();
+    this.hideUnitInfoPanel();
     EventBus.emit('unit-selected', null);
 
     const winner = this.turnSystem.checkVictory();
@@ -1395,6 +1398,103 @@ export class BattleScene extends Phaser.Scene {
 
   // ── 유틸리티 ──
 
+  // ── 유닛 정보 패널 ──
+
+  private unitInfoPanel: Phaser.GameObjects.GameObject[] = [];
+
+  private showUnitInfoPanel(unit: UnitData): void {
+    this.hideUnitInfoPanel();
+
+    const gw = this.scale.width;
+    const gh = this.scale.height;
+    const panelH = 100;
+    const panelY = gh - UI_BAR_H - panelH - 5;
+
+    // 패널 배경
+    const bg = this.add.graphics().setDepth(180);
+    bg.fillStyle(0x0a0a2a, 0.9);
+    bg.fillRoundedRect(5, panelY, gw - 10, panelH, 8);
+    bg.lineStyle(1, 0x4466aa, 1);
+    bg.strokeRoundedRect(5, panelY, gw - 10, panelH, 8);
+    this.unitInfoPanel.push(bg);
+    this.cameras.main.ignore(bg);
+
+    // 병종/레벨
+    const cls = unit.unitClass ? (UNIT_CLASS_DEFS[unit.unitClass]?.name ?? '') : '';
+    const promo = unit.promotionClass ?? cls;
+    const faction = unit.faction === 'player' ? '아군' : '적군';
+    const fColor = unit.faction === 'player' ? '#44aaff' : '#ff4444';
+
+    const nameText = this.add.text(15, panelY + 8, `${unit.name}  ${promo} Lv.${unit.level ?? 1}`, {
+      fontSize: '13px', color: '#ffffff', fontStyle: 'bold',
+    }).setDepth(181);
+    this.unitInfoPanel.push(nameText);
+    this.cameras.main.ignore(nameText);
+
+    const factionText = this.add.text(gw - 40, panelY + 8, faction, {
+      fontSize: '11px', color: fColor,
+    }).setDepth(181);
+    this.unitInfoPanel.push(factionText);
+    this.cameras.main.ignore(factionText);
+
+    // HP/MP 바
+    const hp = unit.stats.hp;
+    const maxHp = unit.stats.maxHp;
+    const hpRatio = hp / maxHp;
+    const hpColor = hpRatio > 0.5 ? '#44ff44' : hpRatio > 0.25 ? '#ffff44' : '#ff4444';
+
+    const hpText = this.add.text(15, panelY + 28, `HP: ${hp}/${maxHp}`, {
+      fontSize: '11px', color: hpColor,
+    }).setDepth(181);
+    this.unitInfoPanel.push(hpText);
+    this.cameras.main.ignore(hpText);
+
+    if (unit.maxMp && unit.maxMp > 0) {
+      const mpText = this.add.text(130, panelY + 28, `MP: ${unit.mp ?? 0}/${unit.maxMp}`, {
+        fontSize: '11px', color: '#4488ff',
+      }).setDepth(181);
+      this.unitInfoPanel.push(mpText);
+      this.cameras.main.ignore(mpText);
+    }
+
+    // 스탯
+    const statLine1 = `공격:${unit.stats.attack}  방어:${unit.stats.defense}  속도:${unit.stats.speed}`;
+    const statLine2 = `이동:${unit.stats.moveRange}  사거리:${unit.stats.attackRange}`;
+    const s1 = this.add.text(15, panelY + 46, statLine1, {
+      fontSize: '10px', color: '#cccccc',
+    }).setDepth(181);
+    const s2 = this.add.text(15, panelY + 60, statLine2, {
+      fontSize: '10px', color: '#cccccc',
+    }).setDepth(181);
+    this.unitInfoPanel.push(s1, s2);
+    this.cameras.main.ignore(s1);
+    this.cameras.main.ignore(s2);
+
+    // 스킬 목록
+    const skillIds: string[] = [];
+    if (unit.uniqueSkill) skillIds.push(unit.uniqueSkill);
+    if (unit.equippedSkills) skillIds.push(...unit.equippedSkills);
+    if (skillIds.length === 0 && unit.skills) skillIds.push(...unit.skills);
+
+    if (skillIds.length > 0) {
+      const skillNames = skillIds
+        .map(id => SKILL_DEFS[id])
+        .filter(Boolean)
+        .map(s => s!.name)
+        .join('  ');
+      const skillText = this.add.text(15, panelY + 78, `스킬: ${skillNames}`, {
+        fontSize: '10px', color: '#cc88ff', wordWrap: { width: gw - 30 },
+      }).setDepth(181);
+      this.unitInfoPanel.push(skillText);
+      this.cameras.main.ignore(skillText);
+    }
+  }
+
+  private hideUnitInfoPanel(): void {
+    for (const obj of this.unitInfoPanel) obj.destroy();
+    this.unitInfoPanel = [];
+  }
+
   private showEnemyPreview(unit: UnitData): void {
     this.clearOverlays();
     this.enemyPreviewMoveTiles = this.gridSystem.getMovementRange(
@@ -1415,6 +1515,7 @@ export class BattleScene extends Phaser.Scene {
       .map(k => { const [x, y] = k.split(',').map(Number); return { x, y }; });
 
     this.drawOverlays();
+    this.showUnitInfoPanel(unit);
     EventBus.emit('unit-selected', unit);
   }
 
@@ -1424,6 +1525,7 @@ export class BattleScene extends Phaser.Scene {
     this.interactionState = 'IDLE';
     this.clearOverlays();
     this.hideActionMenu();
+    this.hideUnitInfoPanel();
     EventBus.emit('unit-selected', null);
   }
 
