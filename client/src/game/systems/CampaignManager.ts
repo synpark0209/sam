@@ -8,7 +8,10 @@ function createDefaultPlayerUnits(): UnitData[] {
   return [
     {
       id: 'p1', name: '여포', faction: 'player', unitClass: UnitClass.CAVALRY,
-      level: 1, exp: 0, mp: 15, maxMp: 15, skills: ['charge'],
+      level: 1, exp: 0, mp: 20, maxMp: 20,
+      uniqueSkill: 'musou',
+      equippedSkills: ['charge'],
+      promotionLevel: 0,
       equipment: { weapon: 'steel_sword', armor: 'iron_armor' },
       position: { x: 0, y: 0 },
       stats: { maxHp: 200, hp: 200, attack: 48, defense: 25, speed: 6, moveRange: 6, attackRange: 1 },
@@ -16,7 +19,10 @@ function createDefaultPlayerUnits(): UnitData[] {
     },
     {
       id: 'p2', name: '장료', faction: 'player', unitClass: UnitClass.CAVALRY,
-      level: 1, exp: 0, mp: 10, maxMp: 10, skills: ['charge'],
+      level: 1, exp: 0, mp: 15, maxMp: 15,
+      uniqueSkill: 'hebi_fury',
+      equippedSkills: ['encourage'],
+      promotionLevel: 0,
       equipment: { weapon: 'iron_spear', armor: 'iron_armor' },
       position: { x: 0, y: 0 },
       stats: { maxHp: 160, hp: 160, attack: 40, defense: 20, speed: 5, moveRange: 6, attackRange: 1 },
@@ -24,7 +30,10 @@ function createDefaultPlayerUnits(): UnitData[] {
     },
     {
       id: 'p3', name: '고순', faction: 'player', unitClass: UnitClass.INFANTRY,
-      level: 1, exp: 0, mp: 10, maxMp: 10, skills: ['encourage'],
+      level: 1, exp: 0, mp: 15, maxMp: 15,
+      uniqueSkill: 'hamjin_charge',
+      equippedSkills: ['fortify'],
+      promotionLevel: 0,
       equipment: { weapon: 'steel_sword', armor: 'leather_armor' },
       position: { x: 0, y: 0 },
       stats: { maxHp: 170, hp: 170, attack: 38, defense: 28, speed: 4, moveRange: 4, attackRange: 1 },

@@ -78,8 +78,60 @@ export const SKILL_DEFS: Record<string, SkillDef> = {
     effectType: SkillEffectType.DAMAGE, power: 45,
     requiredClasses: [UnitClass.CAVALRY], cooldown: 0,
   },
+
+  // ═══════════════════════════════════════
+  // 고유 스킬 (장수 전용)
+  // ═══════════════════════════════════════
+  musou: {
+    id: 'musou', name: '무쌍난무', description: '주변 적 전체를 강타한다 (여포 전용)',
+    mpCost: 20, range: 1, aoeRadius: 1,
+    targetType: SkillTargetType.AREA_ENEMY,
+    effectType: SkillEffectType.DAMAGE, power: 60,
+    cooldown: 3,
+  },
+  hebi_fury: {
+    id: 'hebi_fury', name: '합비의 위엄', description: '돌격 후 추가 행동 (장료 전용)',
+    mpCost: 15, range: 1, aoeRadius: 0,
+    targetType: SkillTargetType.SINGLE_ENEMY,
+    effectType: SkillEffectType.DAMAGE, power: 50,
+    cooldown: 3,
+  },
+  hamjin_charge: {
+    id: 'hamjin_charge', name: '함진영 돌파', description: '방어 무시 공격 (고순 전용)',
+    mpCost: 12, range: 1, aoeRadius: 0,
+    targetType: SkillTargetType.SINGLE_ENEMY,
+    effectType: SkillEffectType.DAMAGE, power: 55,
+    statusEffect: 'defense_down', statusDuration: 2, statusMagnitude: 10,
+    cooldown: 2,
+  },
+  strategem: {
+    id: 'strategem', name: '모략의 대가', description: '범위 혼란 + 방어 감소 (진궁 전용)',
+    mpCost: 18, range: 3, aoeRadius: 1,
+    targetType: SkillTargetType.AREA_ENEMY,
+    effectType: SkillEffectType.DEBUFF, power: 15,
+    statusEffect: 'confuse', statusDuration: 1, statusMagnitude: 0,
+    cooldown: 3,
+  },
+  beauty: {
+    id: 'beauty', name: '경국지색', description: '범위 적 공격력 감소 (초선 전용)',
+    mpCost: 15, range: 3, aoeRadius: 1,
+    targetType: SkillTargetType.AREA_ENEMY,
+    effectType: SkillEffectType.DEBUFF, power: 0,
+    statusEffect: 'attack_down', statusDuration: 3, statusMagnitude: 12,
+    cooldown: 3,
+  },
 };
 
 export function getSkillDef(id: string): SkillDef | undefined {
   return SKILL_DEFS[id];
 }
+
+/** 장수 ID → 고유 스킬 매핑 */
+export const HERO_UNIQUE_SKILLS: Record<string, string> = {
+  p1: 'musou',           // 여포
+  p2: 'hebi_fury',       // 장료
+  p3: 'hamjin_charge',   // 고순
+  // 이후 추가
+  // 진궁: 'strategem'
+  // 초선: 'beauty'
+};

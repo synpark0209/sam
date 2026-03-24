@@ -5,12 +5,23 @@ import { SKILL_DEFS } from '@shared/data/skillDefs.ts';
 import type { GridSystem } from './GridSystem.ts';
 
 export class SkillSystem {
+  /** 유닛이 보유한 모든 스킬 ID 목록 (고유 + 장착 + 레거시) */
+  getAllSkillIds(unit: UnitData): string[] {
+    const ids: string[] = [];
+    if (unit.uniqueSkill) ids.push(unit.uniqueSkill);
+    if (unit.equippedSkills) ids.push(...unit.equippedSkills);
+    // 하위 호환: 기존 skills 필드도 지원
+    if (ids.length === 0 && unit.skills) ids.push(...unit.skills);
+    return ids;
+  }
+
   getUsableSkills(unit: UnitData): SkillDef[] {
-    if (!unit.skills) return [];
+    const allIds = this.getAllSkillIds(unit);
+    if (allIds.length === 0) return [];
     const mp = unit.mp ?? 0;
     const cooldowns = unit.skillCooldowns ?? {};
 
-    return unit.skills
+    return allIds
       .map(id => SKILL_DEFS[id])
       .filter((def): def is SkillDef => {
         if (!def) return false;

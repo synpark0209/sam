@@ -1140,6 +1140,11 @@ export class BattleScene extends Phaser.Scene {
       this.playSfx('level_up');
       this.time.delayedCall(400, () => {
         this.showFloatingText(pos.x, pos.y - 5, `LEVEL UP! Lv.${levelUp.newLevel}`, '#ffdd44');
+        if (levelUp.promoted && levelUp.promotionName) {
+          this.time.delayedCall(600, () => {
+            this.showFloatingText(pos.x, pos.y - 20, `승급! → ${levelUp.promotionName}`, '#ff88ff');
+          });
+        }
         this.updateUnitSprite(unit);
       });
     }

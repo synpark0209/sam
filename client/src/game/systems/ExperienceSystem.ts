@@ -1,6 +1,7 @@
 import type { UnitData } from '@shared/types/index.ts';
 import type { LevelUpResult } from '@shared/types/experience.ts';
 import { UNIT_CLASS_DEFS } from '@shared/data/unitClassDefs.ts';
+import { canPromote } from '@shared/data/promotionDefs.ts';
 
 export class ExperienceSystem {
   readonly EXP_PER_LEVEL = 100;
@@ -42,7 +43,35 @@ export class ExperienceSystem {
         unit.mp = (unit.mp ?? 0) + statGains.maxMp;
       }
 
-      return { unitId: unit.id, newLevel: unit.level, statGains };
+      // 승급 체크
+      let promoted = false;
+      let promotionName: string | undefined;
+      if (unit.unitClass) {
+        const promotion = canPromote(unit.unitClass, unit.level, unit.promotionLevel ?? 0);
+        if (promotion) {
+          unit.promotionLevel = (unit.promotionLevel ?? 0) + 1;
+          unit.promotionClass = promotion.toClassName;
+          // 승급 스탯 보너스
+          unit.stats.maxHp += promotion.statBonus.maxHp;
+          unit.stats.hp += promotion.statBonus.maxHp;
+          unit.stats.attack += promotion.statBonus.attack;
+          unit.stats.defense += promotion.statBonus.defense;
+          unit.stats.speed += promotion.statBonus.speed;
+          unit.maxMp = (unit.maxMp ?? 0) + promotion.statBonus.maxMp;
+          unit.mp = (unit.mp ?? 0) + promotion.statBonus.maxMp;
+          // 승급 시 해금 스킬 자동 장착
+          if (promotion.unlocksSkill) {
+            if (!unit.equippedSkills) unit.equippedSkills = [];
+            if (unit.equippedSkills.length < 3 && !unit.equippedSkills.includes(promotion.unlocksSkill)) {
+              unit.equippedSkills.push(promotion.unlocksSkill);
+            }
+          }
+          promoted = true;
+          promotionName = promotion.toClassName;
+        }
+      }
+
+      return { unitId: unit.id, newLevel: unit.level, statGains, promoted, promotionName };
     }
 
     unit.exp = currentExp;
