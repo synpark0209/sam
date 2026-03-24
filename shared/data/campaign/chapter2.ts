@@ -63,7 +63,7 @@ const stage1Battle: BattleConfig = {
     enemy('e3_6', '서량 궁수', UnitClass.ARCHER, 10, 4, 2),
     enemy('e3_7', '서량 궁수', UnitClass.ARCHER, 10, 5, 2),
   ],
-  playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 3 }, { x: 1, y: 5 }],
+  playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 3 }, { x: 1, y: 5 }, { x: 2, y: 4 }],
 };
 
 // 2-2: 동탁 추격전 / 이각곽사 방어전
@@ -92,7 +92,7 @@ const stage2Battle: BattleConfig = {
     enemy('e4_6', '동탁 잔당', UnitClass.ARCHER, 10, 8, 2),
     enemy('e4_7', '동탁 잔당', UnitClass.BANDIT, 8, 5, 2),
   ],
-  playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 3 }, { x: 1, y: 5 }],
+  playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 3 }, { x: 1, y: 5 }, { x: 2, y: 4 }],
 };
 
 export const CHAPTER_2: Chapter = {

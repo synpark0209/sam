@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT } from '@shared/constants.ts';
 import type { CampaignManager } from '../systems/CampaignManager.ts';
 import type { AudioManager } from '../systems/AudioManager.ts';
+import { UNIT_CLASS_DEFS } from '@shared/data/unitClassDefs.ts';
 
 const GAME_W = TILE_SIZE * MAP_WIDTH;
 const GAME_H = TILE_SIZE * MAP_HEIGHT + 60;
@@ -124,8 +125,68 @@ export class WorldMapScene extends Phaser.Scene {
     const stage = chapter?.stages.find(s => s.id === stageId);
     if (!stage) return;
 
-    // 전투 준비 데이터를 registry에 저장 (씬 전환 시 참조)
-    const playerUnits = this.campaignManager.prepareBattle(stage.battleConfig);
+    const guests = this.campaignManager.getGuestCandidates();
+    if (guests.length > 0) {
+      // 게스트 선택 화면 표시
+      this.showGuestSelect(stage, guests);
+    } else {
+      // 게스트 없이 바로 출전
+      this.launchBattle(stage, undefined);
+    }
+  }
+
+  private showGuestSelect(stage: import('@shared/types/campaign.ts').Stage, guests: import('@shared/types/index.ts').UnitData[]): void {
+    this.children.removeAll();
+    this.add.graphics().fillStyle(0x0e0e1e, 1).fillRect(0, 0, GAME_W, GAME_H);
+
+    this.add.text(GAME_W / 2, 20, '지원 장수 선택', {
+      fontSize: '22px', color: '#ffd700', fontStyle: 'bold',
+    }).setOrigin(0.5);
+
+    this.add.text(GAME_W / 2, 50, '시나리오 장수 외 1명을 선택하세요', {
+      fontSize: '12px', color: '#aaaaaa',
+    }).setOrigin(0.5);
+
+    // "선택 안 함" 버튼
+    const noneBtn = this.add.text(GAME_W / 2, 80, '선택 안 함 (기본 장수만 출전)', {
+      fontSize: '13px', color: '#888888', backgroundColor: '#1a1a3a', padding: { x: 12, y: 6 },
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    noneBtn.on('pointerdown', () => this.launchBattle(stage, undefined));
+
+    // 게스트 목록
+    const startY = 115;
+    const cardH = 55;
+
+    for (let i = 0; i < guests.length; i++) {
+      const unit = guests[i];
+      const y = startY + i * cardH;
+      const gradeColor = unit.grade === 'UR' ? '#ffaa00' : unit.grade === 'SSR' ? '#aa44ff' : unit.grade === 'SR' ? '#4488ff' : '#44aa44';
+
+      const bg = this.add.graphics();
+      bg.fillStyle(0x1a2a3a, 1).fillRoundedRect(15, y, GAME_W - 30, cardH - 5, 6);
+      bg.lineStyle(1, 0x3366aa, 1).strokeRoundedRect(15, y, GAME_W - 30, cardH - 5, 6);
+
+      this.add.text(25, y + 8, `[${unit.grade ?? 'N'}]`, {
+        fontSize: '13px', color: gradeColor, fontStyle: 'bold',
+      });
+      this.add.text(55, y + 8, unit.name, {
+        fontSize: '15px', color: '#ffffff', fontStyle: 'bold',
+      });
+
+      const cls = unit.unitClass ? (UNIT_CLASS_DEFS[unit.unitClass]?.name ?? '') : '';
+      this.add.text(55, y + 28, `${cls} Lv.${unit.level ?? 1}  ATK:${unit.stats.attack} DEF:${unit.stats.defense}`, {
+        fontSize: '10px', color: '#88aacc',
+      });
+
+      const selectBtn = this.add.text(GAME_W - 80, y + 14, '선택', {
+        fontSize: '14px', color: '#ffffff', backgroundColor: '#3366aa', padding: { x: 12, y: 6 },
+      }).setInteractive({ useHandCursor: true });
+      selectBtn.on('pointerdown', () => this.launchBattle(stage, unit.id));
+    }
+  }
+
+  private launchBattle(stage: import('@shared/types/campaign.ts').Stage, guestUnitId?: string): void {
+    const playerUnits = this.campaignManager.prepareBattle(stage.battleConfig, guestUnitId);
     this.registry.set('pendingBattle', {
       campaignMode: true,
       campaignManager: this.campaignManager,
@@ -134,7 +195,6 @@ export class WorldMapScene extends Phaser.Scene {
       playerUnits,
     });
 
-    // 프리배틀 대화 → BattleScene
     this.scene.start('DialogueScene', {
       dialogue: stage.preDialogue,
       nextScene: 'BattleScene',

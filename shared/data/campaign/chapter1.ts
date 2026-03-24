@@ -57,7 +57,7 @@ const stage1Battle: BattleConfig = {
     enemy('e1_4', '서량 궁수', UnitClass.ARCHER, 10, 1, 1),
     enemy('e1_5', '서량 보병', UnitClass.INFANTRY, 10, 7, 1),
   ],
-  playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 3 }, { x: 1, y: 5 }],
+  playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 3 }, { x: 1, y: 5 }, { x: 2, y: 4 }],
 };
 
 // 1-2: 낙양 거리 전투 (동탁의 본대)
@@ -79,7 +79,7 @@ const stage2Battle: BattleConfig = {
     enemy('e2_5', '서량 보병', UnitClass.INFANTRY, 8, 5, 2),
     enemy('e2_6', '서량 궁수', UnitClass.ARCHER, 10, 1, 2),
   ],
-  playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 3 }, { x: 1, y: 5 }],
+  playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 3 }, { x: 1, y: 5 }, { x: 2, y: 4 }],
 };
 
 export const CHAPTER_1: Chapter = {

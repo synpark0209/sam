@@ -52,7 +52,7 @@ const FRAGMENT_MAP: Record<HeroGrade, number> = { N: 5, R: 10, SR: 20, SSR: 40, 
 function createDefaultUnits(): Record<string, unknown>[] {
   return [
     {
-      id: 'p1', name: '여포', faction: 'player', unitClass: 'cavalry', grade: 'SR',
+      id: 'p1', name: '여포', faction: 'player', unitClass: 'cavalry', grade: 'SR', isScenarioUnit: true,
       level: 1, exp: 0, mp: 20, maxMp: 20,
       classSkillId: 'class_cavalry_1', uniqueSkill: 'musou', uniqueSkillUnlocked: false,
       equippedSkills: ['encourage'], promotionLevel: 0,
@@ -62,7 +62,7 @@ function createDefaultUnits(): Record<string, unknown>[] {
       hasActed: false, isAlive: true,
     },
     {
-      id: 'p2', name: '장료', faction: 'player', unitClass: 'cavalry', grade: 'R',
+      id: 'p2', name: '장료', faction: 'player', unitClass: 'cavalry', grade: 'R', isScenarioUnit: true,
       level: 1, exp: 0, mp: 15, maxMp: 15,
       classSkillId: 'class_cavalry_1', uniqueSkill: 'hebi_fury', uniqueSkillUnlocked: false,
       equippedSkills: ['heal'], promotionLevel: 0,
@@ -72,7 +72,7 @@ function createDefaultUnits(): Record<string, unknown>[] {
       hasActed: false, isAlive: true,
     },
     {
-      id: 'p3', name: '고순', faction: 'player', unitClass: 'infantry', grade: 'R',
+      id: 'p3', name: '고순', faction: 'player', unitClass: 'infantry', grade: 'R', isScenarioUnit: true,
       level: 1, exp: 0, mp: 15, maxMp: 15,
       classSkillId: 'class_infantry_1', uniqueSkill: 'hamjin_charge', uniqueSkillUnlocked: false,
       equippedSkills: ['heal'], promotionLevel: 0,

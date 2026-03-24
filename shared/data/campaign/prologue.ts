@@ -53,7 +53,7 @@ const tutorialBattle: BattleConfig = {
     enemy('ep_3', '산적', UnitClass.BANDIT, 7, 5, 1),
     enemy('ep_4', '산적 궁수', UnitClass.ARCHER, 8, 5, 1),
   ],
-  playerStartPositions: [{ x: 1, y: 3 }, { x: 1, y: 4 }, { x: 2, y: 3 }],
+  playerStartPositions: [{ x: 1, y: 3 }, { x: 1, y: 4 }, { x: 2, y: 3 }, { x: 2, y: 4 }],
 };
 
 export const PROLOGUE: Chapter = {

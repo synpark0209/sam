@@ -36,6 +36,7 @@ export interface UnitData {
   isAlive: boolean;
   unitClass?: UnitClass;
   grade?: 'N' | 'R' | 'SR' | 'SSR' | 'UR';
+  isScenarioUnit?: boolean;        // true: 시나리오 기본 장수 (출전 고정)
   level?: number;
   exp?: number;
   mp?: number;

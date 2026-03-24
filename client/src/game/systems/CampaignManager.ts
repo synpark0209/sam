@@ -7,7 +7,7 @@ import { saveToServer, loadServerSave } from '../../api/client.ts';
 function createDefaultPlayerUnits(): UnitData[] {
   return [
     {
-      id: 'p1', name: '여포', faction: 'player', unitClass: UnitClass.CAVALRY, grade: 'SR',
+      id: 'p1', name: '여포', faction: 'player', unitClass: UnitClass.CAVALRY, grade: 'SR', isScenarioUnit: true,
       level: 1, exp: 0, mp: 20, maxMp: 20,
       classSkillId: 'class_cavalry_1',
       uniqueSkill: 'musou', uniqueSkillUnlocked: false,
@@ -19,7 +19,7 @@ function createDefaultPlayerUnits(): UnitData[] {
       hasActed: false, isAlive: true,
     },
     {
-      id: 'p2', name: '장료', faction: 'player', unitClass: UnitClass.CAVALRY, grade: 'R',
+      id: 'p2', name: '장료', faction: 'player', unitClass: UnitClass.CAVALRY, grade: 'R', isScenarioUnit: true,
       level: 1, exp: 0, mp: 15, maxMp: 15,
       classSkillId: 'class_cavalry_1',
       uniqueSkill: 'hebi_fury', uniqueSkillUnlocked: false,
@@ -31,7 +31,7 @@ function createDefaultPlayerUnits(): UnitData[] {
       hasActed: false, isAlive: true,
     },
     {
-      id: 'p3', name: '고순', faction: 'player', unitClass: UnitClass.INFANTRY, grade: 'R',
+      id: 'p3', name: '고순', faction: 'player', unitClass: UnitClass.INFANTRY, grade: 'R', isScenarioUnit: true,
       level: 1, exp: 0, mp: 15, maxMp: 15,
       classSkillId: 'class_infantry_1',
       uniqueSkill: 'hamjin_charge', uniqueSkillUnlocked: false,
@@ -91,8 +91,19 @@ export class CampaignManager {
     return 'locked';
   }
 
-  prepareBattle(battleConfig: BattleConfig): UnitData[] {
-    return this.progress.playerUnits.map((u, i) => {
+  /** 시나리오 전투용 출전 장수 준비 (시나리오 장수 + 게스트 1명) */
+  prepareBattle(battleConfig: BattleConfig, guestUnitId?: string): UnitData[] {
+    // 시나리오 기본 장수만 선택
+    const scenarioUnits = this.progress.playerUnits.filter(u => u.isScenarioUnit);
+
+    // 게스트 장수 추가 (가챠/이벤트 장수 중 1명)
+    const battleUnits = [...scenarioUnits];
+    if (guestUnitId) {
+      const guest = this.progress.playerUnits.find(u => u.id === guestUnitId && !u.isScenarioUnit);
+      if (guest) battleUnits.push(guest);
+    }
+
+    return battleUnits.map((u, i) => {
       const pos = battleConfig.playerStartPositions[i] ?? { x: 0, y: 0 };
       return {
         ...u,
@@ -103,6 +114,11 @@ export class CampaignManager {
         isAlive: true,
       };
     });
+  }
+
+  /** 가챠/이벤트 장수 목록 (게스트 후보) */
+  getGuestCandidates(): UnitData[] {
+    return this.progress.playerUnits.filter(u => !u.isScenarioUnit);
   }
 
   completeBattle(survivingUnits: UnitData[], stage: Stage): void {
