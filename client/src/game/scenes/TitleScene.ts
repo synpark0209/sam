@@ -31,7 +31,7 @@ export class TitleScene extends Phaser.Scene {
 
     // 음소거 토글 버튼
     const audio = this.registry.get('audioManager') as AudioManager;
-    const muteBtn = this.add.text(GAME_W - 40, 10, audio?.isMuted() ? '🔇' : '🔊', {
+    const muteBtn = this.add.text(10, 10, audio?.isMuted() ? '🔇' : '🔊', {
       fontSize: '20px',
     }).setInteractive({ useHandCursor: true });
     muteBtn.on('pointerdown', () => {
