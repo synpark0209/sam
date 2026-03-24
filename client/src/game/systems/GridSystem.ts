@@ -46,6 +46,18 @@ export class GridSystem {
     return classDef.passableTerrain.includes(tile.type);
   }
 
+  /** 해당 위치가 적 유닛의 ZOC(통제구역) 안인지 확인 */
+  private isInEnemyZOC(pos: Position, faction: Faction, units: UnitData[]): boolean {
+    for (const adj of this.getAdjacentPositions(pos)) {
+      const enemy = units.find(u =>
+        u.isAlive && u.faction !== faction &&
+        u.position.x === adj.x && u.position.y === adj.y,
+      );
+      if (enemy) return true;
+    }
+    return false;
+  }
+
   getMovementRange(origin: Position, moveRange: number, units: UnitData[], faction: Faction, unitClass?: UnitClass): Position[] {
     const visited = new Map<string, number>();
     const queue: Array<{ pos: Position; remaining: number }> = [];
@@ -56,6 +68,13 @@ export class GridSystem {
 
     while (queue.length > 0) {
       const { pos, remaining } = queue.shift()!;
+
+      // ZOC: 현재 위치가 적의 통제구역이면 더 이상 이동 불가 (출발지 제외)
+      if (pos.x !== origin.x || pos.y !== origin.y) {
+        if (this.isInEnemyZOC(pos, faction, units) && remaining < moveRange) {
+          continue;
+        }
+      }
 
       for (const adj of this.getAdjacentPositions(pos)) {
         const tile = this.getTile(adj.x, adj.y);

@@ -1,4 +1,5 @@
 import type { TileData, UnitData, UnitStats } from '@shared/types/index.ts';
+import { UnitClass } from '@shared/types/index.ts';
 import { EQUIPMENT_DEFS } from '@shared/data/equipmentDefs.ts';
 
 export interface CombatResult {
@@ -10,6 +11,26 @@ export interface CombatResult {
   counterDamage: number;
   attackerHpAfter: number;
   attackerDied: boolean;
+  typeAdvantage: 'strong' | 'weak' | 'neutral';
+  flanking: boolean;
+}
+
+/** 상성 배율: 유리 1.2, 불리 0.8, 중립 1.0 */
+function getTypeMultiplier(attacker: UnitClass | undefined, defender: UnitClass | undefined): { multiplier: number; advantage: 'strong' | 'weak' | 'neutral' } {
+  if (!attacker || !defender) return { multiplier: 1, advantage: 'neutral' };
+
+  const strong: [UnitClass, UnitClass][] = [
+    [UnitClass.CAVALRY, UnitClass.INFANTRY],    // 기병 → 보병
+    [UnitClass.INFANTRY, UnitClass.ARCHER],      // 보병 → 궁병
+    [UnitClass.ARCHER, UnitClass.CAVALRY],       // 궁병 → 기병
+    [UnitClass.MARTIAL_ARTIST, UnitClass.STRATEGIST], // 무도가 → 책사
+  ];
+
+  for (const [s, w] of strong) {
+    if (attacker === s && defender === w) return { multiplier: 1.2, advantage: 'strong' };
+    if (attacker === w && defender === s) return { multiplier: 0.8, advantage: 'weak' };
+  }
+  return { multiplier: 1, advantage: 'neutral' };
 }
 
 export class CombatSystem {
@@ -62,21 +83,46 @@ export class CombatSystem {
     return Math.max(1, Math.floor(rawDamage * terrainMultiplier));
   }
 
-  executeAttack(attacker: UnitData, defender: UnitData, defenderTile: TileData, attackerTile?: TileData): CombatResult {
-    // 공격
-    const damage = this.calculateDamage(attacker, defender, defenderTile);
+  /** 협공 체크: 방어자에 인접한 아군 유닛 수 (공격자 제외) */
+  countFlankingAllies(attacker: UnitData, defender: UnitData, allUnits: UnitData[]): number {
+    const dirs = [{ x: 0, y: -1 }, { x: 0, y: 1 }, { x: -1, y: 0 }, { x: 1, y: 0 }];
+    let count = 0;
+    for (const d of dirs) {
+      const ax = defender.position.x + d.x;
+      const ay = defender.position.y + d.y;
+      const ally = allUnits.find(u =>
+        u.isAlive && u.id !== attacker.id && u.faction === attacker.faction &&
+        u.position.x === ax && u.position.y === ay,
+      );
+      if (ally) count++;
+    }
+    return count;
+  }
+
+  executeAttack(attacker: UnitData, defender: UnitData, defenderTile: TileData, attackerTile?: TileData, allUnits?: UnitData[]): CombatResult {
+    // 상성 보정
+    const typeResult = getTypeMultiplier(attacker.unitClass, defender.unitClass);
+
+    // 협공 보정 (인접 아군이 있으면 데미지 20% 추가)
+    const flankCount = allUnits ? this.countFlankingAllies(attacker, defender, allUnits) : 0;
+    const flankBonus = flankCount > 0 ? 1.2 : 1.0;
+    const flanking = flankCount > 0;
+
+    // 데미지 계산
+    const baseDamage = this.calculateDamage(attacker, defender, defenderTile);
+    const damage = Math.max(1, Math.floor(baseDamage * typeResult.multiplier * flankBonus));
     defender.stats.hp = Math.max(0, defender.stats.hp - damage);
     const defenderDied = defender.stats.hp <= 0;
     if (defenderDied) defender.isAlive = false;
 
-    // 반격: 방어자가 생존하고, 공격자가 방어자의 공격 사거리 내에 있을 때
+    // 반격 (상성 역적용)
     let counterDamage = 0;
     let attackerDied = false;
     if (!defenderDied && this.isInAttackRange(defender, attacker)) {
-      const atkTile = attackerTile ?? defenderTile; // fallback
-      counterDamage = Math.max(1, Math.floor(
-        this.calculateDamage(defender, attacker, atkTile) * 0.5,
-      ));
+      const atkTile = attackerTile ?? defenderTile;
+      const counterType = getTypeMultiplier(defender.unitClass, attacker.unitClass);
+      const counterBase = this.calculateDamage(defender, attacker, atkTile);
+      counterDamage = Math.max(1, Math.floor(counterBase * 0.5 * counterType.multiplier));
       attacker.stats.hp = Math.max(0, attacker.stats.hp - counterDamage);
       attackerDied = attacker.stats.hp <= 0;
       if (attackerDied) attacker.isAlive = false;
@@ -93,6 +139,8 @@ export class CombatSystem {
       counterDamage,
       attackerHpAfter: attacker.stats.hp,
       attackerDied,
+      typeAdvantage: typeResult.advantage,
+      flanking,
     };
   }
 

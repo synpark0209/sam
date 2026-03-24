@@ -855,7 +855,18 @@ export class BattleScene extends Phaser.Scene {
 
     const defenderTile = this.battleState.tiles[defender.position.y][defender.position.x];
     const attackerTile = this.battleState.tiles[attacker.position.y][attacker.position.x];
-    const result = this.combatSystem.executeAttack(attacker, defender, defenderTile, attackerTile);
+    const result = this.combatSystem.executeAttack(attacker, defender, defenderTile, attackerTile, this.battleState.units);
+
+    // 상성/협공 표시
+    const atkPos = this.gridToPixel(attacker.position);
+    if (result.typeAdvantage === 'strong') {
+      this.showFloatingText(atkPos.x, atkPos.y - 30, '유리!', '#44ff44');
+    } else if (result.typeAdvantage === 'weak') {
+      this.showFloatingText(atkPos.x, atkPos.y - 30, '불리...', '#ff6666');
+    }
+    if (result.flanking) {
+      this.showFloatingText(atkPos.x, atkPos.y - 45, '협공!', '#ffaa00');
+    }
 
     this.time.delayedCall(200, () => {
       this.playUnitAnim(defender, 'hit');
@@ -1091,7 +1102,7 @@ export class BattleScene extends Phaser.Scene {
         this.centerCameraOn(target.position, 200);
         const defTile = this.battleState.tiles[target.position.y][target.position.x];
         const atkTile = this.battleState.tiles[unit.position.y][unit.position.x];
-        const result = this.combatSystem.executeAttack(unit, target, defTile, atkTile);
+        const result = this.combatSystem.executeAttack(unit, target, defTile, atkTile, this.battleState.units);
         const defPos = this.gridToPixel(target.position);
         this.showDamageText(defPos.x, defPos.y, result.damage);
         this.updateUnitSprite(unit);
