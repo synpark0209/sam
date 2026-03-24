@@ -156,6 +156,38 @@ export async function getPvpRanking(): Promise<PvpRankingEntry[]> {
   }
 }
 
+// ── Gacha API ──
+
+export interface GachaPullResult {
+  results: Array<{
+    name: string;
+    grade: string;
+    unitClass: string;
+    isNew: boolean;
+    fragments: number;
+  }>;
+  remainingGold: number;
+  remainingGems: number;
+  pity: number;
+}
+
+export interface GachaStatus {
+  gems: number;
+  gold: number;
+  pity: number;
+}
+
+export async function gachaPull(type: 'normal' | 'premium', count: 1 | 10): Promise<GachaPullResult> {
+  return apiRequest<GachaPullResult>('/gacha/pull', {
+    method: 'POST',
+    body: JSON.stringify({ type, count }),
+  });
+}
+
+export async function getGachaStatus(): Promise<GachaStatus> {
+  return apiRequest<GachaStatus>('/gacha/status');
+}
+
 export function isLoggedIn(): boolean {
   return !!getAuthToken();
 }

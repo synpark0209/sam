@@ -21,6 +21,12 @@ export class GameSave {
   maxLevel: number;
 
   @Column({ default: 1000 })
+  gems: number;
+
+  @Column({ default: 0 })
+  gachaPity: number;
+
+  @Column({ default: 1000 })
   pvpElo: number;
 
   @Column({ default: 0 })

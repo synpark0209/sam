@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { SaveModule } from './save/save.module';
 import { PvpModule } from './pvp/pvp.module';
+import { GachaModule } from './gacha/gacha.module';
 import { User } from './user/user.entity';
 import { GameSave } from './save/save.entity';
 import { PvpRecord } from './pvp/pvp.entity';
@@ -30,6 +31,7 @@ import { PvpRecord } from './pvp/pvp.entity';
     UserModule,
     SaveModule,
     PvpModule,
+    GachaModule,
   ],
 })
 export class AppModule {}

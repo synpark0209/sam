@@ -3,9 +3,10 @@ import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT } from '@shared/constants.ts';
 import type { CampaignManager } from '../systems/CampaignManager.ts';
 import type { AudioManager } from '../systems/AudioManager.ts';
 import type { UnitData } from '@shared/types/index.ts';
-import { logout as doLogout } from '../../api/client.ts';
-import { rollPremiumGacha, gachaHeroToUnit, getGradeColor, getDuplicateFragments } from '@shared/data/gachaDefs.ts';
-import type { GachaHeroDef, HeroGrade } from '@shared/data/gachaDefs.ts';
+import { logout as doLogout, gachaPull, getGachaStatus } from '../../api/client.ts';
+import type { GachaPullResult } from '../../api/client.ts';
+import { getGradeColor } from '@shared/data/gachaDefs.ts';
+import type { HeroGrade } from '@shared/data/gachaDefs.ts';
 import { UNIT_CLASS_DEFS } from '@shared/data/unitClassDefs.ts';
 import { SKILL_DEFS } from '@shared/data/skillDefs.ts';
 import { EQUIPMENT_DEFS } from '@shared/data/equipmentDefs.ts';
@@ -280,8 +281,6 @@ export class LobbyScene extends Phaser.Scene {
 
   // ── 가챠 ──
 
-  private gachaPity = 0;
-
   private showGacha(): void {
     this.children.removeAll();
     this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GW, GH);
@@ -295,72 +294,82 @@ export class LobbyScene extends Phaser.Scene {
     }).setInteractive({ useHandCursor: true });
     backBtn.on('pointerdown', () => this.showMainMenu());
 
-    // 보석 표시 (임시: 무한)
-    this.add.text(GW / 2, 55, '보석: ∞ (테스트)', {
+    // 서버에서 재화 상태 로드
+    const loadingText = this.add.text(GW / 2, GH * 0.4, '로딩 중...', {
+      fontSize: '14px', color: '#666666',
+    }).setOrigin(0.5);
+
+    getGachaStatus().then(status => {
+      loadingText.destroy();
+      this.renderGachaUI(status.gems, status.gold, status.pity);
+    }).catch(() => {
+      loadingText.setText('서버 연결 실패');
+    });
+  }
+
+  private renderGachaUI(gems: number, gold: number, pity: number): void {
+    this.add.text(GW / 2, 55, `💎 보석: ${gems}    💰 금화: ${gold}`, {
       fontSize: '12px', color: '#aaddff',
     }).setOrigin(0.5);
 
-    // 천장 카운트
-    this.add.text(GW / 2, 75, `천장까지: ${90 - this.gachaPity}회`, {
+    this.add.text(GW / 2, 75, `천장까지: ${90 - pity}회`, {
       fontSize: '11px', color: '#888888',
     }).setOrigin(0.5);
 
-    // 확률 표시
-    this.add.text(GW / 2, 100, 'UR: 5%  SSR: 20%  SR: 75%', {
+    this.add.text(GW / 2, 95, '프리미엄: UR 5% | SSR 20% | SR 75%', {
       fontSize: '10px', color: '#666666',
     }).setOrigin(0.5);
 
-    // 1회 뽑기
-    const single = this.add.text(GW / 2 - 80, GH * 0.35, '1회 뽑기\n💎 300', {
+    // 프리미엄 1회
+    const single = this.add.text(GW / 2 - 80, GH * 0.30, '1회 뽑기\n💎 300', {
       fontSize: '16px', color: '#ffffff', backgroundColor: '#4a2a6a',
       padding: { x: 16, y: 12 }, align: 'center',
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    single.on('pointerdown', () => this.doGachaPull(1));
+    single.on('pointerdown', () => this.doServerGachaPull('premium', 1));
 
-    // 10연차
-    const multi = this.add.text(GW / 2 + 80, GH * 0.35, '10연차\n💎 2,700', {
+    // 프리미엄 10연차
+    const multi = this.add.text(GW / 2 + 80, GH * 0.30, '10연차\n💎 2,700', {
       fontSize: '16px', color: '#ffffff', backgroundColor: '#6a2a4a',
       padding: { x: 16, y: 12 }, align: 'center',
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    multi.on('pointerdown', () => this.doGachaPull(10));
+    multi.on('pointerdown', () => this.doServerGachaPull('premium', 10));
 
-    // 결과 영역
-    this.add.text(GW / 2, GH * 0.48, '─── 결과 ───', {
-      fontSize: '12px', color: '#444444',
+    // 일반 뽑기
+    this.add.text(GW / 2, GH * 0.44, '일반: UR 1% | SSR 9% | SR 90%', {
+      fontSize: '10px', color: '#666666',
     }).setOrigin(0.5);
+
+    const normalSingle = this.add.text(GW / 2 - 80, GH * 0.52, '일반 1회\n💰 10,000', {
+      fontSize: '14px', color: '#ffffff', backgroundColor: '#2a4a2a',
+      padding: { x: 14, y: 10 }, align: 'center',
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    normalSingle.on('pointerdown', () => this.doServerGachaPull('normal', 1));
+
+    const normalMulti = this.add.text(GW / 2 + 80, GH * 0.52, '일반 10회\n💰 100,000', {
+      fontSize: '14px', color: '#ffffff', backgroundColor: '#2a4a2a',
+      padding: { x: 14, y: 10 }, align: 'center',
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    normalMulti.on('pointerdown', () => this.doServerGachaPull('normal', 10));
   }
 
-  private doGachaPull(count: number): void {
-    const results: { hero: GachaHeroDef; isNew: boolean }[] = [];
-    const progress = this.campaignManager.getProgress();
+  private doServerGachaPull(type: 'normal' | 'premium', count: 1 | 10): void {
+    const loadingText = this.add.text(GW / 2, GH * 0.65, '뽑기 중...', {
+      fontSize: '14px', color: '#ffaa00',
+    }).setOrigin(0.5);
 
-    for (let i = 0; i < count; i++) {
-      const { hero, newPity } = rollPremiumGacha(this.gachaPity);
-      this.gachaPity = newPity;
-
-      // 중복 체크
-      const existing = progress.playerUnits.find(u => u.name === hero.name);
-      if (existing) {
-        // 중복 → 조각 (현재는 금화로 대체)
-        const frag = getDuplicateFragments(hero.grade);
-        progress.gold += frag * 10;
-        results.push({ hero, isNew: false });
-      } else {
-        // 신규 → 장수 추가
-        const unit = gachaHeroToUnit(hero);
-        progress.playerUnits.push(unit);
-        results.push({ hero, isNew: true });
-      }
-    }
-
-    // 세이브
-    this.campaignManager.save();
-
-    // 결과 표시
-    this.showGachaResults(results);
+    gachaPull(type, count).then(result => {
+      loadingText.destroy();
+      // 세이브 리로드 (서버에서 장수가 추가됨)
+      this.campaignManager.loadFromServer().then(() => {
+        this.showGachaResults(result);
+      });
+    }).catch((err: Error) => {
+      loadingText.setText(err.message || '뽑기 실패');
+      this.time.delayedCall(2000, () => loadingText.destroy());
+    });
   }
 
-  private showGachaResults(results: { hero: GachaHeroDef; isNew: boolean }[]): void {
+  private showGachaResults(result: GachaPullResult): void {
     this.children.removeAll();
     this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GW, GH);
 
@@ -368,65 +377,57 @@ export class LobbyScene extends Phaser.Scene {
       fontSize: '24px', color: '#ffd700', fontStyle: 'bold',
     }).setOrigin(0.5);
 
+    const results = result.results;
     const startY = 55;
     const cardH = results.length > 5 ? 40 : 55;
 
     for (let i = 0; i < results.length; i++) {
-      const { hero, isNew } = results[i];
+      const r = results[i];
       const y = startY + i * cardH;
-      const gradeColor = getGradeColor(hero.grade);
+      const gradeColor = getGradeColor(r.grade as HeroGrade);
 
-      // 등급 배경
       const bg = this.add.graphics();
       bg.fillStyle(Phaser.Display.Color.HexStringToColor(gradeColor).color, 0.15);
       bg.fillRoundedRect(20, y, GW - 40, cardH - 4, 4);
       bg.lineStyle(1, Phaser.Display.Color.HexStringToColor(gradeColor).color, 0.5);
       bg.strokeRoundedRect(20, y, GW - 40, cardH - 4, 4);
 
-      // 등급
-      this.add.text(30, y + 6, `[${hero.grade}]`, {
+      this.add.text(30, y + 6, `[${r.grade}]`, {
         fontSize: '14px', color: gradeColor, fontStyle: 'bold',
       });
-
-      // 이름
-      this.add.text(75, y + 6, hero.name, {
+      this.add.text(75, y + 6, r.name, {
         fontSize: '14px', color: '#ffffff', fontStyle: 'bold',
       });
 
-      // 병종
-      const cls = UNIT_CLASS_DEFS[hero.unitClass]?.name ?? '';
-      this.add.text(75, y + 24, cls, {
-        fontSize: '10px', color: '#888888',
-      });
-
-      // NEW / 중복
-      if (isNew) {
+      if (r.isNew) {
         this.add.text(GW - 70, y + 10, 'NEW!', {
           fontSize: '14px', color: '#ffaa00', fontStyle: 'bold',
         });
       } else {
-        const frag = getDuplicateFragments(hero.grade);
-        this.add.text(GW - 90, y + 10, `조각 +${frag}`, {
+        this.add.text(GW - 100, y + 10, `조각 +${r.fragments}`, {
           fontSize: '12px', color: '#888888',
         });
       }
     }
 
-    // SSR 연출
-    const hasUR = results.some(r => r.hero.grade === 'UR');
-    if (hasUR) {
-      this.add.text(GW / 2, GH * 0.85, '⭐ UR 장수 획득! ⭐', {
+    // UR 연출
+    if (results.some(r => r.grade === 'UR')) {
+      this.add.text(GW / 2, GH * 0.82, '⭐ UR 장수 획득! ⭐', {
         fontSize: '18px', color: '#ffaa00', fontStyle: 'bold',
       }).setOrigin(0.5);
     }
 
-    // 버튼
-    const contBtn = this.add.text(GW / 2 - 70, GH - 50, '계속 뽑기', {
+    // 남은 재화
+    this.add.text(GW / 2, GH * 0.88, `💎 ${result.remainingGems}    💰 ${result.remainingGold}    천장: ${90 - result.pity}`, {
+      fontSize: '11px', color: '#888888',
+    }).setOrigin(0.5);
+
+    const contBtn = this.add.text(GW / 2 - 70, GH - 40, '계속 뽑기', {
       fontSize: '14px', color: '#ffffff', backgroundColor: '#4a2a6a', padding: { x: 14, y: 8 },
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     contBtn.on('pointerdown', () => this.showGacha());
 
-    const doneBtn = this.add.text(GW / 2 + 70, GH - 50, '돌아가기', {
+    const doneBtn = this.add.text(GW / 2 + 70, GH - 40, '돌아가기', {
       fontSize: '14px', color: '#ffffff', backgroundColor: '#2a2a4a', padding: { x: 14, y: 8 },
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     doneBtn.on('pointerdown', () => this.showMainMenu());
