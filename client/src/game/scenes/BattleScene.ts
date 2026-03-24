@@ -1073,6 +1073,7 @@ export class BattleScene extends Phaser.Scene {
       const { unit, moveTo, attackTarget, skillAction } = action;
 
       const doAttack = (target: UnitData, onDone: () => void) => {
+        this.centerCameraOn(target.position, 200);
         const defTile = this.battleState.tiles[target.position.y][target.position.x];
         const atkTile = this.battleState.tiles[unit.position.y][unit.position.x];
         const result = this.combatSystem.executeAttack(unit, target, defTile, atkTile);
@@ -1095,6 +1096,7 @@ export class BattleScene extends Phaser.Scene {
       };
 
       const doSkill = (skillId: string, targetPos: Position, onDone: () => void) => {
+        this.centerCameraOn(targetPos, 200);
         const skill = this.skillSystem.getUsableSkills(unit).find(s => s.id === skillId);
         if (!skill) { onDone(); return; }
         const result = this.skillSystem.executeSkill(unit, skill, targetPos, this.battleState.units);
@@ -1131,6 +1133,7 @@ export class BattleScene extends Phaser.Scene {
 
       if (moveTo) {
         const path = this.gridSystem.getPath(unit.position, moveTo, this.battleState.units, 'enemy', unit.unitClass);
+        this.centerCameraOn(moveTo, 300);
         this.animateMovement(unit, path.length > 0 ? path : [unit.position, moveTo], () => {
           unit.position = { ...moveTo };
           afterMove();
