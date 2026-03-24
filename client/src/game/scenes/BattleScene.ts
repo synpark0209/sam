@@ -866,6 +866,140 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
+  // ── 공격 이펙트 ──
+
+  /** 근접 공격 이펙트: 검/창 휘두르기 호 궤적 */
+  private showMeleeSlash(fromPos: Position, toPos: Position): void {
+    const from = this.gridToPixel(fromPos);
+    const to = this.gridToPixel(toPos);
+    const g = this.add.graphics().setDepth(40);
+    this.ignoreFromUiCam(g);
+
+    const cx = (from.x + to.x) / 2;
+    const cy = (from.y + to.y) / 2;
+    const angle = Math.atan2(to.y - from.y, to.x - from.x);
+
+    // 호 궤적 3단계 애니메이션
+    let step = 0;
+    const timer = this.time.addEvent({
+      delay: 60,
+      repeat: 4,
+      callback: () => {
+        g.clear();
+        const a = angle - 0.8 + step * 0.4;
+        const len = 20 + step * 4;
+        g.lineStyle(3 - step * 0.4, 0xffffff, 1 - step * 0.15);
+        g.beginPath();
+        g.arc(cx, cy, len, a - 0.5, a + 0.5, false);
+        g.strokePath();
+        // 검 반짝임
+        g.lineStyle(2, 0xaaddff, 0.8 - step * 0.15);
+        g.beginPath();
+        g.arc(cx, cy, len - 4, a - 0.3, a + 0.3, false);
+        g.strokePath();
+        step++;
+      },
+    });
+    this.time.delayedCall(360, () => { timer.destroy(); g.destroy(); });
+  }
+
+  /** 원거리 공격 이펙트: 화살 투사체 */
+  private showArrowProjectile(fromPos: Position, toPos: Position): void {
+    const from = this.gridToPixel(fromPos);
+    const to = this.gridToPixel(toPos);
+    const angle = Math.atan2(to.y - from.y, to.x - from.x);
+
+    // 화살 그래픽
+    const arrow = this.add.graphics().setDepth(40);
+    this.ignoreFromUiCam(arrow);
+    arrow.setPosition(from.x, from.y);
+
+    // 화살 모양
+    arrow.lineStyle(2, 0x8B4513, 1); // 갈색 몸통
+    arrow.lineBetween(0, 0, -12, 0);
+    arrow.lineStyle(2, 0xC0C8D8, 1); // 은색 촉
+    arrow.lineBetween(0, 0, 4, 0);
+    // 깃
+    arrow.lineStyle(1, 0xffffff, 0.8);
+    arrow.lineBetween(-10, 0, -12, -3);
+    arrow.lineBetween(-10, 0, -12, 3);
+
+    arrow.setRotation(angle);
+
+    this.tweens.add({
+      targets: arrow,
+      x: to.x,
+      y: to.y,
+      duration: 300,
+      ease: 'Linear',
+      onComplete: () => {
+        // 착탄 이펙트
+        const hit = this.add.graphics().setDepth(41);
+        this.ignoreFromUiCam(hit);
+        hit.setPosition(to.x, to.y);
+        hit.fillStyle(0xffffff, 0.8);
+        hit.fillCircle(0, 0, 6);
+        this.tweens.add({
+          targets: hit, alpha: 0, duration: 200,
+          onComplete: () => hit.destroy(),
+        });
+        arrow.destroy();
+      },
+    });
+  }
+
+  /** 계략 공격 이펙트: 마법진 + 빛 */
+  private showMagicEffect(targetPos: Position, color: number = 0x9944ff): void {
+    const pos = this.gridToPixel(targetPos);
+    const g = this.add.graphics().setDepth(40);
+    this.ignoreFromUiCam(g);
+    g.setPosition(pos.x, pos.y);
+
+    let step = 0;
+    const timer = this.time.addEvent({
+      delay: 80,
+      repeat: 5,
+      callback: () => {
+        g.clear();
+        const radius = 8 + step * 5;
+        const alpha = 1 - step * 0.15;
+        // 마법진 원
+        g.lineStyle(2, color, alpha);
+        g.strokeCircle(0, 0, radius);
+        // 내부 빛
+        g.fillStyle(color, alpha * 0.3);
+        g.fillCircle(0, 0, radius * 0.6);
+        // 광선
+        for (let i = 0; i < 4; i++) {
+          const a = (i / 4) * Math.PI * 2 + step * 0.3;
+          g.lineStyle(1, 0xffffff, alpha * 0.6);
+          g.lineBetween(
+            Math.cos(a) * radius * 0.3, Math.sin(a) * radius * 0.3,
+            Math.cos(a) * radius, Math.sin(a) * radius,
+          );
+        }
+        step++;
+      },
+    });
+    this.time.delayedCall(520, () => { timer.destroy(); g.destroy(); });
+  }
+
+  /** 유닛 병종에 따른 공격 이펙트 표시 */
+  private showAttackEffect(attacker: UnitData, defender: UnitData): void {
+    const cls = attacker.unitClass ?? UnitClass.INFANTRY;
+    switch (cls) {
+      case UnitClass.ARCHER:
+        this.showArrowProjectile(attacker.position, defender.position);
+        break;
+      case UnitClass.STRATEGIST:
+        this.showMagicEffect(defender.position);
+        break;
+      default: // 보병, 기병, 무도가, 도적 등 근접
+        this.showMeleeSlash(attacker.position, defender.position);
+        break;
+    }
+  }
+
   // ── 공격 ──
 
   private executeAttack(attacker: UnitData, defender: UnitData): void {
@@ -876,6 +1010,7 @@ export class BattleScene extends Phaser.Scene {
     this.faceToward(attacker, defender.position);
     this.playUnitAnim(attacker, 'attack');
     this.playSfx('attack_hit');
+    this.showAttackEffect(attacker, defender);
 
     const defenderTile = this.battleState.tiles[defender.position.y][defender.position.x];
     const attackerTile = this.battleState.tiles[attacker.position.y][attacker.position.x];
@@ -912,7 +1047,9 @@ export class BattleScene extends Phaser.Scene {
 
     if (result.counterDamage > 0) {
       this.time.delayedCall(400, () => {
+        this.faceToward(defender, attacker.position);
         this.playUnitAnim(defender, 'idle');
+        this.showAttackEffect(defender, attacker);
         this.playUnitAnim(attacker, 'hit');
         const atkPos = this.gridToPixel(attacker.position);
         this.showDamageText(atkPos.x, atkPos.y, result.counterDamage, '#ffaa44');
@@ -1126,6 +1263,7 @@ export class BattleScene extends Phaser.Scene {
       const doAttack = (target: UnitData, onDone: () => void) => {
         this.centerCameraOn(target.position, 200);
         this.faceToward(unit, target.position);
+        this.showAttackEffect(unit, target);
         const defTile = this.battleState.tiles[target.position.y][target.position.x];
         const atkTile = this.battleState.tiles[unit.position.y][unit.position.x];
         const result = this.combatSystem.executeAttack(unit, target, defTile, atkTile, this.battleState.units);
