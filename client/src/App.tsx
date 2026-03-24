@@ -2,15 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { PhaserGame } from './game/PhaserGame.tsx';
 import type { IRefPhaserGame } from './game/PhaserGame.tsx';
 import { EventBus } from './game/EventBus.ts';
-import { UnitInfoPanel } from './components/UnitInfoPanel.tsx';
 import { AuthModal } from './components/AuthModal.tsx';
 import { isTelegramMiniApp, getTelegramInitData, initTelegramApp } from './telegram.ts';
 import { loginWithTelegram, isLoggedIn } from './api/client.ts';
-import type { UnitData } from '@shared/types/index.ts';
 
 function App() {
   const phaserRef = useRef<IRefPhaserGame>(null);
-  const [selectedUnit, setSelectedUnit] = useState<UnitData | null>(null);
   const [showAuth, setShowAuth] = useState(false);
 
   // 텔레그램 미니앱 자동 로그인
@@ -37,9 +34,6 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const onUnitSelected = (unit: UnitData | null) => {
-      setSelectedUnit(unit ? { ...unit, stats: { ...unit.stats }, position: { ...unit.position } } : null);
-    };
     const restartTitleScene = () => {
       const game = phaserRef.current?.game;
       if (game) {
@@ -66,11 +60,9 @@ function App() {
       setShowAuth(true);
     };
 
-    EventBus.on('unit-selected', onUnitSelected);
     EventBus.on('show-auth', onShowAuth);
 
     return () => {
-      EventBus.off('unit-selected', onUnitSelected);
       EventBus.off('show-auth', onShowAuth);
     };
   }, []);
@@ -78,7 +70,7 @@ function App() {
   return (
     <div style={{ position: 'relative', display: 'inline-block' }}>
       <PhaserGame ref={phaserRef} />
-      {selectedUnit && <UnitInfoPanel unit={selectedUnit} />}
+      {/* UnitInfoPanel은 BattleScene 내 Phaser UI로 대체됨 */}
       {showAuth && (
         <AuthModal
           onClose={() => setShowAuth(false)}

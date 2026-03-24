@@ -473,6 +473,7 @@ export class BattleScene extends Phaser.Scene {
 
   private showActionMenu(unit: UnitData): void {
     this.hideActionMenu();
+    this.hideUnitInfoPanel(); // 액션 메뉴와 겹치지 않도록
     this.interactionState = 'AWAITING_ACTION';
 
     // UI 카메라 좌표 (줌 무관)
