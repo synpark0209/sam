@@ -298,7 +298,7 @@ export class LobbyScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // 확률 표시
-    this.add.text(GW / 2, 100, 'SSR: 10%  SR: 35%  A: 55%', {
+    this.add.text(GW / 2, 100, 'UR: 5%  SSR: 20%  SR: 75%', {
       fontSize: '10px', color: '#666666',
     }).setOrigin(0.5);
 
@@ -405,9 +405,9 @@ export class LobbyScene extends Phaser.Scene {
     }
 
     // SSR 연출
-    const hasSSR = results.some(r => r.hero.grade === 'SSR');
-    if (hasSSR) {
-      this.add.text(GW / 2, GH * 0.85, '⭐ SSR 장수 획득! ⭐', {
+    const hasUR = results.some(r => r.hero.grade === 'UR');
+    if (hasUR) {
+      this.add.text(GW / 2, GH * 0.85, '⭐ UR 장수 획득! ⭐', {
         fontSize: '18px', color: '#ffaa00', fontStyle: 'bold',
       }).setOrigin(0.5);
     }
