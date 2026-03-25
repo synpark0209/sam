@@ -61,6 +61,9 @@ export class CampaignManager {
       playerUnits: createDefaultPlayerUnits(),
       gold: 0,
       inventory: [],
+      equipmentBag: ['bronze_sword', 'leather_armor', 'war_drum'],
+      skillBag: ['encourage', 'fortify', 'heal'],
+      materialBag: {},
     };
   }
 

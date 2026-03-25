@@ -74,8 +74,9 @@ export class LobbyScene extends Phaser.Scene {
       { label: '⚔️ 자유 전투', y: GH * 0.32, action: () => this.startFreeBattle() },
       { label: '🎰 장수 뽑기', y: GH * 0.42, color: '#4a2a4a', action: () => this.showGacha() },
       { label: '👥 장수 관리', y: GH * 0.52, action: () => this.showHeroes() },
-      { label: '🏆 랭킹', y: GH * 0.62, action: () => this.scene.start('RankingScene') },
-      { label: '🚪 로그아웃', y: GH * 0.74, color: '#4a2a2a', action: () => this.logout() },
+      { label: '🎒 인벤토리', y: GH * 0.62, action: () => this.showInventory('equipment') },
+      { label: '🏆 랭킹', y: GH * 0.72, action: () => this.scene.start('RankingScene') },
+      { label: '🚪 로그아웃', y: GH * 0.82, color: '#4a2a2a', action: () => this.logout() },
     ];
 
     for (const btn of buttons) {
@@ -258,8 +259,13 @@ export class LobbyScene extends Phaser.Scene {
       }).setInteractive({ useHandCursor: true });
       const skillIdx = si;
       removeSkillBtn.on('pointerdown', () => {
-        // 스킬 해제 → 인벤토리로 (현재는 그냥 제거)
+        const removed = unit.equippedSkills?.[skillIdx];
         unit.equippedSkills?.splice(skillIdx, 1);
+        if (removed) {
+          const prog = this.campaignManager.getProgress();
+          if (!prog.skillBag) prog.skillBag = [];
+          prog.skillBag.push(removed);
+        }
         this.campaignManager.save();
         this.showHeroDetail(unit);
       });
@@ -303,8 +309,12 @@ export class LobbyScene extends Phaser.Scene {
           fontSize: '10px', color: '#ff6666', backgroundColor: '#2a1a1a', padding: { x: 6, y: 2 },
         }).setInteractive({ useHandCursor: true });
         unequipBtn.on('pointerdown', () => {
-          if (unit.equipment) {
+          if (unit.equipment && unit.equipment[slotKey]) {
+            const removedItem = unit.equipment[slotKey]!;
             unit.equipment[slotKey] = undefined;
+            const prog = this.campaignManager.getProgress();
+            if (!prog.equipmentBag) prog.equipmentBag = [];
+            prog.equipmentBag.push(removedItem);
             this.campaignManager.save();
             this.showHeroDetail(unit);
           }
@@ -314,6 +324,228 @@ export class LobbyScene extends Phaser.Scene {
   }
 
   // ── 액션 ──
+
+  // ── 인벤토리 ──
+
+  private showInventory(tab: 'equipment' | 'skill' | 'material'): void {
+    this.children.removeAll();
+    this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GW, GH);
+
+    this.add.text(GW / 2, 20, '🎒 인벤토리', {
+      fontSize: '22px', color: '#ffd700', fontStyle: 'bold',
+    }).setOrigin(0.5);
+
+    const backBtn = this.add.text(20, 15, '← 뒤로', {
+      fontSize: '14px', color: '#aaaaaa', backgroundColor: '#1a1a3a', padding: { x: 8, y: 4 },
+    }).setInteractive({ useHandCursor: true });
+    backBtn.on('pointerdown', () => this.showMainMenu());
+
+    // 탭 버튼
+    const tabs: { label: string; key: 'equipment' | 'skill' | 'material'; x: number }[] = [
+      { label: '장비', key: 'equipment', x: GW * 0.2 },
+      { label: '스킬', key: 'skill', x: GW * 0.5 },
+      { label: '소재', key: 'material', x: GW * 0.8 },
+    ];
+    for (const t of tabs) {
+      const isActive = tab === t.key;
+      const tabBtn = this.add.text(t.x, 50, t.label, {
+        fontSize: '14px', color: isActive ? '#ffffff' : '#666666',
+        backgroundColor: isActive ? '#3366aa' : '#1a1a3a', padding: { x: 14, y: 6 },
+      }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+      tabBtn.on('pointerdown', () => this.showInventory(t.key));
+    }
+
+    const progress = this.campaignManager.getProgress();
+    const startY = 80;
+
+    if (tab === 'equipment') {
+      this.renderEquipmentBag(progress.equipmentBag ?? [], startY);
+    } else if (tab === 'skill') {
+      this.renderSkillBag(progress.skillBag ?? [], startY);
+    } else {
+      this.renderMaterialBag(progress.materialBag ?? {}, startY);
+    }
+  }
+
+  private renderEquipmentBag(bag: string[], startY: number): void {
+    if (bag.length === 0) {
+      this.add.text(GW / 2, startY + 40, '보유 장비가 없습니다', {
+        fontSize: '14px', color: '#555555',
+      }).setOrigin(0.5);
+      return;
+    }
+
+    for (let i = 0; i < bag.length; i++) {
+      const itemDef = EQUIPMENT_DEFS[bag[i]];
+      if (!itemDef) continue;
+      const y = startY + i * 50;
+
+      const cardBg = this.add.graphics();
+      cardBg.fillStyle(0x1a2a3a, 1).fillRoundedRect(15, y, GW - 30, 45, 6);
+
+      const slotLabel = itemDef.slot === 'weapon' ? '⚔️' : itemDef.slot === 'armor' ? '🛡️' : '💍';
+      this.add.text(25, y + 6, `${slotLabel} ${itemDef.name}`, {
+        fontSize: '14px', color: '#ffffff', fontStyle: 'bold',
+      });
+      const bonus = Object.entries(itemDef.statModifiers).map(([k, v]) => `${k}${(v as number) > 0 ? '+' : ''}${v}`).join('  ');
+      this.add.text(25, y + 26, bonus, { fontSize: '10px', color: '#88aa88' });
+
+      const equipBtn = this.add.text(GW - 70, y + 12, '장착', {
+        fontSize: '12px', color: '#ffffff', backgroundColor: '#3366aa', padding: { x: 10, y: 5 },
+      }).setInteractive({ useHandCursor: true });
+      const itemIdx = i;
+      equipBtn.on('pointerdown', () => this.showEquipTarget(bag, itemIdx, bag[itemIdx]));
+    }
+  }
+
+  private renderSkillBag(bag: string[], startY: number): void {
+    if (bag.length === 0) {
+      this.add.text(GW / 2, startY + 40, '보유 스킬이 없습니다', {
+        fontSize: '14px', color: '#555555',
+      }).setOrigin(0.5);
+      return;
+    }
+
+    for (let i = 0; i < bag.length; i++) {
+      const skillDef = SKILL_DEFS[bag[i]];
+      if (!skillDef) continue;
+      const y = startY + i * 50;
+
+      const cardBg = this.add.graphics();
+      cardBg.fillStyle(0x1a1a3a, 1).fillRoundedRect(15, y, GW - 30, 45, 6);
+
+      this.add.text(25, y + 6, `✨ ${skillDef.name} (MP${skillDef.mpCost})`, {
+        fontSize: '14px', color: '#cc88ff', fontStyle: 'bold',
+      });
+      this.add.text(25, y + 26, skillDef.description, {
+        fontSize: '10px', color: '#888888', wordWrap: { width: GW - 120 },
+      });
+
+      const equipBtn = this.add.text(GW - 70, y + 12, '장착', {
+        fontSize: '12px', color: '#ffffff', backgroundColor: '#6644aa', padding: { x: 10, y: 5 },
+      }).setInteractive({ useHandCursor: true });
+      const skillIdx = i;
+      equipBtn.on('pointerdown', () => this.showSkillTarget(bag, skillIdx, bag[skillIdx]));
+    }
+  }
+
+  private renderMaterialBag(bag: Record<string, number>, startY: number): void {
+    const entries = Object.entries(bag);
+    if (entries.length === 0) {
+      this.add.text(GW / 2, startY + 40, '보유 소재가 없습니다', {
+        fontSize: '14px', color: '#555555',
+      }).setOrigin(0.5);
+      return;
+    }
+    for (let i = 0; i < entries.length; i++) {
+      const [id, count] = entries[i];
+      this.add.text(30, startY + i * 28, `${id}: ${count}개`, {
+        fontSize: '13px', color: '#ffffff',
+      });
+    }
+  }
+
+  /** 장비 장착 대상 장수 선택 */
+  private showEquipTarget(bag: string[], bagIdx: number, itemId: string): void {
+    this.children.removeAll();
+    this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GW, GH);
+
+    const itemDef = EQUIPMENT_DEFS[itemId];
+    this.add.text(GW / 2, 20, `${itemDef?.name ?? itemId} 장착`, {
+      fontSize: '20px', color: '#ffd700', fontStyle: 'bold',
+    }).setOrigin(0.5);
+
+    const backBtn = this.add.text(20, 15, '← 뒤로', {
+      fontSize: '14px', color: '#aaaaaa', backgroundColor: '#1a1a3a', padding: { x: 8, y: 4 },
+    }).setInteractive({ useHandCursor: true });
+    backBtn.on('pointerdown', () => this.showInventory('equipment'));
+
+    this.add.text(GW / 2, 50, '장착할 장수를 선택하세요', {
+      fontSize: '12px', color: '#aaaaaa',
+    }).setOrigin(0.5);
+
+    const units = this.campaignManager.getProgress().playerUnits;
+    for (let i = 0; i < units.length; i++) {
+      const unit = units[i];
+      const y = 75 + i * 50;
+
+      const slotKey = itemDef?.slot === 'weapon' ? 'weapon' : itemDef?.slot === 'armor' ? 'armor' : 'accessory';
+      const currentItem = unit.equipment?.[slotKey as 'weapon' | 'armor' | 'accessory'];
+      const currentName = currentItem ? EQUIPMENT_DEFS[currentItem]?.name ?? '?' : '없음';
+
+      this.add.text(25, y + 6, `${unit.name} (${slotKey}: ${currentName})`, {
+        fontSize: '13px', color: '#ffffff',
+      });
+
+      const selectBtn = this.add.text(GW - 70, y + 6, '선택', {
+        fontSize: '12px', color: '#ffffff', backgroundColor: '#3366aa', padding: { x: 10, y: 4 },
+      }).setInteractive({ useHandCursor: true });
+      selectBtn.on('pointerdown', () => {
+        // 기존 장비가 있으면 인벤토리로
+        if (unit.equipment?.[slotKey as 'weapon' | 'armor' | 'accessory']) {
+          bag.push(unit.equipment[slotKey as 'weapon' | 'armor' | 'accessory']!);
+        }
+        // 장착
+        if (!unit.equipment) unit.equipment = {};
+        (unit.equipment as Record<string, string | undefined>)[slotKey] = itemId;
+        // 인벤토리에서 제거
+        bag.splice(bagIdx, 1);
+        this.campaignManager.save();
+        this.showInventory('equipment');
+      });
+    }
+  }
+
+  /** 스킬 장착 대상 장수 선택 */
+  private showSkillTarget(bag: string[], bagIdx: number, skillId: string): void {
+    this.children.removeAll();
+    this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GW, GH);
+
+    const skillDef = SKILL_DEFS[skillId];
+    this.add.text(GW / 2, 20, `${skillDef?.name ?? skillId} 장착`, {
+      fontSize: '20px', color: '#cc88ff', fontStyle: 'bold',
+    }).setOrigin(0.5);
+
+    const backBtn = this.add.text(20, 15, '← 뒤로', {
+      fontSize: '14px', color: '#aaaaaa', backgroundColor: '#1a1a3a', padding: { x: 8, y: 4 },
+    }).setInteractive({ useHandCursor: true });
+    backBtn.on('pointerdown', () => this.showInventory('skill'));
+
+    this.add.text(GW / 2, 50, '장착할 장수를 선택하세요', {
+      fontSize: '12px', color: '#aaaaaa',
+    }).setOrigin(0.5);
+
+    const units = this.campaignManager.getProgress().playerUnits;
+    for (let i = 0; i < units.length; i++) {
+      const unit = units[i];
+      const y = 75 + i * 50;
+      const maxSlots = (unit.level ?? 1) >= 10 ? 2 : 1;
+      const currentSkills = unit.equippedSkills ?? [];
+      const hasRoom = currentSkills.length < maxSlots;
+
+      const skillNames = currentSkills.map(s => SKILL_DEFS[s]?.name ?? s).join(', ') || '없음';
+      this.add.text(25, y + 6, `${unit.name} (${skillNames}) [${currentSkills.length}/${maxSlots}]`, {
+        fontSize: '12px', color: hasRoom ? '#ffffff' : '#555555',
+      });
+
+      if (hasRoom) {
+        const selectBtn = this.add.text(GW - 70, y + 6, '선택', {
+          fontSize: '12px', color: '#ffffff', backgroundColor: '#6644aa', padding: { x: 10, y: 4 },
+        }).setInteractive({ useHandCursor: true });
+        selectBtn.on('pointerdown', () => {
+          if (!unit.equippedSkills) unit.equippedSkills = [];
+          unit.equippedSkills.push(skillId);
+          bag.splice(bagIdx, 1);
+          this.campaignManager.save();
+          this.showInventory('skill');
+        });
+      } else {
+        this.add.text(GW - 70, y + 6, '가득', {
+          fontSize: '12px', color: '#555555',
+        });
+      }
+    }
+  }
 
   // ── 가챠 ──
 

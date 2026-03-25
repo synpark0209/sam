@@ -41,5 +41,8 @@ export interface CampaignProgress {
   completedStages: string[];
   playerUnits: UnitData[];
   gold: number;
-  inventory: string[];
+  inventory: string[];           // 레거시
+  equipmentBag: string[];        // 보유 장비 ID 목록 (미장착)
+  skillBag: string[];            // 보유 스킬 ID 목록 (미장착)
+  materialBag: Record<string, number>; // 소재 (스킬서 등) {id: 수량}
 }
