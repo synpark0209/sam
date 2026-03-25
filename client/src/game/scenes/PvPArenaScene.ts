@@ -325,62 +325,214 @@ export class PvPArenaScene extends Phaser.Scene {
 
   private showBattlePhase(): void {
     this.children.removeAll();
-    this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GW, GH);
+    this.add.graphics().fillStyle(0x1a2a1a, 1).fillRect(0, 0, GW, GH);
 
-    this.add.text(GW / 2, 10, '⚔️ 전투 진행 중...', {
-      fontSize: '18px', color: '#ff4444', fontStyle: 'bold',
+    // 턴 카운터
+    const turnText = this.add.text(GW / 2, 12, '턴 1', {
+      fontSize: '14px', color: '#ffd700', fontStyle: 'bold',
     }).setOrigin(0.5);
 
-    // 전장 그리드 (왼쪽: 아군, 오른쪽: 적군)
-    const fieldX = 30;
-    const fieldY = 40;
-    const cellW = (GW - 60) / (GRID_COLS * 2 + 1);
-    const cellH = 55;
+    // VS 표시
+    this.add.text(GW / 2, 32, 'VS', {
+      fontSize: '20px', color: '#ff4444', fontStyle: 'bold',
+    }).setOrigin(0.5);
 
-    // 유닛 스프라이트 배치
+    // 전장 배치 (왼쪽: 아군, 오른쪽: 적군)
+    const unitW = 60;
+    const unitH = 52;
+    const gapX = 20; // VS 사이 간격
+    const playerStartX = GW / 2 - gapX - GRID_COLS * unitW;
+    const enemyStartX = GW / 2 + gapX;
+    const fieldY = 50;
+
+    // 행 라벨
+    const rowLabels = ['전열', '중열', '후열'];
+    for (let r = 0; r < GRID_ROWS; r++) {
+      this.add.text(playerStartX - 8, fieldY + r * unitH + unitH / 2, rowLabels[r], {
+        fontSize: '8px', color: '#446644',
+      }).setOrigin(1, 0.5);
+    }
+
     for (const unit of this.battleUnits) {
       const isPlayer = unit.side === 'player';
-      const x = fieldX + (isPlayer ? unit.col : GRID_COLS * 2 - unit.col) * cellW + cellW / 2;
-      const y = fieldY + unit.row * cellH + cellH / 2;
+      const baseX = isPlayer ? playerStartX : enemyStartX;
+      const col = isPlayer ? unit.col : (GRID_COLS - 1 - unit.col);
+      const x = baseX + col * unitW + unitW / 2;
+      const y = fieldY + unit.row * unitH + unitH / 2;
 
       const container = this.add.container(x, y);
 
-      // 유닛 표시 (간단한 텍스트)
-      const bgColor = isPlayer ? 0x2244aa : 0xaa2222;
+      // 배경 (병종에 따라 색상)
+      const cls = unit.data.unitClass ?? UnitClass.INFANTRY;
+      const clsColors: Record<string, number> = {
+        cavalry: 0x4a2a1a, infantry: 0x1a2a4a, archer: 0x1a4a2a,
+        strategist: 0x3a1a4a, martial_artist: 0x4a3a1a, bandit: 0x2a2a2a,
+      };
+      const bgColor = clsColors[cls] ?? 0x2a2a2a;
       const bg = this.add.graphics();
-      bg.fillStyle(bgColor, 0.6).fillRoundedRect(-28, -22, 56, 44, 4);
+      bg.fillStyle(bgColor, 0.8).fillRoundedRect(-26, -22, 52, 44, 4);
+      bg.lineStyle(1, isPlayer ? 0x4488ff : 0xff4444, 0.6);
+      bg.strokeRoundedRect(-26, -22, 52, 44, 4);
       container.add(bg);
 
-      const nameText = this.add.text(0, -10, unit.data.name, {
-        fontSize: '10px', color: '#ffffff', fontStyle: 'bold',
+      // 병종 아이콘 + 이름
+      const clsIcons: Record<string, string> = {
+        cavalry: '🐎', infantry: '🛡️', archer: '🏹',
+        strategist: '📜', martial_artist: '👊', bandit: '🗡️',
+      };
+      const icon = clsIcons[cls] ?? '⚔️';
+      this.add.text(0, -14, icon, { fontSize: '14px' }).setOrigin(0.5);
+      container.add(container.getAt(container.length - 1));
+
+      const nameText = this.add.text(0, 2, unit.data.name, {
+        fontSize: '9px', color: '#ffffff', fontStyle: 'bold',
       }).setOrigin(0.5);
       container.add(nameText);
 
-      // HP 바
+      // HP 바 배경
       const hpBg = this.add.graphics();
-      hpBg.fillStyle(0x333333, 1).fillRect(-20, 8, 40, 4);
+      hpBg.fillStyle(0x333333, 1).fillRect(-22, 14, 44, 5);
       container.add(hpBg);
 
+      // HP 바
       const hpBar = this.add.graphics();
-      hpBar.fillStyle(0x00ff00, 1).fillRect(-20, 8, 40, 4);
+      hpBar.fillStyle(0x00ff00, 1).fillRect(-22, 14, 44, 5);
       container.add(hpBar);
 
       unit.sprite = container;
     }
 
-    // 전투 실행 (턴 기반 자동)
-    this.executeBattleTurns();
+    // 전투 로그 영역
+    const logBg = this.add.graphics();
+    logBg.fillStyle(0x0a0a0a, 0.8).fillRoundedRect(10, GH - 130, GW - 20, 120, 6);
+
+    this.add.text(GW / 2, GH - 125, '── 전투 로그 ──', {
+      fontSize: '10px', color: '#666666',
+    }).setOrigin(0.5);
+
+    const logTexts: Phaser.GameObjects.Text[] = [];
+    for (let i = 0; i < 5; i++) {
+      const lt = this.add.text(20, GH - 110 + i * 18, '', {
+        fontSize: '10px', color: '#aaaaaa', wordWrap: { width: GW - 40 },
+      });
+      logTexts.push(lt);
+    }
+
+    // 전투 실행
+    this.executeBattleTurns(turnText, logTexts);
   }
 
-  private executeBattleTurns(): void {
+  /** 상성 배율 */
+  private getTypeBonus(attacker: string, defender: string): { mult: number; label: string } {
+    const strong: [string, string][] = [
+      ['cavalry', 'infantry'], ['infantry', 'archer'], ['archer', 'cavalry'],
+      ['martial_artist', 'strategist'],
+    ];
+    for (const [s, w] of strong) {
+      if (attacker === s && defender === w) return { mult: 1.3, label: '유리!' };
+      if (attacker === w && defender === s) return { mult: 0.7, label: '불리' };
+    }
+    return { mult: 1.0, label: '' };
+  }
+
+  /** 전열 보호: 앞줄이 있으면 뒷줄 공격 불가 */
+  private getValidTargets(attacker: ArenaUnit, allUnits: ArenaUnit[]): ArenaUnit[] {
+    const enemySide = attacker.side === 'player' ? 'enemy' : 'player';
+    const enemies = allUnits.filter(u => u.side === enemySide && u.alive);
+    if (enemies.length === 0) return [];
+
+    // 전열(row 0)에 살아있는 유닛이 있으면 전열만 공격 가능
+    const frontRow = enemies.filter(u => u.row === 0);
+    if (frontRow.length > 0) {
+      // 궁병/책사는 후열도 공격 가능
+      const atkClass = attacker.data.unitClass ?? 'infantry';
+      if (atkClass === 'archer' || atkClass === 'strategist') {
+        return enemies;
+      }
+      return frontRow;
+    }
+
+    // 중열 체크
+    const midRow = enemies.filter(u => u.row === 1);
+    if (midRow.length > 0) return midRow;
+
+    return enemies;
+  }
+
+  private executeBattleTurns(turnText: Phaser.GameObjects.Text, logTexts: Phaser.GameObjects.Text[]): void {
     let turnCount = 0;
     const maxTurns = 30;
+    const recentLogs: string[] = [];
+
+    const addLog = (msg: string) => {
+      recentLogs.push(msg);
+      this.battleLog.push(msg);
+      // 최근 5개만 표시
+      const show = recentLogs.slice(-5);
+      for (let i = 0; i < logTexts.length; i++) {
+        logTexts[i].setText(show[i] ?? '');
+      }
+    };
+
+    const showDamagePopup = (unit: ArenaUnit, damage: number, color: string = '#ff4444') => {
+      if (!unit.sprite) return;
+      const dmgText = this.add.text(unit.sprite.x, unit.sprite.y - 25, `-${damage}`, {
+        fontSize: '14px', color, fontStyle: 'bold', stroke: '#000000', strokeThickness: 2,
+      }).setOrigin(0.5).setDepth(100);
+      this.tweens.add({
+        targets: dmgText, y: dmgText.y - 30, alpha: 0, duration: 800,
+        onComplete: () => dmgText.destroy(),
+      });
+    };
+
+    const showLabel = (unit: ArenaUnit, text: string, color: string) => {
+      if (!unit.sprite) return;
+      const label = this.add.text(unit.sprite.x, unit.sprite.y - 35, text, {
+        fontSize: '10px', color, fontStyle: 'bold',
+      }).setOrigin(0.5).setDepth(100);
+      this.tweens.add({
+        targets: label, y: label.y - 15, alpha: 0, duration: 600,
+        onComplete: () => label.destroy(),
+      });
+    };
+
+    const shakeUnit = (unit: ArenaUnit) => {
+      if (!unit.sprite) return;
+      const origX = unit.sprite.x;
+      this.tweens.add({
+        targets: unit.sprite, x: origX + 4, duration: 40, yoyo: true, repeat: 3,
+        onComplete: () => { if (unit.sprite) unit.sprite.x = origX; },
+      });
+    };
+
+    const attackAnim = (attacker: ArenaUnit, target: ArenaUnit) => {
+      if (!attacker.sprite || !target.sprite) return;
+      const origX = attacker.sprite.x;
+      const dx = target.sprite.x > attacker.sprite.x ? 10 : -10;
+      this.tweens.add({
+        targets: attacker.sprite, x: origX + dx, duration: 80, yoyo: true,
+      });
+    };
+
+    const updateHpBars = () => {
+      for (const unit of this.battleUnits) {
+        if (!unit.sprite) continue;
+        // HP 바는 컨테이너의 마지막 요소
+        const hpBar = unit.sprite.getAt(unit.sprite.length - 1) as Phaser.GameObjects.Graphics;
+        hpBar.clear();
+        if (unit.alive) {
+          const ratio = unit.hp / unit.maxHp;
+          const color = ratio > 0.5 ? 0x00ff00 : ratio > 0.25 ? 0xffff00 : 0xff0000;
+          hpBar.fillStyle(color, 1).fillRect(-22, 14, 44 * ratio, 5);
+        }
+        if (!unit.alive) {
+          unit.sprite.setAlpha(0.2);
+        }
+      }
+    };
 
     const doTurn = () => {
-      if (turnCount >= maxTurns) {
-        this.endBattle('timeout');
-        return;
-      }
+      if (turnCount >= maxTurns) { this.endBattle('timeout'); return; }
 
       const alive = this.battleUnits.filter(u => u.alive);
       const players = alive.filter(u => u.side === 'player');
@@ -389,57 +541,75 @@ export class PvPArenaScene extends Phaser.Scene {
       if (players.length === 0) { this.endBattle('lose'); return; }
       if (enemies.length === 0) { this.endBattle('win'); return; }
 
-      // 속도순 정렬
-      const sorted = [...alive].sort((a, b) => b.speed - a.speed);
-
-      for (const unit of sorted) {
-        if (!unit.alive) continue;
-
-        const targets = alive.filter(u => u.side !== unit.side && u.alive);
-        if (targets.length === 0) break;
-
-        // 가장 약한 적 공격
-        const target = targets.sort((a, b) => a.hp - b.hp)[0];
-        const damage = Math.max(1, unit.attack - target.defense + Math.floor(Math.random() * 10));
-        target.hp -= damage;
-
-        this.battleLog.push(`${unit.data.name} → ${target.data.name} (${damage} 데미지)`);
-
-        if (target.hp <= 0) {
-          target.hp = 0;
-          target.alive = false;
-          this.battleLog.push(`${target.data.name} 격파!`);
-        }
-      }
-
-      // HP 바 업데이트
-      for (const unit of this.battleUnits) {
-        if (!unit.sprite) continue;
-        const hpBar = unit.sprite.getAt(3) as Phaser.GameObjects.Graphics;
-        hpBar.clear();
-        if (unit.alive) {
-          const ratio = unit.hp / unit.maxHp;
-          const color = ratio > 0.5 ? 0x00ff00 : ratio > 0.25 ? 0xffff00 : 0xff0000;
-          hpBar.fillStyle(color, 1).fillRect(-20, 8, 40 * ratio, 4);
-        }
-        if (!unit.alive) unit.sprite.setAlpha(0.3);
-      }
-
       turnCount++;
+      turnText.setText(`턴 ${turnCount}`);
 
-      // 다음 턴
-      const players2 = this.battleUnits.filter(u => u.side === 'player' && u.alive);
-      const enemies2 = this.battleUnits.filter(u => u.side === 'enemy' && u.alive);
-      if (players2.length > 0 && enemies2.length > 0) {
-        this.time.delayedCall(800 / this.battleSpeed, doTurn);
-      } else if (players2.length === 0) {
-        this.time.delayedCall(500, () => this.endBattle('lose'));
-      } else {
-        this.time.delayedCall(500, () => this.endBattle('win'));
-      }
+      // 속도순 + 랜덤 보정
+      const sorted = [...alive].sort((a, b) => (b.speed + Math.random() * 2) - (a.speed + Math.random() * 2));
+
+      let actionIdx = 0;
+      const doAction = () => {
+        if (actionIdx >= sorted.length) {
+          // 턴 끝, 승패 체크
+          updateHpBars();
+          const p = this.battleUnits.filter(u => u.side === 'player' && u.alive);
+          const e = this.battleUnits.filter(u => u.side === 'enemy' && u.alive);
+          if (p.length === 0) { this.time.delayedCall(300, () => this.endBattle('lose')); return; }
+          if (e.length === 0) { this.time.delayedCall(300, () => this.endBattle('win')); return; }
+          this.time.delayedCall(400 / this.battleSpeed, doTurn);
+          return;
+        }
+
+        const unit = sorted[actionIdx];
+        actionIdx++;
+        if (!unit.alive) { doAction(); return; }
+
+        const targets = this.getValidTargets(unit, this.battleUnits);
+        if (targets.length === 0) { doAction(); return; }
+
+        // 타겟 선택: HP 비율 낮은 적 우선
+        const target = targets.sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp))[0];
+
+        // 상성 체크
+        const atkClass = unit.data.unitClass ?? 'infantry';
+        const defClass = target.data.unitClass ?? 'infantry';
+        const typeBonus = this.getTypeBonus(atkClass, defClass);
+
+        // 데미지 계산
+        const rawDmg = unit.attack - target.defense * 0.5 + Math.floor(Math.random() * 8);
+        const damage = Math.max(1, Math.floor(rawDmg * typeBonus.mult));
+
+        // 애니메이션
+        attackAnim(unit, target);
+
+        this.time.delayedCall(100 / this.battleSpeed, () => {
+          target.hp -= damage;
+          showDamagePopup(target, damage);
+          shakeUnit(target);
+
+          if (typeBonus.label) {
+            showLabel(unit, typeBonus.label, typeBonus.mult > 1 ? '#44ff44' : '#ff6666');
+          }
+
+          let logMsg = `${unit.data.name} → ${target.data.name} (${damage})`;
+
+          if (target.hp <= 0) {
+            target.hp = 0;
+            target.alive = false;
+            logMsg += ' 격파!';
+          }
+
+          addLog(logMsg);
+          updateHpBars();
+
+          this.time.delayedCall(250 / this.battleSpeed, doAction);
+        });
+      };
+
+      doAction();
     };
 
-    this.time.delayedCall(500, doTurn);
+    this.time.delayedCall(800, doTurn);
   }
 
   private endBattle(result: 'win' | 'lose' | 'timeout'): void {
