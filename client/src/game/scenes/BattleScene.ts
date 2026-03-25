@@ -1299,9 +1299,14 @@ export class BattleScene extends Phaser.Scene {
     this.battleState.units.forEach(u => this.updateUnitSprite(u));
     this.interactionState = 'IDLE';
 
-    // 아군 턴 시작 시 첫 번째 행동 가능 유닛으로 포커스
+    // 아군 턴 시작 시
     const firstAvail = this.turnSystem.getUnitsByFaction('player').find(u => !u.hasActed);
     if (firstAvail) this.centerCameraOn(firstAvail.position, 400);
+
+    // 자동 전투 모드면 자동 진행
+    if (this.autoMode) {
+      this.time.delayedCall(500, () => this.executeAutoTurn());
+    }
   }
 
   /** 자동 전투: 아군 유닛을 AI가 조작 */
