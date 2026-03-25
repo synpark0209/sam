@@ -7,6 +7,8 @@ import type { CampaignManager } from '../systems/CampaignManager.ts';
 import type { AudioManager } from '../systems/AudioManager.ts';
 import { getGradeColor } from '@shared/data/gachaDefs.ts';
 import type { HeroGrade } from '@shared/data/gachaDefs.ts';
+import { getTier, calculateEloChange, getNextTierProgress, DAILY_PVP_TICKETS } from '@shared/data/pvpDefs.ts';
+import { pvpRecordResult } from '../../api/client.ts';
 
 const GW = TILE_SIZE * MAP_WIDTH;
 const GH = TILE_SIZE * MAP_HEIGHT + 60;
@@ -37,6 +39,10 @@ export class PvPArenaScene extends Phaser.Scene {
   private battleUnits: ArenaUnit[] = [];
   private battleSpeed = 1;
   private battleLog: string[] = [];
+  private playerElo = 1000;
+  private pvpWins = 0;
+  private pvpLosses = 0;
+  private ticketsUsed = 0;
 
   constructor() {
     super('PvPArenaScene');
@@ -50,7 +56,98 @@ export class PvPArenaScene extends Phaser.Scene {
     (this.registry.get('audioManager') as AudioManager)?.playBgm('battle');
     this.playerSlots = Array(GRID_COLS * GRID_ROWS).fill(null);
     this.deployedCount = 0;
-    this.showDeployPhase();
+    this.ticketsUsed = 0;
+    // ELO/전적은 서버에서 로드 (세이브 데이터에 포함)
+    this.showArenaHome();
+  }
+
+  // ── 아레나 홈 ──
+
+  private showArenaHome(): void {
+    this.children.removeAll();
+    this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GW, GH);
+
+    this.add.text(GW / 2, 15, '⚔️ PvP 아레나', {
+      fontSize: '22px', color: '#ffd700', fontStyle: 'bold',
+    }).setOrigin(0.5);
+
+    const backBtn = this.add.text(20, 10, '← 뒤로', {
+      fontSize: '12px', color: '#aaaaaa', backgroundColor: '#1a1a3a', padding: { x: 6, y: 4 },
+    }).setInteractive({ useHandCursor: true });
+    backBtn.on('pointerdown', () => this.scene.start('LobbyScene', { campaignManager: this.campaignManager }));
+
+    // 티어 정보
+    const tier = getTier(this.playerElo);
+    const { next, progress } = getNextTierProgress(this.playerElo);
+
+    this.add.text(GW / 2, 50, `${tier.icon} ${tier.name}`, {
+      fontSize: '28px', color: tier.color, fontStyle: 'bold',
+    }).setOrigin(0.5);
+
+    this.add.text(GW / 2, 80, `ELO: ${this.playerElo}`, {
+      fontSize: '16px', color: '#ffffff',
+    }).setOrigin(0.5);
+
+    // 다음 티어 진행도
+    if (next) {
+      this.add.text(GW / 2, 100, `다음 티어 (${next.name}): ${next.minElo}`, {
+        fontSize: '10px', color: '#888888',
+      }).setOrigin(0.5);
+      const barW = 200;
+      const barX = GW / 2 - barW / 2;
+      this.add.graphics().fillStyle(0x333344, 1).fillRoundedRect(barX, 115, barW, 8, 4);
+      this.add.graphics().fillStyle(Phaser.Display.Color.HexStringToColor(tier.color).color, 1)
+        .fillRoundedRect(barX, 115, barW * progress, 8, 4);
+    }
+
+    // 전적
+    this.add.text(GW / 2, 138, `전적: ${this.pvpWins}승 ${this.pvpLosses}패`, {
+      fontSize: '13px', color: '#aaaaaa',
+    }).setOrigin(0.5);
+
+    // 티켓
+    const remainTickets = DAILY_PVP_TICKETS - this.ticketsUsed;
+    this.add.text(GW / 2, 160, `🎫 남은 티켓: ${remainTickets} / ${DAILY_PVP_TICKETS}`, {
+      fontSize: '13px', color: remainTickets > 0 ? '#44ff44' : '#ff4444',
+    }).setOrigin(0.5);
+
+    // 대전 시작
+    if (remainTickets > 0) {
+      const startBtn = this.add.text(GW / 2, 200, '⚔️ 대전 시작', {
+        fontSize: '20px', color: '#ffffff', backgroundColor: '#aa3333',
+        padding: { x: 30, y: 12 },
+      }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+      startBtn.on('pointerdown', () => this.showDeployPhase());
+    } else {
+      this.add.text(GW / 2, 200, '오늘의 티켓을 모두 사용했습니다', {
+        fontSize: '14px', color: '#ff4444',
+      }).setOrigin(0.5);
+    }
+
+    // 시즌 보상 정보
+    this.add.text(GW / 2, 250, '── 시즌 보상 ──', {
+      fontSize: '14px', color: '#ffd700', fontStyle: 'bold',
+    }).setOrigin(0.5);
+
+    const tierY = 275;
+    const allTiers = [
+      { name: '🥉 브론즈', elo: '~999', reward: '금화 200 + 보석 50', color: '#cd7f32' },
+      { name: '🥈 실버', elo: '1000+', reward: '금화 500 + 보석 100 + 스킬', color: '#c0c0c0' },
+      { name: '🥇 골드', elo: '1200+', reward: '금화 1000 + 보석 200 + 장비', color: '#ffd700' },
+      { name: '💎 다이아', elo: '1400+', reward: '금화 2000 + 보석 500', color: '#00bfff' },
+      { name: '👑 마스터', elo: '1600+', reward: '금화 5000 + 보석 1000 + 적토마', color: '#ff4500' },
+    ];
+    for (let i = 0; i < allTiers.length; i++) {
+      const t = allTiers[i];
+      const y = tierY + i * 28;
+      const isCurrent = tier.name === t.name.split(' ')[1];
+      this.add.text(20, y, `${t.name} (${t.elo})`, {
+        fontSize: '11px', color: isCurrent ? t.color : '#666666', fontStyle: isCurrent ? 'bold' : 'normal',
+      });
+      this.add.text(GW - 20, y, t.reward, {
+        fontSize: '9px', color: isCurrent ? '#ffffff' : '#555555',
+      }).setOrigin(1, 0);
+    }
   }
 
   // ── 배치 화면 ──
@@ -347,54 +444,86 @@ export class PvPArenaScene extends Phaser.Scene {
 
   private endBattle(result: 'win' | 'lose' | 'timeout'): void {
     // result phase
+    this.ticketsUsed++;
+    const won = result === 'win';
+    const eloChange = calculateEloChange(this.playerElo, this.playerElo, won); // 상대 ELO는 동급으로 가정
+    this.playerElo = Math.max(0, this.playerElo + eloChange);
+    if (won) this.pvpWins++;
+    else this.pvpLosses++;
+
+    // 서버에 결과 기록
+    pvpRecordResult(0, won).catch(() => {});
+
     this.children.removeAll();
     this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GW, GH);
 
     const resultText = result === 'win' ? '승리!' : result === 'lose' ? '패배...' : '시간 초과';
     const resultColor = result === 'win' ? '#ffd700' : '#ff4444';
 
-    this.add.text(GW / 2, GH * 0.2, resultText, {
+    this.add.text(GW / 2, GH * 0.12, resultText, {
       fontSize: '36px', color: resultColor, fontStyle: 'bold',
     }).setOrigin(0.5);
 
+    // ELO 변동
+    const eloText = eloChange >= 0 ? `+${eloChange}` : `${eloChange}`;
+    const eloColor = eloChange >= 0 ? '#44ff44' : '#ff4444';
+    this.add.text(GW / 2, GH * 0.22, `ELO: ${this.playerElo} (${eloText})`, {
+      fontSize: '16px', color: eloColor,
+    }).setOrigin(0.5);
+
+    // 티어
+    const tier = getTier(this.playerElo);
+    this.add.text(GW / 2, GH * 0.30, `${tier.icon} ${tier.name}`, {
+      fontSize: '18px', color: tier.color, fontStyle: 'bold',
+    }).setOrigin(0.5);
+
     // 보상
-    if (result === 'win') {
-      const gold = 500 + Math.floor(Math.random() * 500);
+    if (won) {
+      const gold = 300 + Math.floor(Math.random() * 300);
       const progress = this.campaignManager.getProgress();
       progress.gold += gold;
       this.campaignManager.save();
 
-      this.add.text(GW / 2, GH * 0.35, `💰 금화 +${gold}`, {
-        fontSize: '16px', color: '#ffaa00',
+      this.add.text(GW / 2, GH * 0.38, `💰 금화 +${gold}`, {
+        fontSize: '14px', color: '#ffaa00',
       }).setOrigin(0.5);
     }
 
-    // 전투 로그
-    const logY = GH * 0.45;
-    this.add.text(GW / 2, logY, '── 전투 기록 ──', {
-      fontSize: '12px', color: '#666666',
+    // 전적
+    this.add.text(GW / 2, GH * 0.45, `전적: ${this.pvpWins}승 ${this.pvpLosses}패  |  티켓: ${DAILY_PVP_TICKETS - this.ticketsUsed}/${DAILY_PVP_TICKETS}`, {
+      fontSize: '11px', color: '#888888',
     }).setOrigin(0.5);
 
-    const lastLogs = this.battleLog.slice(-8);
+    // 전투 로그
+    const logY = GH * 0.52;
+    this.add.text(GW / 2, logY, '── 전투 기록 ──', {
+      fontSize: '11px', color: '#666666',
+    }).setOrigin(0.5);
+
+    const lastLogs = this.battleLog.slice(-6);
     for (let i = 0; i < lastLogs.length; i++) {
-      this.add.text(GW / 2, logY + 18 + i * 16, lastLogs[i], {
-        fontSize: '10px', color: '#888888',
+      this.add.text(GW / 2, logY + 16 + i * 14, lastLogs[i], {
+        fontSize: '9px', color: '#888888',
       }).setOrigin(0.5);
     }
 
     // 버튼
-    const retryBtn = this.add.text(GW / 2 - 70, GH - 40, '다시 도전', {
-      fontSize: '14px', color: '#ffffff', backgroundColor: '#aa3333', padding: { x: 14, y: 8 },
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    retryBtn.on('pointerdown', () => {
-      this.playerSlots = Array(GRID_COLS * GRID_ROWS).fill(null);
-      this.deployedCount = 0;
-      this.showDeployPhase();
-    });
+    const remainTickets = DAILY_PVP_TICKETS - this.ticketsUsed;
 
-    const lobbyBtn = this.add.text(GW / 2 + 70, GH - 40, '로비로', {
+    if (remainTickets > 0) {
+      const retryBtn = this.add.text(GW / 2 - 70, GH - 40, '다시 도전', {
+        fontSize: '14px', color: '#ffffff', backgroundColor: '#aa3333', padding: { x: 14, y: 8 },
+      }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+      retryBtn.on('pointerdown', () => {
+        this.playerSlots = Array(GRID_COLS * GRID_ROWS).fill(null);
+        this.deployedCount = 0;
+        this.showDeployPhase();
+      });
+    }
+
+    const homeBtn = this.add.text(GW / 2 + 70, GH - 40, '아레나 홈', {
       fontSize: '14px', color: '#ffffff', backgroundColor: '#2a2a4a', padding: { x: 14, y: 8 },
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    lobbyBtn.on('pointerdown', () => this.scene.start('LobbyScene', { campaignManager: this.campaignManager }));
+    homeBtn.on('pointerdown', () => this.showArenaHome());
   }
 }
