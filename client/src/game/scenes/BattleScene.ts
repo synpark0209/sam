@@ -453,26 +453,24 @@ export class BattleScene extends Phaser.Scene {
     this.uiObjects.push(muteBtn);
     this.cameras.main.ignore(muteBtn);
 
-    // 자동 전투 버튼 (화면 상단 오른쪽)
-    this.autoBtn = this.add.text(gw - 100, 8, 'AUTO', {
-      fontSize: '14px', color: '#888888', backgroundColor: '#000000aa', padding: { x: 8, y: 6 },
-    }).setInteractive({ useHandCursor: true }).setDepth(201);
+    // 자동 전투 버튼 (월드 좌표, scrollFactor 0)
+    const zoom = this.cameras.main.zoom;
+    this.autoBtn = this.add.text(10 / zoom, 10 / zoom, 'AUTO', {
+      fontSize: `${Math.round(14 / zoom)}px`, color: '#888888', backgroundColor: '#000000cc', padding: { x: Math.round(8 / zoom), y: Math.round(6 / zoom) },
+    }).setInteractive({ useHandCursor: true }).setDepth(500).setScrollFactor(0);
     this.autoBtn.on('pointerdown', () => {
       this._menuClickConsumed = true;
       this.autoMode = !this.autoMode;
-      this.autoBtn.setText(this.autoMode ? 'AUTO' : 'AUTO');
-      this.autoBtn.setStyle({ color: this.autoMode ? '#44ff44' : '#888888', backgroundColor: this.autoMode ? '#1a3a1a' : '#1a1a3a' });
+      this.autoBtn.setStyle({ color: this.autoMode ? '#44ff44' : '#888888', backgroundColor: this.autoMode ? '#003300cc' : '#000000cc' });
       if (this.autoMode && this.interactionState === 'IDLE' && this.battleState.phase === 'player') {
         this.executeAutoTurn();
       }
     });
-    this.uiObjects.push(this.autoBtn);
-    this.cameras.main.ignore(this.autoBtn);
 
-    // 배속 버튼 (AUTO 옆)
-    this.speedBtn = this.add.text(gw - 40, 8, '1x', {
-      fontSize: '14px', color: '#ffffff', backgroundColor: '#000000aa', padding: { x: 8, y: 6 },
-    }).setInteractive({ useHandCursor: true }).setDepth(201);
+    // 배속 버튼 (AUTO 옆, scrollFactor 0)
+    this.speedBtn = this.add.text(70 / zoom, 10 / zoom, '1x', {
+      fontSize: `${Math.round(14 / zoom)}px`, color: '#ffffff', backgroundColor: '#000000cc', padding: { x: Math.round(8 / zoom), y: Math.round(6 / zoom) },
+    }).setInteractive({ useHandCursor: true }).setDepth(500).setScrollFactor(0);
     this.speedBtn.on('pointerdown', () => {
       this._menuClickConsumed = true;
       this.gameSpeed = this.gameSpeed === 1 ? 2 : this.gameSpeed === 2 ? 3 : 1;
@@ -480,8 +478,6 @@ export class BattleScene extends Phaser.Scene {
       this.time.timeScale = this.gameSpeed;
       this.tweens.timeScale = this.gameSpeed;
     });
-    this.uiObjects.push(this.speedBtn);
-    this.cameras.main.ignore(this.speedBtn);
 
     this.gameOverText = this.add.text(gw / 2, gh / 2, '', {
       fontSize: '36px', color: '#ffffff', fontStyle: 'bold',
