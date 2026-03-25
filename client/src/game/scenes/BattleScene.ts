@@ -898,10 +898,14 @@ export class BattleScene extends Phaser.Scene {
 
   private onMoveComplete(unit: UnitData): void {
     this.centerCameraOn(unit.position);
-    // 카메라 팬 완료 후 메뉴 표시
-    this.time.delayedCall(350, () => {
-      this.showActionMenu(unit);
-    });
+    if (this.autoMode && unit.faction === 'player') {
+      // 자동 모드: 메뉴 없이 바로 행동
+      this.time.delayedCall(200, () => this.autoSelectAction(unit));
+    } else {
+      this.time.delayedCall(350, () => {
+        this.showActionMenu(unit);
+      });
+    }
   }
 
   // ── 공격 이펙트 ──
@@ -1344,14 +1348,13 @@ export class BattleScene extends Phaser.Scene {
       if (dist < bestDist) { bestDist = dist; bestTile = tile; }
     }
 
-    // 선택 → 이동 → 공격/대기
+    // 선택 → 이동 → onMoveComplete에서 autoSelectAction 호출
     this.selectUnit(available);
     this.time.delayedCall(200, () => {
       if (bestTile.x !== available.position.x || bestTile.y !== available.position.y) {
         this.preMovePosition = { ...available.position };
         this.moveUnit(available, bestTile);
-        // moveUnit → onMoveComplete → showActionMenu → 자동으로 액션 선택
-        this.time.delayedCall(1500, () => this.autoSelectAction(available));
+        // onMoveComplete에서 autoMode 체크 후 자동 행동
       } else {
         this.autoSelectAction(available);
       }
