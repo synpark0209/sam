@@ -3,6 +3,7 @@ import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT } from '@shared/constants.ts';
 import type { Position, UnitData, BattleState, Faction } from '@shared/types/index.ts';
 import { UnitClass } from '@shared/types/index.ts';
 import type { SkillDef } from '@shared/types/skill.ts';
+import { SkillEffectType } from '@shared/types/skill.ts';
 import { GridSystem } from '../systems/GridSystem.ts';
 import { CombatSystem } from '../systems/CombatSystem.ts';
 import { TurnSystem } from '../systems/TurnSystem.ts';
@@ -72,6 +73,12 @@ export class BattleScene extends Phaser.Scene {
   private actionMenu: Phaser.GameObjects.Text[] = [];
   private _menuClickConsumed = false;
   private imageUnits: Set<string> = new Set();
+
+  // 자동 전투 / 배속
+  private autoMode = false;
+  private gameSpeed = 1;
+  private autoBtn!: Phaser.GameObjects.Text;
+  private speedBtn!: Phaser.GameObjects.Text;
 
   // 카메라 드래그
   private isDragging = false;
@@ -445,6 +452,36 @@ export class BattleScene extends Phaser.Scene {
     });
     this.uiObjects.push(muteBtn);
     this.cameras.main.ignore(muteBtn);
+
+    // 자동 전투 버튼
+    this.autoBtn = this.add.text(16, uiY - 30, 'AUTO: OFF', {
+      fontSize: '12px', color: '#888888', backgroundColor: '#1a1a3a', padding: { x: 8, y: 4 },
+    }).setInteractive({ useHandCursor: true }).setDepth(201);
+    this.autoBtn.on('pointerdown', () => {
+      this._menuClickConsumed = true;
+      this.autoMode = !this.autoMode;
+      this.autoBtn.setText(this.autoMode ? 'AUTO: ON' : 'AUTO: OFF');
+      this.autoBtn.setStyle({ color: this.autoMode ? '#44ff44' : '#888888' });
+      if (this.autoMode && this.interactionState === 'IDLE' && this.battleState.phase === 'player') {
+        this.executeAutoTurn();
+      }
+    });
+    this.uiObjects.push(this.autoBtn);
+    this.cameras.main.ignore(this.autoBtn);
+
+    // 배속 버튼
+    this.speedBtn = this.add.text(110, uiY - 30, '1x', {
+      fontSize: '12px', color: '#ffffff', backgroundColor: '#1a1a3a', padding: { x: 8, y: 4 },
+    }).setInteractive({ useHandCursor: true }).setDepth(201);
+    this.speedBtn.on('pointerdown', () => {
+      this._menuClickConsumed = true;
+      this.gameSpeed = this.gameSpeed === 1 ? 2 : this.gameSpeed === 2 ? 3 : 1;
+      this.speedBtn.setText(`${this.gameSpeed}x`);
+      this.time.timeScale = this.gameSpeed;
+      this.tweens.timeScale = this.gameSpeed;
+    });
+    this.uiObjects.push(this.speedBtn);
+    this.cameras.main.ignore(this.speedBtn);
 
     this.gameOverText = this.add.text(gw / 2, gh / 2, '', {
       fontSize: '36px', color: '#ffffff', fontStyle: 'bold',
@@ -1192,6 +1229,10 @@ export class BattleScene extends Phaser.Scene {
       this.startEnemyTurn();
     } else {
       this.interactionState = 'IDLE';
+      // 자동 전투: 다음 유닛 자동 조작
+      if (this.autoMode && this.battleState.phase === 'player') {
+        this.time.delayedCall(300, () => this.executeAutoTurn());
+      }
     }
   }
 
@@ -1259,6 +1300,98 @@ export class BattleScene extends Phaser.Scene {
     // 아군 턴 시작 시 첫 번째 행동 가능 유닛으로 포커스
     const firstAvail = this.turnSystem.getUnitsByFaction('player').find(u => !u.hasActed);
     if (firstAvail) this.centerCameraOn(firstAvail.position, 400);
+  }
+
+  /** 자동 전투: 아군 유닛을 AI가 조작 */
+  private executeAutoTurn(): void {
+    if (this.interactionState !== 'IDLE' || this.battleState.phase !== 'player') return;
+    if (!this.autoMode) return;
+
+    const available = this.turnSystem.getUnitsByFaction('player').find(u => !u.hasActed);
+    if (!available) {
+      this.onEndTurnClicked();
+      return;
+    }
+
+    const enemies = this.turnSystem.getUnitsByFaction('enemy');
+    if (enemies.length === 0) { available.hasActed = true; this.finishAction(); return; }
+
+    // 가장 가까운 적 찾기
+    let nearestEnemy = enemies[0];
+    let minDist = Infinity;
+    for (const e of enemies) {
+      const dist = Math.abs(available.position.x - e.position.x) + Math.abs(available.position.y - e.position.y);
+      if (dist < minDist) { minDist = dist; nearestEnemy = e; }
+    }
+
+    // 이동 범위 계산
+    const moveRange = this.gridSystem.getMovementRange(
+      available.position, available.stats.moveRange, this.battleState.units, 'player', available.unitClass,
+    );
+
+    // 가장 가까운 적에게 접근하는 타일 선택
+    let bestTile = available.position;
+    let bestDist = minDist;
+    for (const tile of moveRange) {
+      const dist = Math.abs(tile.x - nearestEnemy.position.x) + Math.abs(tile.y - nearestEnemy.position.y);
+      if (dist < bestDist) { bestDist = dist; bestTile = tile; }
+    }
+
+    // 선택 → 이동 → 공격/대기
+    this.selectUnit(available);
+    this.time.delayedCall(200, () => {
+      if (bestTile.x !== available.position.x || bestTile.y !== available.position.y) {
+        this.preMovePosition = { ...available.position };
+        this.moveUnit(available, bestTile);
+        // moveUnit → onMoveComplete → showActionMenu → 자동으로 액션 선택
+        this.time.delayedCall(1500, () => this.autoSelectAction(available));
+      } else {
+        this.autoSelectAction(available);
+      }
+    });
+  }
+
+  /** 자동 전투: 액션 자동 선택 (공격 가능하면 공격, 아니면 대기) */
+  private autoSelectAction(unit: UnitData): void {
+    this.hideActionMenu();
+    this.hideUnitInfoPanel();
+
+    // 공격 가능한 적 찾기
+    const attackRange = this.gridSystem.getAttackRange(unit.position, unit.stats.attackRange, this.isDiagonalAttack(unit));
+    const target = attackRange
+      .map(pos => this.getUnitAt(pos))
+      .find(u => u && u.faction === 'enemy' && u.isAlive);
+
+    if (target) {
+      this.preMovePosition = null;
+      this.executeAttack(unit, target);
+    } else {
+      // 스킬 사용 시도
+      const usableSkills = this.skillSystem.getUsableSkills(unit);
+      const healSkill = usableSkills.find(s => s.effectType === SkillEffectType.HEAL);
+      const damageSkill = usableSkills.find(s => s.effectType === SkillEffectType.DAMAGE);
+
+      if (damageSkill) {
+        const skillTargets = this.skillSystem.getSkillTargetPositions(unit, damageSkill, this.battleState.units, this.gridSystem);
+        if (skillTargets.length > 0) {
+          this.executeSkill(unit, damageSkill, skillTargets[0]);
+          return;
+        }
+      }
+      if (healSkill) {
+        const wounded = this.battleState.units.find(u => u.faction === 'player' && u.isAlive && u.stats.hp < u.stats.maxHp * 0.7);
+        if (wounded) {
+          this.executeSkill(unit, healSkill, wounded.position);
+          return;
+        }
+      }
+
+      // 대기
+      this.preMovePosition = null;
+      unit.hasActed = true;
+      this.updateUnitSprite(unit);
+      this.finishAction();
+    }
   }
 
   private executeAIAction(action: ReturnType<AISystem['planActions']>[number]): Promise<void> {

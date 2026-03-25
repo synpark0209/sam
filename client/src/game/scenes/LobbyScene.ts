@@ -245,35 +245,71 @@ export class LobbyScene extends Phaser.Scene {
     }
 
     // 장착 스킬
-    const equipped = unit.equippedSkills ?? unit.skills ?? [];
-    for (const skillId of equipped) {
-      const skill = SKILL_DEFS[skillId];
+    const equipped = unit.equippedSkills ?? [];
+    for (let si = 0; si < equipped.length; si++) {
+      const skill = SKILL_DEFS[equipped[si]];
       if (!skill) continue;
-      this.add.text(30, skillY + 22 + skillRow * 38, `◆ ${skill.name}`, {
-        fontSize: '13px', color: '#88ccff',
+      this.add.text(30, skillY + 22 + skillRow * 32, `◆ ${skill.name} (MP${skill.mpCost})`, {
+        fontSize: '12px', color: '#88ccff',
       });
-      this.add.text(30, skillY + 38 + skillRow * 38, `${skill.description}  (MP${skill.mpCost})`, {
-        fontSize: '10px', color: '#999999', wordWrap: { width: GW - 60 },
+      // 해제 버튼
+      const removeSkillBtn = this.add.text(GW - 60, skillY + 22 + skillRow * 32, '해제', {
+        fontSize: '10px', color: '#ff6666', backgroundColor: '#2a1a1a', padding: { x: 6, y: 2 },
+      }).setInteractive({ useHandCursor: true });
+      const skillIdx = si;
+      removeSkillBtn.on('pointerdown', () => {
+        // 스킬 해제 → 인벤토리로 (현재는 그냥 제거)
+        unit.equippedSkills?.splice(skillIdx, 1);
+        this.campaignManager.save();
+        this.showHeroDetail(unit);
+      });
+      skillRow++;
+    }
+
+    // 빈 장착 슬롯 표시
+    const maxSlots = (unit.level ?? 1) >= 10 ? 2 : 1;
+    for (let s = equipped.length; s < maxSlots; s++) {
+      this.add.text(30, skillY + 22 + skillRow * 32, `◇ 빈 슬롯 ${s === 1 ? '(Lv.10)' : ''}`, {
+        fontSize: '12px', color: '#444444',
       });
       skillRow++;
     }
 
     // 장비 섹션
-    const equipY = skillY + 22 + skillRow * 38 + 15;
+    const equipY = skillY + 22 + skillRow * 32 + 15;
     this.add.text(30, equipY, '── 장비 ──', {
       fontSize: '14px', color: '#44cc88', fontStyle: 'bold',
     });
     const eq = unit.equipment;
-    const slots = [
-      ['무기', eq?.weapon], ['방어구', eq?.armor], ['보조', eq?.accessory],
+    const slots: [string, string | undefined, 'weapon' | 'armor' | 'accessory'][] = [
+      ['무기', eq?.weapon, 'weapon'], ['방어구', eq?.armor, 'armor'], ['보조', eq?.accessory, 'accessory'],
     ];
     for (let i = 0; i < slots.length; i++) {
-      const [slotName, itemId] = slots[i];
-      const itemDef = itemId ? EQUIPMENT_DEFS[itemId as string] : null;
+      const [slotName, itemId, slotKey] = slots[i];
+      const itemDef = itemId ? EQUIPMENT_DEFS[itemId] : null;
       const itemName = itemDef?.name ?? '없음';
-      this.add.text(30, equipY + 22 + i * 20, `${slotName}: ${itemName}`, {
+      const bonus = itemDef ? Object.entries(itemDef.statModifiers).map(([k, v]) => `${k}+${v}`).join(' ') : '';
+      this.add.text(30, equipY + 22 + i * 24, `${slotName}: ${itemName}`, {
         fontSize: '12px', color: itemDef ? '#ffffff' : '#555555',
       });
+      if (bonus) {
+        this.add.text(200, equipY + 22 + i * 24, bonus, {
+          fontSize: '10px', color: '#88aa88',
+        });
+      }
+      // 해제 버튼
+      if (itemDef && unit.equipment) {
+        const unequipBtn = this.add.text(GW - 60, equipY + 22 + i * 24, '해제', {
+          fontSize: '10px', color: '#ff6666', backgroundColor: '#2a1a1a', padding: { x: 6, y: 2 },
+        }).setInteractive({ useHandCursor: true });
+        unequipBtn.on('pointerdown', () => {
+          if (unit.equipment) {
+            unit.equipment[slotKey] = undefined;
+            this.campaignManager.save();
+            this.showHeroDetail(unit);
+          }
+        });
+      }
     }
   }
 
