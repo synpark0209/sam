@@ -211,6 +211,36 @@ export class BattleScene extends Phaser.Scene {
 
     // BGM 시작
     this.getAudio()?.playBgm('battle');
+
+    // AUTO/배속 버튼 (카메라 ignore 루프 이후에 생성 → 양쪽 카메라 모두에서 보임)
+    const zoom = this.cameras.main.zoom;
+    this.autoBtn = this.add.text(10 / zoom, 10 / zoom, 'AUTO', {
+      fontSize: `${Math.round(14 / zoom)}px`, color: '#888888',
+      backgroundColor: '#000000cc', padding: { x: Math.round(8 / zoom), y: Math.round(6 / zoom) },
+    }).setInteractive({ useHandCursor: true }).setDepth(500).setScrollFactor(0);
+    this.autoBtn.on('pointerdown', () => {
+      this._menuClickConsumed = true;
+      this.autoMode = !this.autoMode;
+      this.autoBtn.setStyle({
+        color: this.autoMode ? '#44ff44' : '#888888',
+        backgroundColor: this.autoMode ? '#003300cc' : '#000000cc',
+      });
+      if (this.autoMode && this.interactionState === 'IDLE' && this.battleState.phase === 'player') {
+        this.executeAutoTurn();
+      }
+    });
+
+    this.speedBtn = this.add.text(75 / zoom, 10 / zoom, '1x', {
+      fontSize: `${Math.round(14 / zoom)}px`, color: '#ffffff',
+      backgroundColor: '#000000cc', padding: { x: Math.round(8 / zoom), y: Math.round(6 / zoom) },
+    }).setInteractive({ useHandCursor: true }).setDepth(500).setScrollFactor(0);
+    this.speedBtn.on('pointerdown', () => {
+      this._menuClickConsumed = true;
+      this.gameSpeed = this.gameSpeed === 1 ? 2 : this.gameSpeed === 2 ? 3 : 1;
+      this.speedBtn.setText(`${this.gameSpeed}x`);
+      this.time.timeScale = this.gameSpeed;
+      this.tweens.timeScale = this.gameSpeed;
+    });
   }
 
   /** 유닛 스프라이트를 대상 방향으로 회전 (좌우 반전) */
@@ -453,31 +483,7 @@ export class BattleScene extends Phaser.Scene {
     this.uiObjects.push(muteBtn);
     this.cameras.main.ignore(muteBtn);
 
-    // 자동 전투 버튼 (월드 좌표, scrollFactor 0)
-    const zoom = this.cameras.main.zoom;
-    this.autoBtn = this.add.text(10 / zoom, 10 / zoom, 'AUTO', {
-      fontSize: `${Math.round(14 / zoom)}px`, color: '#888888', backgroundColor: '#000000cc', padding: { x: Math.round(8 / zoom), y: Math.round(6 / zoom) },
-    }).setInteractive({ useHandCursor: true }).setDepth(500).setScrollFactor(0);
-    this.autoBtn.on('pointerdown', () => {
-      this._menuClickConsumed = true;
-      this.autoMode = !this.autoMode;
-      this.autoBtn.setStyle({ color: this.autoMode ? '#44ff44' : '#888888', backgroundColor: this.autoMode ? '#003300cc' : '#000000cc' });
-      if (this.autoMode && this.interactionState === 'IDLE' && this.battleState.phase === 'player') {
-        this.executeAutoTurn();
-      }
-    });
-
-    // 배속 버튼 (AUTO 옆, scrollFactor 0)
-    this.speedBtn = this.add.text(70 / zoom, 10 / zoom, '1x', {
-      fontSize: `${Math.round(14 / zoom)}px`, color: '#ffffff', backgroundColor: '#000000cc', padding: { x: Math.round(8 / zoom), y: Math.round(6 / zoom) },
-    }).setInteractive({ useHandCursor: true }).setDepth(500).setScrollFactor(0);
-    this.speedBtn.on('pointerdown', () => {
-      this._menuClickConsumed = true;
-      this.gameSpeed = this.gameSpeed === 1 ? 2 : this.gameSpeed === 2 ? 3 : 1;
-      this.speedBtn.setText(`${this.gameSpeed}x`);
-      this.time.timeScale = this.gameSpeed;
-      this.tweens.timeScale = this.gameSpeed;
-    });
+    // AUTO/배속 버튼은 create() 맨 마지막에 추가 (카메라 ignore 루프 이후)
 
     this.gameOverText = this.add.text(gw / 2, gh / 2, '', {
       fontSize: '36px', color: '#ffffff', fontStyle: 'bold',
