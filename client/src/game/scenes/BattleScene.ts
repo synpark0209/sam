@@ -453,15 +453,15 @@ export class BattleScene extends Phaser.Scene {
     this.uiObjects.push(muteBtn);
     this.cameras.main.ignore(muteBtn);
 
-    // 자동 전투 버튼
-    this.autoBtn = this.add.text(16, uiY - 30, 'AUTO: OFF', {
-      fontSize: '12px', color: '#888888', backgroundColor: '#1a1a3a', padding: { x: 8, y: 4 },
+    // 자동 전투 버튼 (턴 정보 아래)
+    this.autoBtn = this.add.text(16, uiY + 40, 'AUTO', {
+      fontSize: '11px', color: '#888888', backgroundColor: '#1a1a3a', padding: { x: 6, y: 3 },
     }).setInteractive({ useHandCursor: true }).setDepth(201);
     this.autoBtn.on('pointerdown', () => {
       this._menuClickConsumed = true;
       this.autoMode = !this.autoMode;
-      this.autoBtn.setText(this.autoMode ? 'AUTO: ON' : 'AUTO: OFF');
-      this.autoBtn.setStyle({ color: this.autoMode ? '#44ff44' : '#888888' });
+      this.autoBtn.setText(this.autoMode ? 'AUTO' : 'AUTO');
+      this.autoBtn.setStyle({ color: this.autoMode ? '#44ff44' : '#888888', backgroundColor: this.autoMode ? '#1a3a1a' : '#1a1a3a' });
       if (this.autoMode && this.interactionState === 'IDLE' && this.battleState.phase === 'player') {
         this.executeAutoTurn();
       }
@@ -469,9 +469,9 @@ export class BattleScene extends Phaser.Scene {
     this.uiObjects.push(this.autoBtn);
     this.cameras.main.ignore(this.autoBtn);
 
-    // 배속 버튼
-    this.speedBtn = this.add.text(110, uiY - 30, '1x', {
-      fontSize: '12px', color: '#ffffff', backgroundColor: '#1a1a3a', padding: { x: 8, y: 4 },
+    // 배속 버튼 (AUTO 옆)
+    this.speedBtn = this.add.text(70, uiY + 40, '1x', {
+      fontSize: '11px', color: '#ffffff', backgroundColor: '#1a1a3a', padding: { x: 6, y: 3 },
     }).setInteractive({ useHandCursor: true }).setDepth(201);
     this.speedBtn.on('pointerdown', () => {
       this._menuClickConsumed = true;
