@@ -71,7 +71,7 @@ export class LobbyScene extends Phaser.Scene {
 
     const buttons: { label: string; y: number; color?: string; action: () => void }[] = [
       { label: '📜 시나리오', y: GH * 0.22, action: () => this.startCampaign() },
-      { label: '⚔️ 자유 전투', y: GH * 0.32, action: () => this.startFreeBattle() },
+      { label: '⚔️ PvP 아레나', y: GH * 0.32, color: '#4a2a2a', action: () => this.startPvPArena() },
       { label: '🎰 장수 뽑기', y: GH * 0.42, color: '#4a2a4a', action: () => this.showGacha() },
       { label: '👥 장수 관리', y: GH * 0.52, action: () => this.showHeroes() },
       { label: '🎒 인벤토리', y: GH * 0.62, action: () => this.showInventory('equipment') },
@@ -707,8 +707,8 @@ export class LobbyScene extends Phaser.Scene {
     this.scene.start('WorldMapScene', { campaignManager: this.campaignManager });
   }
 
-  private startFreeBattle(): void {
-    this.scene.start('BattleScene');
+  private startPvPArena(): void {
+    this.scene.start('PvPArenaScene', { campaignManager: this.campaignManager });
   }
 
   private logout(): void {
