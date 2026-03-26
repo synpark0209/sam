@@ -3,9 +3,10 @@ import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT } from '@shared/constants.ts';
 import type { CampaignManager } from '../systems/CampaignManager.ts';
 import type { AudioManager } from '../systems/AudioManager.ts';
 import type { UnitData } from '@shared/types/index.ts';
+import { UnitClass } from '@shared/types/index.ts';
 import { logout as doLogout, gachaPull, getGachaStatus } from '../../api/client.ts';
 import type { GachaPullResult } from '../../api/client.ts';
-import { getGradeColor } from '@shared/data/gachaDefs.ts';
+import { getGradeColor, GACHA_HERO_POOL } from '@shared/data/gachaDefs.ts';
 import type { HeroGrade } from '@shared/data/gachaDefs.ts';
 import { UNIT_CLASS_DEFS } from '@shared/data/unitClassDefs.ts';
 import { SKILL_DEFS } from '@shared/data/skillDefs.ts';
@@ -618,6 +619,71 @@ export class LobbyScene extends Phaser.Scene {
       padding: { x: 14, y: 10 }, align: 'center',
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     normalMulti.on('pointerdown', () => this.doServerGachaPull('normal', 10));
+
+    // 장수 목록 보기 버튼
+    const poolBtn = this.add.text(GW / 2, GH * 0.62, '📋 확률/장수 목록 보기', {
+      fontSize: '12px', color: '#aaaaaa', backgroundColor: '#1a1a3a', padding: { x: 12, y: 6 },
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    poolBtn.on('pointerdown', () => this.showGachaPool());
+  }
+
+  private showGachaPool(): void {
+    this.children.removeAll();
+    this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GW, GH);
+
+    this.add.text(GW / 2, 15, '📋 장수 뽑기 확률', {
+      fontSize: '20px', color: '#ffd700', fontStyle: 'bold',
+    }).setOrigin(0.5);
+
+    const backBtn = this.add.text(20, 10, '← 뒤로', {
+      fontSize: '12px', color: '#aaaaaa', backgroundColor: '#1a1a3a', padding: { x: 6, y: 4 },
+    }).setInteractive({ useHandCursor: true });
+    backBtn.on('pointerdown', () => this.showGacha());
+
+    // 확률 표
+    this.add.text(GW / 2, 42, '── 프리미엄 뽑기 (보석) ──', {
+      fontSize: '11px', color: '#cc88ff',
+    }).setOrigin(0.5);
+    this.add.text(GW / 2, 58, 'UR: 5%  |  SSR: 20%  |  SR: 75%  |  천장: 90회', {
+      fontSize: '10px', color: '#888888',
+    }).setOrigin(0.5);
+    this.add.text(GW / 2, 74, '── 일반 뽑기 (금화) ──', {
+      fontSize: '11px', color: '#44aa44',
+    }).setOrigin(0.5);
+    this.add.text(GW / 2, 90, 'UR: 1%  |  SSR: 9%  |  SR: 90%', {
+      fontSize: '10px', color: '#888888',
+    }).setOrigin(0.5);
+
+    // 장수 목록
+    const pool = GACHA_HERO_POOL;
+
+    const grades = ['UR', 'SSR', 'SR'];
+    let y = 110;
+
+    for (const grade of grades) {
+      const heroes = pool.filter(h => h.grade === grade);
+      if (heroes.length === 0) continue;
+
+      const gradeColor = getGradeColor(grade as HeroGrade);
+      this.add.text(15, y, `── ${grade} (${heroes.length}종) ──`, {
+        fontSize: '12px', color: gradeColor, fontStyle: 'bold',
+      });
+      y += 18;
+
+      for (const hero of heroes) {
+        const cls = hero.unitClass ? (UNIT_CLASS_DEFS[hero.unitClass as UnitClass]?.name ?? '') : '';
+        const skillName = hero.uniqueSkill ? (SKILL_DEFS[hero.uniqueSkill]?.name ?? '') : '';
+
+        this.add.text(20, y, `[${grade}]`, { fontSize: '9px', color: gradeColor, fontStyle: 'bold' });
+        this.add.text(45, y, hero.name, { fontSize: '11px', color: '#ffffff' });
+        this.add.text(110, y, cls, { fontSize: '9px', color: '#888888' });
+        if (skillName) {
+          this.add.text(160, y, `✨${skillName}`, { fontSize: '9px', color: '#cc88ff' });
+        }
+        y += 16;
+      }
+      y += 5;
+    }
   }
 
   private doServerGachaPull(type: 'normal' | 'premium', count: 1 | 10): void {
