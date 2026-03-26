@@ -559,8 +559,12 @@ export class PvPArenaScene extends Phaser.Scene {
         const targets = this.getValidTargets(unit, allUnits);
         if (targets.length === 0) continue;
         const target = targets.sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp))[0];
-        // 정신력 기반 스킬 데미지
-        const skillDamage = Math.floor(skill.power + unit.spirit * 0.8 - (target.data.stats.spirit ?? 10) * 0.3);
+        // 병종에 따라 공격력/정신력 기반 결정
+        const cls = unit.data.unitClass ?? 'infantry';
+        const isMagic = cls === 'strategist';
+        const atkStat = isMagic ? unit.spirit : unit.attack;
+        const defStat = isMagic ? (target.data.stats.spirit ?? 10) : target.defense;
+        const skillDamage = Math.floor(skill.power + atkStat * 0.8 - defStat * 0.3);
         const finalDamage = Math.max(1, skillDamage);
         unit.mp -= skill.mpCost;
         unit.skillCooldowns[skillId] = skill.cooldown;
@@ -582,7 +586,9 @@ export class PvPArenaScene extends Phaser.Scene {
         const targets = this.getValidTargets(unit, allUnits);
         if (targets.length === 0) continue;
         const target = targets[0];
-        const debufDmg = Math.max(1, Math.floor(skill.power + unit.spirit * 0.5));
+        const cls = unit.data.unitClass ?? 'infantry';
+        const isMagic = cls === 'strategist';
+        const debufDmg = Math.max(1, Math.floor(skill.power + (isMagic ? unit.spirit : unit.attack) * 0.5));
         unit.mp -= skill.mpCost;
         unit.skillCooldowns[skillId] = skill.cooldown;
         return { target, skillName: skill.name, value: debufDmg, type: 'damage' };
