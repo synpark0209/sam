@@ -3,6 +3,9 @@ import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT } from '@shared/constants.ts';
 import type { UnitData } from '@shared/types/index.ts';
 import { UnitClass } from '@shared/types/index.ts';
 import { UNIT_CLASS_DEFS } from '@shared/data/unitClassDefs.ts';
+import { SKILL_DEFS } from '@shared/data/skillDefs.ts';
+import { SkillEffectType } from '@shared/types/skill.ts';
+import { getClassSkillId } from '@shared/data/classSkillDefs.ts';
 import type { CampaignManager } from '../systems/CampaignManager.ts';
 import type { AudioManager } from '../systems/AudioManager.ts';
 import { getGradeColor } from '@shared/data/gachaDefs.ts';
@@ -27,8 +30,12 @@ interface ArenaUnit {
   attack: number;
   defense: number;
   speed: number;
+  spirit: number;
   alive: boolean;
   side: 'player' | 'enemy';
+  mp: number;
+  maxMp: number;
+  skillCooldowns: Record<string, number>;
   sprite?: Phaser.GameObjects.Container;
 }
 
@@ -330,7 +337,8 @@ export class PvPArenaScene extends Phaser.Scene {
         data: u, col, row, side: 'player',
         hp: u.stats.maxHp, maxHp: u.stats.maxHp,
         attack: u.stats.attack, defense: u.stats.defense,
-        speed: u.stats.speed, alive: true,
+        speed: u.stats.speed, spirit: u.stats.spirit ?? 10, alive: true,
+        mp: u.maxMp ?? 10, maxMp: u.maxMp ?? 10, skillCooldowns: {},
       });
     }
 
@@ -343,7 +351,8 @@ export class PvPArenaScene extends Phaser.Scene {
         data: enemyPool[i], col, row, side: 'enemy',
         hp: enemyPool[i].stats.maxHp, maxHp: enemyPool[i].stats.maxHp,
         attack: enemyPool[i].stats.attack, defense: enemyPool[i].stats.defense,
-        speed: enemyPool[i].stats.speed, alive: true,
+        speed: enemyPool[i].stats.speed, spirit: enemyPool[i].stats.spirit ?? 10, alive: true,
+        mp: 15, maxMp: 15, skillCooldowns: {},
       });
     }
 
@@ -509,6 +518,80 @@ export class PvPArenaScene extends Phaser.Scene {
     return { mult: 1.0, label: '' };
   }
 
+  /** 스킬 자동 사용 판단 */
+  private tryUseSkill(unit: ArenaUnit, allUnits: ArenaUnit[]): { target: ArenaUnit; skillName: string; value: number; type: 'damage' | 'heal' } | null {
+    // 유닛의 스킬 목록 수집
+    const skillIds: string[] = [];
+    // 병종 기본 스킬
+    if (unit.data.unitClass) {
+      skillIds.push(unit.data.classSkillId ?? getClassSkillId(unit.data.unitClass, unit.data.promotionLevel ?? 0));
+    }
+    // 고유 스킬 (해금된 경우)
+    if (unit.data.uniqueSkill && (unit.data.uniqueSkillUnlocked || (unit.data.level ?? 1) >= 20)) {
+      skillIds.push(unit.data.uniqueSkill);
+    }
+    // 장착 스킬
+    if (unit.data.equippedSkills) skillIds.push(...unit.data.equippedSkills);
+
+    const enemySide = unit.side === 'player' ? 'enemy' : 'player';
+    const allies = allUnits.filter(u => u.side === unit.side && u.alive);
+    const enemies = allUnits.filter(u => u.side === enemySide && u.alive);
+
+    for (const skillId of skillIds) {
+      const skill = SKILL_DEFS[skillId];
+      if (!skill) continue;
+      if (skill.mpCost > unit.mp) continue;
+      if ((unit.skillCooldowns[skillId] ?? 0) > 0) continue;
+
+      // 힐 스킬: 아군 HP 50% 이하가 있으면 사용
+      if (skill.effectType === SkillEffectType.HEAL) {
+        const wounded = allies.filter(u => u.hp < u.maxHp * 0.5).sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp));
+        if (wounded.length > 0) {
+          const healAmount = Math.floor(skill.power + unit.spirit * 0.5);
+          unit.mp -= skill.mpCost;
+          unit.skillCooldowns[skillId] = skill.cooldown;
+          return { target: wounded[0], skillName: skill.name, value: healAmount, type: 'heal' };
+        }
+      }
+
+      // 데미지 스킬: 적에게 사용
+      if (skill.effectType === SkillEffectType.DAMAGE && enemies.length > 0) {
+        const targets = this.getValidTargets(unit, allUnits);
+        if (targets.length === 0) continue;
+        const target = targets.sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp))[0];
+        // 정신력 기반 스킬 데미지
+        const skillDamage = Math.floor(skill.power + unit.spirit * 0.8 - (target.data.stats.spirit ?? 10) * 0.3);
+        const finalDamage = Math.max(1, skillDamage);
+        unit.mp -= skill.mpCost;
+        unit.skillCooldowns[skillId] = skill.cooldown;
+        return { target, skillName: skill.name, value: finalDamage, type: 'damage' };
+      }
+
+      // 버프/디버프: 데미지로 처리 (간략화)
+      if (skill.effectType === SkillEffectType.BUFF && allies.length > 0) {
+        // 버프는 자신에게 적용 (HP 회복으로 간략화)
+        const healAmount = Math.floor(skill.power * 0.5 + unit.spirit * 0.3);
+        if (healAmount > 0) {
+          unit.mp -= skill.mpCost;
+          unit.skillCooldowns[skillId] = skill.cooldown;
+          return { target: unit, skillName: skill.name, value: healAmount, type: 'heal' };
+        }
+      }
+
+      if (skill.effectType === SkillEffectType.DEBUFF && enemies.length > 0) {
+        const targets = this.getValidTargets(unit, allUnits);
+        if (targets.length === 0) continue;
+        const target = targets[0];
+        const debufDmg = Math.max(1, Math.floor(skill.power + unit.spirit * 0.5));
+        unit.mp -= skill.mpCost;
+        unit.skillCooldowns[skillId] = skill.cooldown;
+        return { target, skillName: skill.name, value: debufDmg, type: 'damage' };
+      }
+    }
+
+    return null;
+  }
+
   /** 전열 보호: 전열(col=2)이 살아있으면 중열/후열 공격 불가 */
   private getValidTargets(attacker: ArenaUnit, allUnits: ArenaUnit[]): ArenaUnit[] {
     const enemySide = attacker.side === 'player' ? 'enemy' : 'player';
@@ -617,6 +700,13 @@ export class PvPArenaScene extends Phaser.Scene {
       turnCount++;
       turnText.setText(`턴 ${turnCount}`);
 
+      // 쿨다운 감소
+      for (const u of alive) {
+        for (const key of Object.keys(u.skillCooldowns)) {
+          if (u.skillCooldowns[key] > 0) u.skillCooldowns[key]--;
+        }
+      }
+
       // 속도순 + 랜덤 보정
       const sorted = [...alive].sort((a, b) => (b.speed + Math.random() * 2) - (a.speed + Math.random() * 2));
 
@@ -636,6 +726,37 @@ export class PvPArenaScene extends Phaser.Scene {
         const unit = sorted[actionIdx];
         actionIdx++;
         if (!unit.alive) { doAction(); return; }
+
+        // 스킬 사용 시도
+        const skillResult = this.tryUseSkill(unit, this.battleUnits);
+        if (skillResult) {
+          attackAnim(unit, skillResult.target);
+          this.time.delayedCall(100 / this.battleSpeed, () => {
+            showLabel(unit, `✨${skillResult.skillName}`, '#cc88ff');
+
+            if (skillResult.type === 'heal') {
+              const healAmount = skillResult.value;
+              skillResult.target.hp = Math.min(skillResult.target.maxHp, skillResult.target.hp + healAmount);
+              showDamagePopup(skillResult.target, healAmount, '#44ff44');
+              addLog(`${unit.data.name} → ${skillResult.target.data.name} 회복 +${healAmount} (${skillResult.skillName})`);
+            } else {
+              skillResult.target.hp -= skillResult.value;
+              showDamagePopup(skillResult.target, skillResult.value, '#cc44ff');
+              shakeUnit(skillResult.target);
+              let logMsg = `${unit.data.name} → ${skillResult.target.data.name} (${skillResult.value} ${skillResult.skillName})`;
+              if (skillResult.target.hp <= 0) {
+                skillResult.target.hp = 0;
+                skillResult.target.alive = false;
+                logMsg += ' 격파!';
+              }
+              addLog(logMsg);
+            }
+
+            updateHpBars();
+            this.time.delayedCall(300 / this.battleSpeed, doAction);
+          });
+          return;
+        }
 
         const targets = this.getValidTargets(unit, this.battleUnits);
         if (targets.length === 0) { doAction(); return; }
