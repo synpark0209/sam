@@ -12,9 +12,9 @@ import { pvpRecordResult } from '../../api/client.ts';
 
 const GW = TILE_SIZE * MAP_WIDTH;
 const GH = TILE_SIZE * MAP_HEIGHT + 60;
-const GRID_COLS = 4;
-const GRID_ROWS = 3;
-const CELL_W = 80;
+const GRID_COLS = 3; // 열: 후열/중열/전열
+const GRID_ROWS = 3; // 행: 배치 라인
+const CELL_W = 75;
 const CELL_H = 70;
 const MAX_DEPLOY = 5;
 
@@ -175,18 +175,18 @@ export class PvPArenaScene extends Phaser.Scene {
       fontSize: '11px', color: statusColor,
     }).setOrigin(0.5);
 
-    // 행 라벨
-    const rowLabels = ['전열', '중열', '후열'];
-
-    // 3x4 그리드
+    // 열 라벨 (후열←→전열)
+    const colLabels = ['후열', '중열', '전열'];
     const gridX = (GW - GRID_COLS * CELL_W) / 2;
     const gridY = 55;
 
-    for (let r = 0; r < GRID_ROWS; r++) {
-      this.add.text(gridX - 8, gridY + r * CELL_H + CELL_H / 2, rowLabels[r], {
+    for (let c = 0; c < GRID_COLS; c++) {
+      this.add.text(gridX + c * CELL_W + CELL_W / 2, gridY - 12, colLabels[c], {
         fontSize: '9px', color: '#446688',
-      }).setOrigin(1, 0.5);
+      }).setOrigin(0.5);
+    }
 
+    for (let r = 0; r < GRID_ROWS; r++) {
       for (let c = 0; c < GRID_COLS; c++) {
         const x = gridX + c * CELL_W;
         const y = gridY + r * CELL_H;
@@ -334,13 +334,13 @@ export class PvPArenaScene extends Phaser.Scene {
       });
     }
 
-    // 적군 유닛 생성 (AI 랜덤 팀)
+    // 적군 유닛 생성 (AI 랜덤 배치)
     const enemyPool = this.generateEnemyTeam(deployed.length);
+    const enemyPositions = this.generateEnemyPositions(enemyPool.length);
     for (let i = 0; i < enemyPool.length; i++) {
-      const col = i % GRID_COLS;
-      const row = Math.floor(i / GRID_COLS);
+      const { col, row } = enemyPositions[i];
       this.battleUnits.push({
-        data: enemyPool[i], col: GRID_COLS - 1 - col, row, side: 'enemy',
+        data: enemyPool[i], col, row, side: 'enemy',
         hp: enemyPool[i].stats.maxHp, maxHp: enemyPool[i].stats.maxHp,
         attack: enemyPool[i].stats.attack, defense: enemyPool[i].stats.defense,
         speed: enemyPool[i].stats.speed, alive: true,
@@ -348,6 +348,22 @@ export class PvPArenaScene extends Phaser.Scene {
     }
 
     this.showBattlePhase();
+  }
+
+  private generateEnemyPositions(count: number): { col: number; row: number }[] {
+    // 전열 우선, 그 다음 중열, 후열 순서로 배치
+    const positions: { col: number; row: number }[] = [];
+    const order = [
+      { col: 2, row: 1 }, // 전열 중앙
+      { col: 2, row: 0 }, // 전열 상단
+      { col: 2, row: 2 }, // 전열 하단
+      { col: 1, row: 1 }, // 중열 중앙
+      { col: 0, row: 1 }, // 후열 중앙
+    ];
+    for (let i = 0; i < count && i < order.length; i++) {
+      positions.push(order[i]);
+    }
+    return positions;
   }
 
   private generateEnemyTeam(count: number): UnitData[] {
@@ -386,27 +402,32 @@ export class PvPArenaScene extends Phaser.Scene {
       fontSize: '20px', color: '#ff4444', fontStyle: 'bold',
     }).setOrigin(0.5);
 
-    // 전장 배치 (왼쪽: 아군, 오른쪽: 적군)
-    const unitW = 60;
+    // 전장 배치 (왼쪽: 아군 후→전, 오른쪽: 적군 전→후)
+    const unitW = 58;
     const unitH = 52;
-    const gapX = 20; // VS 사이 간격
+    const gapX = 16;
     const playerStartX = GW / 2 - gapX - GRID_COLS * unitW;
     const enemyStartX = GW / 2 + gapX;
     const fieldY = 50;
 
-    // 행 라벨
-    const rowLabels = ['전열', '중열', '후열'];
-    for (let r = 0; r < GRID_ROWS; r++) {
-      this.add.text(playerStartX - 8, fieldY + r * unitH + unitH / 2, rowLabels[r], {
-        fontSize: '8px', color: '#446644',
-      }).setOrigin(1, 0.5);
+    // 열 라벨 (아군: 후→전, 적군: 전→후)
+    const pLabels = ['후', '중', '전'];
+    const eLabels = ['전', '중', '후'];
+    for (let c = 0; c < GRID_COLS; c++) {
+      this.add.text(playerStartX + c * unitW + unitW / 2, fieldY - 10, pLabels[c], {
+        fontSize: '8px', color: '#4466aa',
+      }).setOrigin(0.5);
+      this.add.text(enemyStartX + c * unitW + unitW / 2, fieldY - 10, eLabels[c], {
+        fontSize: '8px', color: '#aa4444',
+      }).setOrigin(0.5);
     }
 
     for (const unit of this.battleUnits) {
       const isPlayer = unit.side === 'player';
       const baseX = isPlayer ? playerStartX : enemyStartX;
-      const col = isPlayer ? unit.col : (GRID_COLS - 1 - unit.col);
-      const x = baseX + col * unitW + unitW / 2;
+      // 아군: col 0=후열(왼), 2=전열(오른) / 적군: col 반전
+      const displayCol = isPlayer ? unit.col : (GRID_COLS - 1 - unit.col);
+      const x = baseX + displayCol * unitW + unitW / 2;
       const y = fieldY + unit.row * unitH + unitH / 2;
 
       const container = this.add.container(x, y);
@@ -484,26 +505,25 @@ export class PvPArenaScene extends Phaser.Scene {
     return { mult: 1.0, label: '' };
   }
 
-  /** 전열 보호: 앞줄이 있으면 뒷줄 공격 불가 */
+  /** 전열 보호: 전열(col=2)이 살아있으면 중열/후열 공격 불가 */
   private getValidTargets(attacker: ArenaUnit, allUnits: ArenaUnit[]): ArenaUnit[] {
     const enemySide = attacker.side === 'player' ? 'enemy' : 'player';
     const enemies = allUnits.filter(u => u.side === enemySide && u.alive);
     if (enemies.length === 0) return [];
 
-    // 전열(row 0)에 살아있는 유닛이 있으면 전열만 공격 가능
-    const frontRow = enemies.filter(u => u.row === 0);
-    if (frontRow.length > 0) {
-      // 궁병/책사는 후열도 공격 가능
-      const atkClass = attacker.data.unitClass ?? 'infantry';
-      if (atkClass === 'archer' || atkClass === 'strategist') {
-        return enemies;
-      }
-      return frontRow;
+    // 궁병/책사는 모든 열 공격 가능
+    const atkClass = attacker.data.unitClass ?? 'infantry';
+    if (atkClass === 'archer' || atkClass === 'strategist') {
+      return enemies;
     }
 
-    // 중열 체크
-    const midRow = enemies.filter(u => u.row === 1);
-    if (midRow.length > 0) return midRow;
+    // 전열(col=2)에 살아있는 유닛이 있으면 전열만 공격 가능
+    const frontCol = enemies.filter(u => u.col === 2);
+    if (frontCol.length > 0) return frontCol;
+
+    // 중열(col=1) 체크
+    const midCol = enemies.filter(u => u.col === 1);
+    if (midCol.length > 0) return midCol;
 
     return enemies;
   }
