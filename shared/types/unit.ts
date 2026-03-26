@@ -6,9 +6,15 @@ export type Faction = 'player' | 'enemy';
 export interface UnitStats {
   maxHp: number;
   hp: number;
-  attack: number;
-  defense: number;
-  speed: number;
+  attack: number;      // 물리 데미지
+  defense: number;     // 물리 피해 감소
+  spirit: number;      // 스킬 데미지/저항
+  agility: number;     // 명중률/회피율
+  critical: number;    // 크리티컬 확률
+  morale: number;      // 크리티컬 데미지 배율 + HP 낮을수록 상승
+  speed: number;       // 행동순서, 2회 공격 확률
+  penetration: number; // 방어 관통률 (%)
+  resist: number;      // 상태이상 저항률 (%)
   moveRange: number;
   attackRange: number;
 }

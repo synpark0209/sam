@@ -1068,6 +1068,16 @@ export class BattleScene extends Phaser.Scene {
     if (result.flanking) {
       this.showFloatingText(atkPos.x, atkPos.y - 45, '협공!', '#ffaa00');
     }
+    if (result.missed) {
+      const defPos2 = this.gridToPixel(defender.position);
+      this.showFloatingText(defPos2.x, defPos2.y - 30, 'MISS!', '#888888');
+    }
+    if (result.critical) {
+      this.showFloatingText(atkPos.x, atkPos.y - 55, '크리티컬!', '#ffaa00');
+    }
+    if (result.doubleAttack) {
+      this.showFloatingText(atkPos.x, atkPos.y - 65, '2회 공격!', '#44aaff');
+    }
 
     this.time.delayedCall(200, () => {
       this.faceToward(defender, attacker.position);

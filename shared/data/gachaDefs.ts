@@ -16,6 +16,12 @@ export interface GachaHeroDef {
     speed: number;
     moveRange: number;
     attackRange: number;
+    spirit?: number;
+    agility?: number;
+    critical?: number;
+    morale?: number;
+    penetration?: number;
+    resist?: number;
   };
   maxMp: number;
   defaultEquippedSkills: string[];
@@ -203,6 +209,12 @@ export function gachaHeroToUnit(def: GachaHeroDef): UnitData {
     stats: {
       ...def.baseStats,
       hp: def.baseStats.maxHp,
+      spirit: def.baseStats.spirit ?? 10,
+      agility: def.baseStats.agility ?? 20,
+      critical: def.baseStats.critical ?? 20,
+      morale: def.baseStats.morale ?? 25,
+      penetration: def.baseStats.penetration ?? 5,
+      resist: def.baseStats.resist ?? 10,
     },
     hasActed: false,
     isAlive: true,

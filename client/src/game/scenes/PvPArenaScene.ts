@@ -380,7 +380,11 @@ export class PvPArenaScene extends Phaser.Scene {
         stats: {
           maxHp: 140 + level * 10, hp: 140 + level * 10,
           attack: 30 + level * 3, defense: 18 + level * 2,
-          speed: 4 + Math.floor(Math.random() * 3), moveRange: 4, attackRange: 1,
+          spirit: 10 + level * 2, agility: 20 + level * 3,
+          critical: 20 + level * 2, morale: 25 + level * 2,
+          speed: 4 + Math.floor(Math.random() * 3),
+          penetration: 5 + level, resist: 10 + level * 2,
+          moveRange: 4, attackRange: 1,
         },
         hasActed: false, isAlive: true,
       });
@@ -644,23 +648,55 @@ export class PvPArenaScene extends Phaser.Scene {
         const defClass = target.data.unitClass ?? 'infantry';
         const typeBonus = this.getTypeBonus(atkClass, defClass);
 
+        // 명중 판정
+        const atkAgi = unit.data.stats.agility ?? 20;
+        const defAgi = target.data.stats.agility ?? 20;
+        const hitRate = Math.min(99, Math.max(30, 90 + (atkAgi - defAgi) * 2));
+        const missed = Math.random() * 100 >= hitRate;
+
+        // 크리티컬 판정
+        const critRate = (unit.data.stats.critical ?? 20) / 200;
+        const isCrit = !missed && Math.random() < critRate;
+        const hpRatio = unit.hp / unit.maxHp;
+        const moraleBonus = (unit.data.stats.morale ?? 25) * 0.5;
+        const lowHpBonus = hpRatio < 0.3 ? 30 : hpRatio < 0.5 ? 15 : 0;
+        const critMult = isCrit ? (150 + moraleBonus + lowHpBonus) / 100 : 1.0;
+
+        // 관통
+        const pen = (unit.data.stats.penetration ?? 0) / 100;
+        const effDef = target.defense * (1 - pen);
+
+        // 2회 공격 판정
+        const spdRatio = unit.speed / Math.max(1, target.speed);
+        const isDouble = spdRatio >= 2 ? Math.random() < 0.6 : spdRatio >= 1.5 ? Math.random() < 0.3 : false;
+
         // 데미지 계산
-        const rawDmg = unit.attack - target.defense * 0.5 + Math.floor(Math.random() * 8);
-        const damage = Math.max(1, Math.floor(rawDmg * typeBonus.mult));
+        const rawDmg = unit.attack - effDef * 0.5 + Math.floor(Math.random() * 8);
+        let damage = missed ? 0 : Math.max(1, Math.floor(rawDmg * typeBonus.mult * critMult));
+        if (isDouble && !missed) damage = Math.floor(damage * 1.5);
 
         // 애니메이션
         attackAnim(unit, target);
 
         this.time.delayedCall(100 / this.battleSpeed, () => {
+          if (missed) {
+            showLabel(target, 'MISS', '#888888');
+            addLog(`${unit.data.name} → ${target.data.name} (빗나감!)`);
+            this.time.delayedCall(250 / this.battleSpeed, doAction);
+            return;
+          }
+
           target.hp -= damage;
-          showDamagePopup(target, damage);
+          showDamagePopup(target, damage, isCrit ? '#ffaa00' : '#ff4444');
           shakeUnit(target);
 
+          if (isCrit) showLabel(unit, '크리티컬!', '#ffaa00');
+          if (isDouble) showLabel(unit, '2회 공격!', '#44aaff');
           if (typeBonus.label) {
             showLabel(unit, typeBonus.label, typeBonus.mult > 1 ? '#44ff44' : '#ff6666');
           }
 
-          let logMsg = `${unit.data.name} → ${target.data.name} (${damage})`;
+          let logMsg = `${unit.data.name} → ${target.data.name} (${damage}${isCrit ? ' 크리!' : ''}${isDouble ? ' 2연격' : ''})`;
 
           if (target.hp <= 0) {
             target.hp = 0;

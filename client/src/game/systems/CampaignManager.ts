@@ -15,7 +15,7 @@ function createDefaultPlayerUnits(): UnitData[] {
       promotionLevel: 0,
       equipment: { weapon: 'steel_sword', armor: 'iron_armor' },
       position: { x: 0, y: 0 },
-      stats: { maxHp: 200, hp: 200, attack: 48, defense: 25, speed: 6, moveRange: 6, attackRange: 1 },
+      stats: { maxHp: 200, hp: 200, attack: 48, defense: 25, spirit: 15, agility: 30, critical: 40, morale: 50, speed: 6, penetration: 10, resist: 20, moveRange: 6, attackRange: 1 },
       hasActed: false, isAlive: true,
     },
     {
@@ -27,7 +27,7 @@ function createDefaultPlayerUnits(): UnitData[] {
       promotionLevel: 0,
       equipment: { weapon: 'iron_spear', armor: 'iron_armor' },
       position: { x: 0, y: 0 },
-      stats: { maxHp: 160, hp: 160, attack: 40, defense: 20, speed: 5, moveRange: 6, attackRange: 1 },
+      stats: { maxHp: 160, hp: 160, attack: 40, defense: 20, spirit: 12, agility: 35, critical: 30, morale: 35, speed: 5, penetration: 5, resist: 15, moveRange: 6, attackRange: 1 },
       hasActed: false, isAlive: true,
     },
     {
@@ -39,7 +39,7 @@ function createDefaultPlayerUnits(): UnitData[] {
       promotionLevel: 0,
       equipment: { weapon: 'steel_sword', armor: 'leather_armor' },
       position: { x: 0, y: 0 },
-      stats: { maxHp: 170, hp: 170, attack: 38, defense: 28, speed: 4, moveRange: 4, attackRange: 1 },
+      stats: { maxHp: 170, hp: 170, attack: 38, defense: 28, spirit: 10, agility: 20, critical: 25, morale: 45, speed: 4, penetration: 15, resist: 30, moveRange: 4, attackRange: 1 },
       hasActed: false, isAlive: true,
     },
   ];
