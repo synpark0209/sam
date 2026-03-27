@@ -672,15 +672,28 @@ export class LobbyScene extends Phaser.Scene {
 
   private showGacha(): void {
     this.children.removeAll();
-    this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GW, GH);
+    const bg = this.add.graphics();
+    bg.fillGradientStyle(0x1a0a2e, 0x1a0a2e, 0x0c1220, 0x0c1220, 1);
+    bg.fillRect(0, 0, GW, GH);
 
-    this.add.text(GW / 2, 20, '🎰 장수 뽑기', {
-      fontSize: '24px', color: '#ffd700', fontStyle: 'bold',
+    // 장식 파티클
+    for (let i = 0; i < 15; i++) {
+      const s = this.add.graphics();
+      s.fillStyle(0xffd700, Math.random() * 0.3 + 0.1);
+      s.fillCircle(Math.random() * GW, Math.random() * GH * 0.3, Math.random() * 2 + 0.5);
+      this.tweens.add({ targets: s, alpha: { from: 0.3, to: 0.05 }, duration: 1500 + Math.random() * 1500, yoyo: true, repeat: -1 });
+    }
+
+    this.add.text(GW / 2, 18, '🎰 장수 뽑기', {
+      fontSize: '20px', color: '#ffd700', fontStyle: 'bold',
+      stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0.5);
 
-    const backBtn = this.add.text(20, 15, '← 뒤로', {
-      fontSize: '14px', color: '#aaaaaa', backgroundColor: '#1a1a3a', padding: { x: 8, y: 4 },
-    }).setInteractive({ useHandCursor: true });
+    const backBg = this.add.graphics();
+    backBg.fillStyle(0x1a1a3a, 1).fillRoundedRect(10, 8, 55, 24, 6);
+    const backBtn = this.add.text(37, 20, '← 홈', {
+      fontSize: '11px', color: '#88aacc',
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     backBtn.on('pointerdown', () => this.showMainMenu());
 
     // 서버에서 재화 상태 로드
@@ -697,16 +710,15 @@ export class LobbyScene extends Phaser.Scene {
   }
 
   private renderGachaUI(gems: number, gold: number, pity: number): void {
-    this.add.text(GW / 2, 55, `💎 보석: ${gems}    💰 금화: ${gold}`, {
-      fontSize: '12px', color: '#aaddff',
-    }).setOrigin(0.5);
+    // 재화 카드
+    const infoBg = this.add.graphics();
+    infoBg.fillStyle(0x141428, 0.9).fillRoundedRect(15, 45, GW - 30, 35, 6);
+    this.add.text(30, 55, `💎 ${gems}`, { fontSize: '13px', color: '#88ccff' });
+    this.add.text(GW / 2, 55, `💰 ${gold}`, { fontSize: '13px', color: '#ffd700' }).setOrigin(0.5, 0);
+    this.add.text(GW - 30, 55, `천장: ${90 - pity}`, { fontSize: '11px', color: '#888888' }).setOrigin(1, 0);
 
-    this.add.text(GW / 2, 75, `천장까지: ${90 - pity}회`, {
-      fontSize: '11px', color: '#888888',
-    }).setOrigin(0.5);
-
-    this.add.text(GW / 2, 95, '프리미엄: UR 5% | SSR 20% | SR 75%', {
-      fontSize: '10px', color: '#666666',
+    this.add.text(GW / 2, 88, '프리미엄: UR 5% | SSR 20% | SR 75%', {
+      fontSize: '9px', color: '#555555',
     }).setOrigin(0.5);
 
     // 프리미엄 1회

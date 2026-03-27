@@ -72,15 +72,20 @@ export class DailyDungeonScene extends Phaser.Scene {
 
   private showDungeonList(): void {
     this.children.removeAll();
-    this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GW, GH);
+    const bg = this.add.graphics();
+    bg.fillGradientStyle(0x0c1a10, 0x0c1a10, 0x0c1220, 0x0c1220, 1);
+    bg.fillRect(0, 0, GW, GH);
 
-    this.add.text(GW / 2, 15, '🏰 일일 던전', {
-      fontSize: '22px', color: '#ffd700', fontStyle: 'bold',
+    this.add.text(GW / 2, 18, '🏰 일일 던전', {
+      fontSize: '20px', color: '#ffd700', fontStyle: 'bold',
+      stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0.5);
 
-    const backBtn = this.add.text(20, 10, '← 뒤로', {
-      fontSize: '12px', color: '#aaaaaa', backgroundColor: '#1a1a3a', padding: { x: 6, y: 4 },
-    }).setInteractive({ useHandCursor: true });
+    const backBg = this.add.graphics();
+    backBg.fillStyle(0x1a1a3a, 1).fillRoundedRect(10, 8, 55, 24, 6);
+    const backBtn = this.add.text(37, 20, '← 홈', {
+      fontSize: '11px', color: '#88aacc',
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     backBtn.on('pointerdown', () => this.scene.start('LobbyScene', { campaignManager: this.campaignManager }));
 
     // 스태미나 표시
