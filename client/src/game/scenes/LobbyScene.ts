@@ -180,66 +180,78 @@ export class LobbyScene extends Phaser.Scene {
   private showHeroes(): void {
     this.children.removeAll();
 
-    this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GW, GH);
+    const bg = this.add.graphics();
+    bg.fillGradientStyle(0x0c1220, 0x0c1220, 0x1a1a30, 0x1a1a30, 1);
+    bg.fillRect(0, 0, GW, GH);
 
-    this.add.text(GW / 2, 20, '장수 관리', {
-      fontSize: '24px', color: '#ffd700', fontStyle: 'bold',
+    this.add.text(GW / 2, 18, '👥 장수 관리', {
+      fontSize: '20px', color: '#ffd700', fontStyle: 'bold',
+      stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0.5);
 
     // 뒤로 버튼
-    const backBtn = this.add.text(20, 15, '← 뒤로', {
-      fontSize: '14px', color: '#aaaaaa', backgroundColor: '#1a1a3a', padding: { x: 8, y: 4 },
-    }).setInteractive({ useHandCursor: true });
+    const backBg = this.add.graphics();
+    backBg.fillStyle(0x1a1a3a, 1).fillRoundedRect(10, 8, 55, 24, 6);
+    const backBtn = this.add.text(37, 20, '← 홈', {
+      fontSize: '11px', color: '#88aacc',
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     backBtn.on('pointerdown', () => this.showMainMenu());
 
     const units = this.campaignManager.getProgress().playerUnits;
+    this.add.text(GW / 2, 40, `보유 장수: ${units.length}명`, {
+      fontSize: '10px', color: '#888888',
+    }).setOrigin(0.5);
+
     const startY = 55;
-    const cardH = 65;
+    const cardH = 58;
 
     for (let i = 0; i < units.length; i++) {
       const unit = units[i];
       const y = startY + i * cardH;
-
-      // 카드 배경
-      const cardBg = this.add.graphics();
-      const isPlayer = unit.faction === 'player';
-      cardBg.fillStyle(isPlayer ? 0x1a2a3a : 0x3a1a1a, 1);
-      cardBg.fillRoundedRect(15, y, GW - 30, cardH - 5, 6);
-      cardBg.lineStyle(1, isPlayer ? 0x3366aa : 0x663333, 1);
-      cardBg.strokeRoundedRect(15, y, GW - 30, cardH - 5, 6);
-
-      // 등급 + 이름 + 병종
-      const cls = unit.unitClass ? UNIT_CLASS_DEFS[unit.unitClass] : null;
-      const className = unit.promotionClass ?? cls?.name ?? '';
       const grade = unit.grade ?? 'N';
-      const gradeColor = getGradeColor(grade as HeroGrade);
+      const gradeColor = Phaser.Display.Color.HexStringToColor(getGradeColor(grade as HeroGrade)).color;
 
-      this.add.text(25, y + 8, `[${grade}]`, {
-        fontSize: '13px', color: gradeColor, fontStyle: 'bold',
-      });
-      this.add.text(55, y + 8, `${unit.name}`, {
-        fontSize: '16px', color: '#ffffff', fontStyle: 'bold',
-      });
-      this.add.text(25, y + 28, `${className} Lv.${unit.level ?? 1}`, {
-        fontSize: '11px', color: '#88aacc',
+      // 카드 + 등급 색상 왼쪽 바
+      const card = this.add.graphics();
+      card.fillStyle(0x141428, 1).fillRoundedRect(15, y, GW - 30, cardH - 4, 6);
+      card.fillStyle(gradeColor, 1).fillRect(15, y + 6, 4, cardH - 16);
+      card.lineStyle(1, 0x2a2a44, 0.6).strokeRoundedRect(15, y, GW - 30, cardH - 4, 6);
+
+      // 병종 아이콘
+      const clsIcons: Record<string, string> = {
+        cavalry: '🐎', infantry: '🛡️', archer: '🏹',
+        strategist: '📜', martial_artist: '👊', bandit: '🗡️',
+      };
+      const cls = unit.unitClass ?? 'infantry';
+      this.add.text(28, y + (cardH - 4) / 2, clsIcons[cls] ?? '⚔️', {
+        fontSize: '18px',
+      }).setOrigin(0, 0.5);
+
+      // 등급 + 이름
+      this.add.text(50, y + 10, `[${grade}] ${unit.name}`, {
+        fontSize: '13px', color: '#ffffff', fontStyle: 'bold',
       });
 
-      // HP/MP
-      this.add.text(160, y + 8, `HP:${unit.stats.maxHp}  ATK:${unit.stats.attack}`, {
-        fontSize: '10px', color: '#aaaaaa',
-      });
-      this.add.text(160, y + 22, `DEF:${unit.stats.defense}  SPD:${unit.stats.speed}`, {
-        fontSize: '10px', color: '#aaaaaa',
-      });
-      this.add.text(160, y + 36, `MP:${unit.maxMp ?? 0}`, {
-        fontSize: '10px', color: '#8888cc',
+      // 병종 + 레벨
+      const className = unit.promotionClass ?? UNIT_CLASS_DEFS[unit.unitClass ?? 'infantry']?.name ?? '';
+      this.add.text(50, y + 28, `${className}  Lv.${unit.level ?? 1}`, {
+        fontSize: '9px', color: '#88aacc',
       });
 
-      // 상세 보기 버튼
-      const detailBtn = this.add.text(GW - 80, y + 18, '상세', {
-        fontSize: '12px', color: '#ffffff', backgroundColor: '#3366aa', padding: { x: 10, y: 6 },
-      }).setInteractive({ useHandCursor: true });
-      detailBtn.on('pointerdown', () => this.showHeroDetail(unit));
+      // 간략 스탯
+      this.add.text(50, y + 42, `ATK:${unit.stats.attack}  DEF:${unit.stats.defense}  HP:${unit.stats.maxHp}`, {
+        fontSize: '8px', color: '#666688',
+      });
+
+      // 상세 버튼
+      const detBg = this.add.graphics();
+      detBg.fillStyle(0x2a3a5a, 1).fillRoundedRect(GW - 72, y + 14, 48, 26, 5);
+      this.add.text(GW - 48, y + 27, '상세', {
+        fontSize: '11px', color: '#88ccff', fontStyle: 'bold',
+      }).setOrigin(0.5);
+      const hit = this.add.rectangle(GW - 48, y + 27, 48, 26, 0x000000, 0)
+        .setInteractive({ useHandCursor: true });
+      hit.on('pointerdown', () => this.showHeroDetail(unit));
     }
   }
 
@@ -248,60 +260,79 @@ export class LobbyScene extends Phaser.Scene {
   private showHeroDetail(unit: UnitData): void {
     this.children.removeAll();
 
-    this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GW, GH);
+    const bg = this.add.graphics();
+    bg.fillGradientStyle(0x0c1220, 0x0c1220, 0x1a1a30, 0x1a1a30, 1);
+    bg.fillRect(0, 0, GW, GH);
 
     // 뒤로 버튼
-    const backBtn = this.add.text(20, 15, '← 뒤로', {
-      fontSize: '14px', color: '#aaaaaa', backgroundColor: '#1a1a3a', padding: { x: 8, y: 4 },
-    }).setInteractive({ useHandCursor: true });
+    const backBg = this.add.graphics();
+    backBg.fillStyle(0x1a1a3a, 1).fillRoundedRect(10, 8, 55, 24, 6);
+    const backBtn = this.add.text(37, 20, '← 목록', {
+      fontSize: '11px', color: '#88aacc',
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     backBtn.on('pointerdown', () => this.showHeroes());
 
-    // 이름 + 병종
+    // 장수 헤더 카드
     const cls = unit.unitClass ? UNIT_CLASS_DEFS[unit.unitClass] : null;
     const className = unit.promotionClass ?? cls?.name ?? '';
     const detailGrade = unit.grade ?? 'N';
     const detailGradeColor = getGradeColor(detailGrade as HeroGrade);
-    this.add.text(GW / 2, 20, `[${detailGrade}] ${unit.name}`, {
-      fontSize: '26px', color: detailGradeColor, fontStyle: 'bold',
-    }).setOrigin(0.5);
-    this.add.text(GW / 2, 50, `${className}  Lv.${unit.level ?? 1}`, {
-      fontSize: '14px', color: '#88aacc',
+    const gradeNum = Phaser.Display.Color.HexStringToColor(detailGradeColor).color;
+
+    const headerBg = this.add.graphics();
+    headerBg.fillStyle(0x141428, 1).fillRoundedRect(15, 40, GW - 30, 55, 8);
+    headerBg.fillStyle(gradeNum, 1).fillRect(15, 46, 4, 42);
+    headerBg.lineStyle(1, gradeNum, 0.4).strokeRoundedRect(15, 40, GW - 30, 55, 8);
+
+    this.add.text(GW / 2, 54, `[${detailGrade}] ${unit.name}`, {
+      fontSize: '20px', color: detailGradeColor, fontStyle: 'bold',
+      stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5);
 
-    // 경험치 바
+    this.add.text(GW / 2, 76, `${className}  Lv.${unit.level ?? 1}`, {
+      fontSize: '12px', color: '#88aacc',
+    }).setOrigin(0.5);
+
+    // EXP 바
     const exp = unit.exp ?? 0;
-    this.add.text(GW / 2, 70, `EXP: ${exp} / 100`, {
-      fontSize: '11px', color: '#aaaaff',
-    }).setOrigin(0.5);
-    const barX = GW / 2 - 80;
-    const bg = this.add.graphics();
-    bg.fillStyle(0x333344, 1).fillRoundedRect(barX, 85, 160, 8, 4);
-    const fg = this.add.graphics();
-    fg.fillStyle(0x6666cc, 1).fillRoundedRect(barX, 85, 160 * (exp / 100), 8, 4);
+    const expBarW = GW - 80;
+    const expBarX = 40;
+    this.add.graphics().fillStyle(0x222233, 1).fillRoundedRect(expBarX, 95, expBarW, 6, 3);
+    this.add.graphics().fillStyle(0x6666cc, 1).fillRoundedRect(expBarX, 95, expBarW * (exp / 100), 6, 3);
+    this.add.text(GW - 38, 92, `${exp}/100`, { fontSize: '8px', color: '#8888aa' });
 
-    // 스탯
-    const sy = 105;
-    const statStyle = { fontSize: '13px', color: '#ffffff' };
-    const valStyle = { fontSize: '13px', color: '#ffdd88' };
-    const stats = [
-      ['HP', unit.stats.maxHp], ['공격', unit.stats.attack],
-      ['방어', unit.stats.defense], ['속도', unit.stats.speed],
-      ['이동', unit.stats.moveRange], ['사거리', unit.stats.attackRange],
-      ['MP', unit.maxMp ?? 0],
+    // 스탯 카드
+    const statBg = this.add.graphics();
+    statBg.fillStyle(0x141428, 1).fillRoundedRect(15, 108, GW - 30, 70, 6);
+
+    const statData = [
+      { label: 'HP', value: unit.stats.maxHp, color: '#44ff44' },
+      { label: '공격', value: unit.stats.attack, color: '#ff6644' },
+      { label: '방어', value: unit.stats.defense, color: '#4488ff' },
+      { label: '정신', value: unit.stats.spirit ?? 0, color: '#cc88ff' },
+      { label: '민첩', value: unit.stats.agility ?? 0, color: '#44ccaa' },
+      { label: '순발', value: unit.stats.critical ?? 0, color: '#ffaa44' },
+      { label: '속도', value: unit.stats.speed, color: '#88ccff' },
+      { label: '관통', value: unit.stats.penetration ?? 0, color: '#ff8844' },
     ];
-    for (let i = 0; i < stats.length; i++) {
-      const col = i < 4 ? 0 : 1;
-      const row = i < 4 ? i : i - 4;
-      const x = 40 + col * (GW / 2 - 20);
-      const y = sy + row * 22;
-      this.add.text(x, y, `${stats[i][0]}:`, statStyle);
-      this.add.text(x + 60, y, `${stats[i][1]}`, valStyle);
+
+    for (let i = 0; i < statData.length; i++) {
+      const col = i % 4;
+      const row = Math.floor(i / 4);
+      const x = 28 + col * ((GW - 56) / 4);
+      const y = 118 + row * 30;
+      this.add.text(x, y, statData[i].label, { fontSize: '9px', color: '#888888' });
+      this.add.text(x, y + 12, `${statData[i].value}`, {
+        fontSize: '12px', color: statData[i].color, fontStyle: 'bold',
+      });
     }
 
     // 스킬 섹션
-    const skillY = sy + 100;
-    this.add.text(30, skillY, '── 스킬 ──', {
-      fontSize: '14px', color: '#cc88ff', fontStyle: 'bold',
+    const skillY = 190;
+    const skillBg = this.add.graphics();
+    skillBg.fillStyle(0x141428, 1).fillRoundedRect(15, skillY, GW - 30, 20, 4);
+    this.add.text(25, skillY + 4, '✨ 스킬', {
+      fontSize: '11px', color: '#cc88ff', fontStyle: 'bold',
     });
 
     let skillRow = 0;
@@ -357,8 +388,10 @@ export class LobbyScene extends Phaser.Scene {
 
     // 장비 섹션
     const equipY = skillY + 22 + skillRow * 32 + 15;
-    this.add.text(30, equipY, '── 장비 ──', {
-      fontSize: '14px', color: '#44cc88', fontStyle: 'bold',
+    const equipBgCard = this.add.graphics();
+    equipBgCard.fillStyle(0x141428, 1).fillRoundedRect(15, equipY, GW - 30, 20, 4);
+    this.add.text(25, equipY + 4, '⚔️ 장비', {
+      fontSize: '11px', color: '#44cc88', fontStyle: 'bold',
     });
     const eq = unit.equipment;
     const slots: [string, string | undefined, 'weapon' | 'armor' | 'accessory'][] = [
@@ -403,30 +436,44 @@ export class LobbyScene extends Phaser.Scene {
 
   private showInventory(tab: 'equipment' | 'skill' | 'material'): void {
     this.children.removeAll();
-    this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GW, GH);
+    const bg = this.add.graphics();
+    bg.fillGradientStyle(0x0c1220, 0x0c1220, 0x1a1a30, 0x1a1a30, 1);
+    bg.fillRect(0, 0, GW, GH);
 
-    this.add.text(GW / 2, 20, '🎒 인벤토리', {
-      fontSize: '22px', color: '#ffd700', fontStyle: 'bold',
+    this.add.text(GW / 2, 18, '🎒 인벤토리', {
+      fontSize: '20px', color: '#ffd700', fontStyle: 'bold',
+      stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0.5);
 
-    const backBtn = this.add.text(20, 15, '← 뒤로', {
-      fontSize: '14px', color: '#aaaaaa', backgroundColor: '#1a1a3a', padding: { x: 8, y: 4 },
-    }).setInteractive({ useHandCursor: true });
+    const backBg = this.add.graphics();
+    backBg.fillStyle(0x1a1a3a, 1).fillRoundedRect(10, 8, 55, 24, 6);
+    const backBtn = this.add.text(37, 20, '← 홈', {
+      fontSize: '11px', color: '#88aacc',
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     backBtn.on('pointerdown', () => this.showMainMenu());
 
-    // 탭 버튼
-    const tabs: { label: string; key: 'equipment' | 'skill' | 'material'; x: number }[] = [
-      { label: '장비', key: 'equipment', x: GW * 0.2 },
-      { label: '스킬', key: 'skill', x: GW * 0.5 },
-      { label: '소재', key: 'material', x: GW * 0.8 },
+    // 탭 버튼 (카드 스타일)
+    const tabs: { label: string; icon: string; key: 'equipment' | 'skill' | 'material'; x: number }[] = [
+      { label: '장비', icon: '⚔️', key: 'equipment', x: GW * 0.17 },
+      { label: '스킬', icon: '✨', key: 'skill', x: GW * 0.5 },
+      { label: '소재', icon: '📦', key: 'material', x: GW * 0.83 },
     ];
     for (const t of tabs) {
       const isActive = tab === t.key;
-      const tabBtn = this.add.text(t.x, 50, t.label, {
-        fontSize: '14px', color: isActive ? '#ffffff' : '#666666',
-        backgroundColor: isActive ? '#3366aa' : '#1a1a3a', padding: { x: 14, y: 6 },
-      }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-      tabBtn.on('pointerdown', () => this.showInventory(t.key));
+      const tabW = (GW - 50) / 3;
+      const tabBg = this.add.graphics();
+      tabBg.fillStyle(isActive ? 0x2a3a5a : 0x141428, 1);
+      tabBg.fillRoundedRect(t.x - tabW / 2, 42, tabW, 28, 5);
+      if (isActive) {
+        tabBg.lineStyle(1.5, 0x4488cc, 0.8);
+        tabBg.strokeRoundedRect(t.x - tabW / 2, 42, tabW, 28, 5);
+      }
+      this.add.text(t.x, 56, `${t.icon} ${t.label}`, {
+        fontSize: '11px', color: isActive ? '#ffffff' : '#666666', fontStyle: isActive ? 'bold' : 'normal',
+      }).setOrigin(0.5);
+      const hit = this.add.rectangle(t.x, 56, tabW, 28, 0x000000, 0)
+        .setInteractive({ useHandCursor: true });
+      hit.on('pointerdown', () => this.showInventory(t.key));
     }
 
     const progress = this.campaignManager.getProgress();
