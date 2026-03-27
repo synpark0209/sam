@@ -12,6 +12,7 @@ import { getGradeColor } from '@shared/data/gachaDefs.ts';
 import type { HeroGrade } from '@shared/data/gachaDefs.ts';
 import { getTier, calculateEloChange, getNextTierProgress, DAILY_PVP_TICKETS } from '@shared/data/pvpDefs.ts';
 import { pvpRecordResult } from '../../api/client.ts';
+import { preloadUnitImages, hasUnitImage } from '../systems/UnitSpriteManager.ts';
 
 const GW = TILE_SIZE * MAP_WIDTH;
 const GH = TILE_SIZE * MAP_HEIGHT + 60;
@@ -58,6 +59,10 @@ export class PvPArenaScene extends Phaser.Scene {
 
   init(data: { campaignManager: CampaignManager }) {
     this.campaignManager = data.campaignManager;
+  }
+
+  preload(): void {
+    preloadUnitImages(this);
   }
 
   create(): void {
@@ -416,8 +421,8 @@ export class PvPArenaScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // 전장 배치 (왼쪽: 아군 후→전, 오른쪽: 적군 전→후)
-    const unitW = 58;
-    const unitH = 52;
+    const unitW = 56;
+    const unitH = 62;
     const gapX = 16;
     const playerStartX = GW / 2 - gapX - GRID_COLS * unitW;
     const enemyStartX = GW / 2 + gapX;
@@ -438,49 +443,82 @@ export class PvPArenaScene extends Phaser.Scene {
     for (const unit of this.battleUnits) {
       const isPlayer = unit.side === 'player';
       const baseX = isPlayer ? playerStartX : enemyStartX;
-      // 아군: col 0=후열(왼), 2=전열(오른) / 적군: col 반전
       const displayCol = isPlayer ? unit.col : (GRID_COLS - 1 - unit.col);
       const x = baseX + displayCol * unitW + unitW / 2;
       const y = fieldY + unit.row * unitH + unitH / 2;
 
       const container = this.add.container(x, y);
-
-      // 배경 (병종에 따라 색상)
       const cls = unit.data.unitClass ?? UnitClass.INFANTRY;
-      const clsColors: Record<string, number> = {
-        cavalry: 0x4a2a1a, infantry: 0x1a2a4a, archer: 0x1a4a2a,
-        strategist: 0x3a1a4a, martial_artist: 0x4a3a1a, bandit: 0x2a2a2a,
-      };
-      const bgColor = clsColors[cls] ?? 0x2a2a2a;
-      const bg = this.add.graphics();
-      bg.fillStyle(bgColor, 0.8).fillRoundedRect(-26, -22, 52, 44, 4);
-      bg.lineStyle(1, isPlayer ? 0x4488ff : 0xff4444, 0.6);
-      bg.strokeRoundedRect(-26, -22, 52, 44, 4);
-      container.add(bg);
+      const grade = unit.data.grade ?? 'N';
+      const gradeColor = Phaser.Display.Color.HexStringToColor(getGradeColor(grade as HeroGrade)).color;
 
-      // 병종 아이콘 + 이름
-      const clsIcons: Record<string, string> = {
-        cavalry: '🐎', infantry: '🛡️', archer: '🏹',
-        strategist: '📜', martial_artist: '👊', bandit: '🗡️',
-      };
-      const icon = clsIcons[cls] ?? '⚔️';
-      this.add.text(0, -14, icon, { fontSize: '14px' }).setOrigin(0.5);
-      container.add(container.getAt(container.length - 1));
+      // 초상화 크기
+      const portraitR = 22;
 
-      const nameText = this.add.text(0, 2, unit.data.name, {
-        fontSize: '9px', color: '#ffffff', fontStyle: 'bold',
+      // 원형 배경 (등급 색상)
+      const circleBg = this.add.graphics();
+      circleBg.fillStyle(0x111122, 1);
+      circleBg.fillCircle(0, -4, portraitR + 2);
+      circleBg.lineStyle(2, gradeColor, 1);
+      circleBg.strokeCircle(0, -4, portraitR + 2);
+      container.add(circleBg);
+
+      // 유닛 이미지 또는 병종 아이콘
+      const hasImage = hasUnitImage(this, cls, unit.data.faction ?? 'player');
+      if (hasImage) {
+        const imgKey = `unit_img_${cls}_${unit.data.faction ?? 'player'}`;
+        const portrait = this.add.sprite(0, -4, imgKey);
+        const tex = this.textures.get(imgKey);
+        const frame = tex.get(0);
+        const scale = (portraitR * 2) / Math.max(frame.width, frame.height);
+        portrait.setScale(scale);
+        // 원형 마스크
+        const maskShape = this.make.graphics({ x: container.x ?? x, y: container.y ?? y });
+        maskShape.fillCircle(0, -4, portraitR);
+        portrait.setMask(maskShape.createGeometryMask());
+        container.add(portrait);
+      } else {
+        // 병종 아이콘 (이미지 없을 때)
+        const clsIcons: Record<string, string> = {
+          cavalry: '🐎', infantry: '🛡️', archer: '🏹',
+          strategist: '📜', martial_artist: '👊', bandit: '🗡️',
+        };
+        const icon = clsIcons[cls] ?? '⚔️';
+        const iconText = this.add.text(0, -8, icon, { fontSize: '20px' }).setOrigin(0.5);
+        container.add(iconText);
+      }
+
+      // 진영 표시 (파란/빨간 작은 점)
+      const sideIndicator = this.add.graphics();
+      sideIndicator.fillStyle(isPlayer ? 0x4488ff : 0xff4444, 1);
+      sideIndicator.fillCircle(portraitR - 2, -portraitR + 2, 4);
+      container.add(sideIndicator);
+
+      // 이름 (초상화 아래)
+      const nameText = this.add.text(0, portraitR + 4, unit.data.name, {
+        fontSize: '8px', color: '#ffffff', fontStyle: 'bold',
+        stroke: '#000000', strokeThickness: 1,
       }).setOrigin(0.5);
       container.add(nameText);
 
       // HP 바 배경
       const hpBg = this.add.graphics();
-      hpBg.fillStyle(0x333333, 1).fillRect(-22, 14, 44, 5);
+      hpBg.fillStyle(0x333333, 1).fillRoundedRect(-22, portraitR + 14, 44, 5, 2);
       container.add(hpBg);
 
       // HP 바
       const hpBar = this.add.graphics();
-      hpBar.fillStyle(0x00ff00, 1).fillRect(-22, 14, 44, 5);
+      hpBar.fillStyle(0x00ff00, 1).fillRoundedRect(-22, portraitR + 14, 44, 5, 2);
       container.add(hpBar);
+
+      // MP 바 (작게)
+      const mpBg = this.add.graphics();
+      mpBg.fillStyle(0x222233, 1).fillRoundedRect(-22, portraitR + 20, 44, 3, 1);
+      container.add(mpBg);
+      const mpBar = this.add.graphics();
+      const mpRatio = unit.mp / Math.max(1, unit.maxMp);
+      mpBar.fillStyle(0x4488ff, 1).fillRoundedRect(-22, portraitR + 20, 44 * mpRatio, 3, 1);
+      container.add(mpBar);
 
       unit.sprite = container;
     }
@@ -676,19 +714,25 @@ export class PvPArenaScene extends Phaser.Scene {
       });
     };
 
+    const portraitR = 22;
     const updateHpBars = () => {
       for (const unit of this.battleUnits) {
         if (!unit.sprite) continue;
-        // HP 바는 컨테이너의 마지막 요소
-        const hpBar = unit.sprite.getAt(unit.sprite.length - 1) as Phaser.GameObjects.Graphics;
+        const len = unit.sprite.length;
+        // HP 바 = 끝에서 3번째, MP 바 = 끝에서 1번째
+        const hpBar = unit.sprite.getAt(len - 3) as Phaser.GameObjects.Graphics;
+        const mpBar = unit.sprite.getAt(len - 1) as Phaser.GameObjects.Graphics;
         hpBar.clear();
+        mpBar.clear();
         if (unit.alive) {
-          const ratio = unit.hp / unit.maxHp;
-          const color = ratio > 0.5 ? 0x00ff00 : ratio > 0.25 ? 0xffff00 : 0xff0000;
-          hpBar.fillStyle(color, 1).fillRect(-22, 14, 44 * ratio, 5);
+          const hpRatio = unit.hp / unit.maxHp;
+          const hpColor = hpRatio > 0.5 ? 0x00ff00 : hpRatio > 0.25 ? 0xffff00 : 0xff0000;
+          hpBar.fillStyle(hpColor, 1).fillRoundedRect(-22, portraitR + 14, 44 * hpRatio, 5, 2);
+          const mpRatio = unit.mp / Math.max(1, unit.maxMp);
+          mpBar.fillStyle(0x4488ff, 1).fillRoundedRect(-22, portraitR + 20, 44 * mpRatio, 3, 1);
         }
         if (!unit.alive) {
-          unit.sprite.setAlpha(0.2);
+          unit.sprite.setAlpha(0.15);
         }
       }
     };
