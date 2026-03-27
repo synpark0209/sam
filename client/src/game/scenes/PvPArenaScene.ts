@@ -523,6 +523,15 @@ export class PvPArenaScene extends Phaser.Scene {
       unit.sprite = container;
     }
 
+    // 배속 버튼
+    const speedBtn = this.add.text(GW - 40, 10, '1x', {
+      fontSize: '14px', color: '#ffffff', backgroundColor: '#000000cc', padding: { x: 8, y: 4 },
+    }).setInteractive({ useHandCursor: true }).setDepth(50);
+    speedBtn.on('pointerdown', () => {
+      this.battleSpeed = this.battleSpeed === 1 ? 2 : this.battleSpeed === 2 ? 3 : 1;
+      speedBtn.setText(`${this.battleSpeed}x`);
+    });
+
     // 전투 로그 영역
     const logBg = this.add.graphics();
     logBg.fillStyle(0x0a0a0a, 0.8).fillRoundedRect(10, GH - 130, GW - 20, 120, 6);
@@ -769,7 +778,7 @@ export class PvPArenaScene extends Phaser.Scene {
           const e = this.battleUnits.filter(u => u.side === 'enemy' && u.alive);
           if (p.length === 0) { this.time.delayedCall(300, () => this.endBattle('lose')); return; }
           if (e.length === 0) { this.time.delayedCall(300, () => this.endBattle('win')); return; }
-          this.time.delayedCall(400 / this.battleSpeed, doTurn);
+          this.time.delayedCall(800 / this.battleSpeed, doTurn);
           return;
         }
 
@@ -781,7 +790,7 @@ export class PvPArenaScene extends Phaser.Scene {
         const skillResult = this.tryUseSkill(unit, this.battleUnits);
         if (skillResult) {
           attackAnim(unit, skillResult.target);
-          this.time.delayedCall(100 / this.battleSpeed, () => {
+          this.time.delayedCall(400 / this.battleSpeed, () => {
             showLabel(unit, `✨${skillResult.skillName}`, '#cc88ff');
 
             if (skillResult.type === 'heal') {
@@ -803,7 +812,7 @@ export class PvPArenaScene extends Phaser.Scene {
             }
 
             updateHpBars();
-            this.time.delayedCall(300 / this.battleSpeed, doAction);
+            this.time.delayedCall(600 / this.battleSpeed, doAction);
           });
           return;
         }
@@ -849,11 +858,11 @@ export class PvPArenaScene extends Phaser.Scene {
         // 애니메이션
         attackAnim(unit, target);
 
-        this.time.delayedCall(100 / this.battleSpeed, () => {
+        this.time.delayedCall(400 / this.battleSpeed, () => {
           if (missed) {
             showLabel(target, 'MISS', '#888888');
             addLog(`${unit.data.name} → ${target.data.name} (빗나감!)`);
-            this.time.delayedCall(250 / this.battleSpeed, doAction);
+            this.time.delayedCall(500 / this.battleSpeed, doAction);
             return;
           }
 
@@ -878,7 +887,7 @@ export class PvPArenaScene extends Phaser.Scene {
           addLog(logMsg);
           updateHpBars();
 
-          this.time.delayedCall(250 / this.battleSpeed, doAction);
+          this.time.delayedCall(500 / this.battleSpeed, doAction);
         });
       };
 
