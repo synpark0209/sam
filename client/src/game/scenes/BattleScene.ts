@@ -16,6 +16,7 @@ import {
 } from '../systems/SpriteGenerator.ts';
 import {
   preloadUnitImages, hasUnitImage, createImageSprite, playImageAnim,
+  hasSpriteSheet, createSpriteSheetSprite, playSpriteSheetAnim, createSpriteSheetAnimations,
 } from '../systems/UnitSpriteManager.ts';
 import { TEST_MAP, TEST_UNITS } from '../data/testBattle.ts';
 import { EventBus } from '../EventBus.ts';
@@ -73,6 +74,7 @@ export class BattleScene extends Phaser.Scene {
   private actionMenu: Phaser.GameObjects.Text[] = [];
   private _menuClickConsumed = false;
   private imageUnits: Set<string> = new Set();
+  private spriteSheetUnits: Map<string, string> = new Map();
 
   // 자동 전투 / 배속
   private autoMode = false;
@@ -141,6 +143,7 @@ export class BattleScene extends Phaser.Scene {
     this.preMovePosition = null;
     this.unitSprites = new Map();
     this.imageUnits = new Set();
+    this.spriteSheetUnits = new Map();
     this.actionMenu = [];
     this._menuClickConsumed = false;
     this.isDragging = false;
@@ -342,6 +345,7 @@ export class BattleScene extends Phaser.Scene {
       }
     }
     generateEffectSprites(this);
+    createSpriteSheetAnimations(this);
 
     for (const unit of this.battleState.units) {
       this.createUnitSprite(unit);
@@ -353,13 +357,18 @@ export class BattleScene extends Phaser.Scene {
     const container = this.add.container(x, y);
 
     const uc = unit.unitClass ?? UnitClass.INFANTRY;
-    const useImage = hasUnitImage(this, uc, unit.faction);
 
     let sprite: Phaser.GameObjects.Sprite;
-    if (useImage) {
+    // 1. 스프라이트 시트 (장수별)
+    if (hasSpriteSheet(this, unit.id)) {
+      sprite = createSpriteSheetSprite(this, unit.id)!;
+      this.spriteSheetUnits.set(unit.id, unit.id);
+    // 2. 단일 이미지 (병종별)
+    } else if (hasUnitImage(this, uc, unit.faction)) {
       sprite = createImageSprite(this, uc, unit.faction)!;
       this.imageUnits.add(unit.id);
       playImageAnim(this, container, sprite, 'idle');
+    // 3. 프로시저럴
     } else {
       const texKey = `unit_${uc}_${unit.faction}`;
       sprite = this.add.sprite(0, 0, texKey, 0);
@@ -423,7 +432,9 @@ export class BattleScene extends Phaser.Scene {
     if (!container) return;
     const sprite = container.getAt(0) as Phaser.GameObjects.Sprite;
 
-    if (this.imageUnits.has(unit.id)) {
+    if (this.spriteSheetUnits.has(unit.id)) {
+      playSpriteSheetAnim(this, sprite, this.spriteSheetUnits.get(unit.id)!, anim);
+    } else if (this.imageUnits.has(unit.id)) {
       playImageAnim(this, container, sprite, anim);
     } else {
       const uc = unit.unitClass ?? UnitClass.INFANTRY;
