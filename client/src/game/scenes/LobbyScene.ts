@@ -35,25 +35,22 @@ export class LobbyScene extends Phaser.Scene {
 
   private showMainMenu(): void {
     this.children.removeAll();
-
-    // 배경
-    this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GW, GH);
-
-    // 타이틀
-    this.add.text(GW / 2, 30, '방구석 여포뎐', {
-      fontSize: '28px', color: '#ffd700', fontStyle: 'bold',
-    }).setOrigin(0.5);
-
-    // 유저 정보
     const progress = this.campaignManager.getProgress();
-    this.add.text(GW / 2, 60, `금: ${progress.gold}  |  장수: ${progress.playerUnits.length}명`, {
-      fontSize: '12px', color: '#aaaaaa',
-    }).setOrigin(0.5);
+
+    // 배경 그라데이션
+    const bg = this.add.graphics();
+    bg.fillGradientStyle(0x0c1220, 0x0c1220, 0x1a0a2e, 0x1a0a2e, 1);
+    bg.fillRect(0, 0, GW, GH);
+
+    // 상단 장식선
+    const topLine = this.add.graphics();
+    topLine.fillGradientStyle(0xffd700, 0xffa500, 0xffa500, 0xffd700, 1);
+    topLine.fillRect(0, 0, GW, 3);
 
     // 음소거 버튼
     const audio = this.registry.get('audioManager') as AudioManager;
-    const muteBtn = this.add.text(10, 10, audio?.isMuted() ? '🔇' : '🔊', {
-      fontSize: '20px',
+    const muteBtn = this.add.text(GW - 35, 12, audio?.isMuted() ? '🔇' : '🔊', {
+      fontSize: '18px',
     }).setInteractive({ useHandCursor: true }).setDepth(100);
     muteBtn.on('pointerdown', () => {
       if (!audio) return;
@@ -62,45 +59,120 @@ export class LobbyScene extends Phaser.Scene {
       if (!audio.isMuted()) audio.playBgm('title');
     });
 
-    // 메인 메뉴 버튼들
-    const btnStyle = {
-      fontSize: '18px', color: '#ffffff', backgroundColor: '#2a2a4a',
-      padding: { x: 30, y: 12 },
-    };
-    const btnHover = '#3a3a5a';
-    const btnNormal = '#2a2a4a';
+    // 타이틀
+    this.add.text(GW / 2, 28, '방구석 여포뎐', {
+      fontSize: '26px', color: '#ffd700', fontStyle: 'bold',
+      stroke: '#000000', strokeThickness: 4,
+    }).setOrigin(0.5);
 
-    const buttons: { label: string; y: number; color?: string; action: () => void }[] = [
-      { label: '📜 시나리오', y: GH * 0.22, action: () => this.startCampaign() },
-      { label: '⚔️ PvP 아레나', y: GH * 0.28, color: '#4a2a2a', action: () => this.startPvPArena() },
-      { label: '🏰 일일 던전', y: GH * 0.36, color: '#2a3a2a', action: () => this.startDailyDungeon() },
-      { label: '🎰 장수 뽑기', y: GH * 0.44, color: '#4a2a4a', action: () => this.showGacha() },
-      { label: '👥 장수 관리', y: GH * 0.52, action: () => this.showHeroes() },
-      { label: '🎒 인벤토리', y: GH * 0.60, action: () => this.showInventory('equipment') },
-      { label: '🏆 랭킹', y: GH * 0.68, action: () => this.scene.start('RankingScene') },
-      { label: '🚪 로그아웃', y: GH * 0.78, color: '#4a2a2a', action: () => this.logout() },
-    ];
+    // 유저 정보 카드
+    const cardY = 52;
+    const card = this.add.graphics();
+    card.fillStyle(0x1a1a3a, 0.8);
+    card.fillRoundedRect(20, cardY, GW - 40, 42, 8);
+    card.lineStyle(1, 0x4466aa, 0.5);
+    card.strokeRoundedRect(20, cardY, GW - 40, 42, 8);
 
-    for (const btn of buttons) {
-      const style = { ...btnStyle, backgroundColor: btn.color ?? btnNormal };
-      const text = this.add.text(GW / 2, btn.y, btn.label, style)
-        .setOrigin(0.5).setInteractive({ useHandCursor: true });
-      text.on('pointerover', () => text.setStyle({ backgroundColor: btnHover }));
-      text.on('pointerout', () => text.setStyle({ backgroundColor: btn.color ?? btnNormal }));
-      text.on('pointerdown', btn.action);
+    this.add.text(35, cardY + 8, `💰 ${progress.gold}`, {
+      fontSize: '13px', color: '#ffd700',
+    });
+    this.add.text(GW / 2, cardY + 8, `👥 ${progress.playerUnits.length}명`, {
+      fontSize: '13px', color: '#88ccff',
+    }).setOrigin(0.5, 0);
+    this.add.text(GW - 35, cardY + 8, `⚡ ${progress.stamina ?? 120}`, {
+      fontSize: '13px', color: '#44ff44',
+    }).setOrigin(1, 0);
+
+    // 대표 장수 표시
+    const mainUnit = progress.playerUnits[0];
+    if (mainUnit) {
+      const cls = mainUnit.unitClass ? UNIT_CLASS_DEFS[mainUnit.unitClass]?.name ?? '' : '';
+      this.add.text(GW / 2, cardY + 28, `${mainUnit.name} (${cls} Lv.${mainUnit.level ?? 1})`, {
+        fontSize: '10px', color: '#888888',
+      }).setOrigin(0.5);
     }
 
-    // 하단 장수 요약
-    const unitSummary = progress.playerUnits
-      .map(u => {
-        const cls = u.unitClass ? UNIT_CLASS_DEFS[u.unitClass]?.name ?? '' : '';
-        const promo = u.promotionClass ?? cls;
-        return `${u.name}(${promo} Lv.${u.level ?? 1})`;
-      })
-      .join('  ');
-    this.add.text(GW / 2, GH - 20, unitSummary, {
-      fontSize: '10px', color: '#666666',
-    }).setOrigin(0.5);
+    // ── 메인 버튼 (2열 그리드) ──
+    const gridStartY = 105;
+    const btnW = (GW - 50) / 2;
+    const btnH = 52;
+    const gap = 8;
+
+    const mainButtons: { label: string; icon: string; color: number; borderColor: number; action: () => void }[] = [
+      { label: '시나리오', icon: '📜', color: 0x2a3a5a, borderColor: 0x4488cc, action: () => this.startCampaign() },
+      { label: 'PvP 아레나', icon: '⚔️', color: 0x5a2a2a, borderColor: 0xcc4444, action: () => this.startPvPArena() },
+      { label: '일일 던전', icon: '🏰', color: 0x2a4a2a, borderColor: 0x44aa44, action: () => this.startDailyDungeon() },
+      { label: '장수 뽑기', icon: '🎰', color: 0x4a2a5a, borderColor: 0xaa44cc, action: () => this.showGacha() },
+    ];
+
+    for (let i = 0; i < mainButtons.length; i++) {
+      const btn = mainButtons[i];
+      const col = i % 2;
+      const row = Math.floor(i / 2);
+      const x = 20 + col * (btnW + gap);
+      const y = gridStartY + row * (btnH + gap);
+
+      const btnBg = this.add.graphics();
+      btnBg.fillStyle(btn.color, 1);
+      btnBg.fillRoundedRect(x, y, btnW, btnH, 8);
+      btnBg.lineStyle(1.5, btn.borderColor, 0.8);
+      btnBg.strokeRoundedRect(x, y, btnW, btnH, 8);
+
+      this.add.text(x + 14, y + btnH / 2, btn.icon, {
+        fontSize: '22px',
+      }).setOrigin(0, 0.5);
+
+      this.add.text(x + 42, y + btnH / 2, btn.label, {
+        fontSize: '15px', color: '#ffffff', fontStyle: 'bold',
+      }).setOrigin(0, 0.5);
+
+      // 클릭 영역
+      const hitArea = this.add.rectangle(x + btnW / 2, y + btnH / 2, btnW, btnH, 0x000000, 0)
+        .setInteractive({ useHandCursor: true });
+      hitArea.on('pointerdown', btn.action);
+      hitArea.on('pointerover', () => btnBg.setAlpha(0.8));
+      hitArea.on('pointerout', () => btnBg.setAlpha(1));
+    }
+
+    // ── 하단 메뉴 (소형 버튼 4개) ──
+    const subY = gridStartY + 2 * (btnH + gap) + 15;
+    const subBtnW = (GW - 60) / 4;
+    const subBtnH = 50;
+
+    const subButtons: { label: string; icon: string; action: () => void }[] = [
+      { label: '장수', icon: '👥', action: () => this.showHeroes() },
+      { label: '인벤토리', icon: '🎒', action: () => this.showInventory('equipment') },
+      { label: '랭킹', icon: '🏆', action: () => this.scene.start('RankingScene') },
+      { label: '설정', icon: '⚙️', action: () => this.logout() },
+    ];
+
+    for (let i = 0; i < subButtons.length; i++) {
+      const btn = subButtons[i];
+      const x = 20 + i * (subBtnW + 7);
+
+      const subBg = this.add.graphics();
+      subBg.fillStyle(0x1a1a2e, 1);
+      subBg.fillRoundedRect(x, subY, subBtnW, subBtnH, 6);
+      subBg.lineStyle(1, 0x333355, 0.6);
+      subBg.strokeRoundedRect(x, subY, subBtnW, subBtnH, 6);
+
+      this.add.text(x + subBtnW / 2, subY + 16, btn.icon, {
+        fontSize: '18px',
+      }).setOrigin(0.5);
+
+      this.add.text(x + subBtnW / 2, subY + 38, btn.label, {
+        fontSize: '9px', color: '#aaaaaa',
+      }).setOrigin(0.5);
+
+      const hit = this.add.rectangle(x + subBtnW / 2, subY + subBtnH / 2, subBtnW, subBtnH, 0x000000, 0)
+        .setInteractive({ useHandCursor: true });
+      hit.on('pointerdown', btn.action);
+    }
+
+    // 하단 장식선
+    const bottomLine = this.add.graphics();
+    bottomLine.fillGradientStyle(0x4466aa, 0x6644aa, 0x6644aa, 0x4466aa, 0.3);
+    bottomLine.fillRect(0, GH - 2, GW, 2);
   }
 
   // ── 장수 관리 ──
