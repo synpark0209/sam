@@ -304,80 +304,138 @@ export class DailyDungeonScene extends Phaser.Scene {
     this.showWaveBattle(waveNum);
   }
 
+
+  private unitContainers: Map<string, Phaser.GameObjects.Container> = new Map();
+
   private showWaveBattle(waveNum: number): void {
     this.children.removeAll();
+    this.unitContainers.clear();
     const diff = this.selectedDifficulty!;
     const isBoss = waveNum === diff.waves;
 
-    this.add.graphics().fillStyle(isBoss ? 0x1a0a0a : 0x0a1a0a, 1).fillRect(0, 0, GW, GH);
+    // 배경
+    const bg = this.add.graphics();
+    bg.fillGradientStyle(isBoss ? 0x200a0a : 0x0a1a10, isBoss ? 0x200a0a : 0x0a1a10, 0x0a0a1a, 0x0a0a1a, 1);
+    bg.fillRect(0, 0, GW, GH);
 
-    this.add.text(GW / 2, 12, `Wave ${waveNum}/${diff.waves}${isBoss ? ' 🔥BOSS' : ''}`, {
-      fontSize: '16px', color: isBoss ? '#ff4444' : '#ffd700', fontStyle: 'bold',
+    // 중앙 전장 라인
+    const line = this.add.graphics();
+    line.lineStyle(1, 0x333344, 0.3);
+    line.lineBetween(GW / 2, 35, GW / 2, GH - 120);
+
+    // 웨이브 표시
+    this.add.text(GW / 2, 14, `⚔️ Wave ${waveNum}/${diff.waves}${isBoss ? ' 🔥BOSS' : ''}`, {
+      fontSize: '14px', color: isBoss ? '#ff4444' : '#ffd700', fontStyle: 'bold',
+      stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5);
 
     // 배속 버튼
     const speedBtn = this.add.text(GW - 40, 8, `${this.battleSpeed}x`, {
-      fontSize: '14px', color: '#ffffff', backgroundColor: '#000000cc', padding: { x: 8, y: 4 },
-    }).setInteractive({ useHandCursor: true });
+      fontSize: '13px', color: '#ffffff', backgroundColor: '#000000cc', padding: { x: 6, y: 4 },
+    }).setInteractive({ useHandCursor: true }).setDepth(50);
     speedBtn.on('pointerdown', () => {
       this.battleSpeed = this.battleSpeed === 1 ? 2 : this.battleSpeed === 2 ? 3 : 1;
       speedBtn.setText(`${this.battleSpeed}x`);
     });
 
-    // 유닛 표시 (좌: 아군, 우: 적)
+    // 아군 (좌측)
     const players = this.battleUnits.filter(u => u.side === 'player');
-    const enemies = this.battleUnits.filter(u => u.side === 'enemy');
+    const enemies = this.battleUnits.filter(u => u.side === 'enemy' && u.alive);
+    const unitH = 48;
+    const cardW = 125;
 
-    const drawUnits = (units: DungeonUnit[], startX: number, isPlayer: boolean) => {
-      for (let i = 0; i < units.length; i++) {
-        const u = units[i];
-        const y = 50 + i * 55;
+    for (let i = 0; i < players.length; i++) {
+      const u = players[i];
+      const y = 36 + i * unitH;
+      const c = this.createDungeonUnitCard(u, 10, y, cardW, true);
+      this.unitContainers.set(u.data.id, c);
+    }
 
-        const bg = this.add.graphics();
-        bg.fillStyle(isPlayer ? 0x1a2a4a : 0x4a1a1a, 0.7).fillRoundedRect(startX, y, 120, 48, 4);
-
-        this.add.text(startX + 5, y + 4, u.data.name, {
-          fontSize: '11px', color: '#ffffff', fontStyle: 'bold',
-        });
-
-        const cls = u.data.unitClass ? UNIT_CLASS_DEFS[u.data.unitClass]?.name ?? '' : '';
-        this.add.text(startX + 5, y + 18, cls, { fontSize: '8px', color: '#888888' });
-
-        // HP 바
-        const hpBg = this.add.graphics();
-        hpBg.fillStyle(0x333333, 1).fillRect(startX + 5, y + 32, 110, 5);
-        const hpBar = this.add.graphics();
-        const hpRatio = u.hp / u.maxHp;
-        hpBar.fillStyle(hpRatio > 0.5 ? 0x00ff00 : hpRatio > 0.25 ? 0xffff00 : 0xff0000, 1);
-        hpBar.fillRect(startX + 5, y + 32, 110 * hpRatio, 5);
-
-        this.add.text(startX + 70, y + 4, `${u.hp}/${u.maxHp}`, {
-          fontSize: '8px', color: '#aaaaaa',
-        });
-
-        if (!u.alive) bg.setAlpha(0.3);
-      }
-    };
-
-    drawUnits(players, 10, true);
-    drawUnits(enemies, GW - 140, false);
-
-    // VS
-    this.add.text(GW / 2, GH * 0.35, 'VS', {
-      fontSize: '24px', color: '#ff4444', fontStyle: 'bold',
-    }).setOrigin(0.5);
+    // 적군 (우측, 슬라이드 인)
+    for (let i = 0; i < enemies.length; i++) {
+      const u = enemies[i];
+      const y = 36 + i * unitH;
+      const c = this.createDungeonUnitCard(u, GW + 30, y, cardW, false);
+      this.unitContainers.set(u.data.id, c);
+      this.tweens.add({
+        targets: c, x: GW - cardW - 10, duration: 400, ease: 'Back.easeOut', delay: i * 100,
+      });
+    }
 
     // 전투 로그
     const logBg = this.add.graphics();
-    logBg.fillStyle(0x000000, 0.7).fillRoundedRect(10, GH - 110, GW - 20, 100, 6);
+    logBg.fillStyle(0x0a0a14, 0.85).fillRoundedRect(8, GH - 115, GW - 16, 108, 8);
+    logBg.lineStyle(1, 0x2a2a44, 0.5).strokeRoundedRect(8, GH - 115, GW - 16, 108, 8);
+    this.add.text(GW / 2, GH - 110, '── 전투 로그 ──', { fontSize: '9px', color: '#555566' }).setOrigin(0.5);
 
     const logTexts: Phaser.GameObjects.Text[] = [];
-    for (let i = 0; i < 4; i++) {
-      logTexts.push(this.add.text(20, GH - 100 + i * 20, '', { fontSize: '10px', color: '#aaaaaa' }));
+    for (let i = 0; i < 5; i++) {
+      logTexts.push(this.add.text(18, GH - 96 + i * 18, '', { fontSize: '10px', color: '#aaaaaa' }));
     }
 
-    // 자동 전투 실행
-    this.executeWaveBattle(waveNum, logTexts);
+    this.time.delayedCall(600 + enemies.length * 100, () => {
+      this.executeWaveBattle(waveNum, logTexts);
+    });
+  }
+
+  private createDungeonUnitCard(u: DungeonUnit, x: number, y: number, w: number, isPlayer: boolean): Phaser.GameObjects.Container {
+    const container = this.add.container(x, y);
+    const h = 42;
+
+    const card = this.add.graphics();
+    card.fillStyle(isPlayer ? 0x1a2a4a : 0x4a1a1a, 0.85);
+    card.fillRoundedRect(0, 0, w, h, 5);
+    card.lineStyle(1, isPlayer ? 0x3366aa : 0xaa3333, 0.5);
+    card.strokeRoundedRect(0, 0, w, h, 5);
+    container.add(card);
+
+    const clsIcons: Record<string, string> = {
+      cavalry: '🐎', infantry: '🛡️', archer: '🏹',
+      strategist: '📜', martial_artist: '👊', bandit: '🗡️',
+    };
+    const icon = this.add.text(6, h / 2, clsIcons[u.data.unitClass ?? 'infantry'] ?? '⚔️', { fontSize: '14px' }).setOrigin(0, 0.5);
+    container.add(icon);
+
+    const name = this.add.text(24, 5, u.data.name, { fontSize: '10px', color: '#ffffff', fontStyle: 'bold' });
+    container.add(name);
+
+    const hpText = this.add.text(w - 5, 5, `${u.hp}`, { fontSize: '8px', color: '#aaaaaa' }).setOrigin(1, 0);
+    container.add(hpText);
+
+    const hpBg = this.add.graphics();
+    hpBg.fillStyle(0x222233, 1).fillRoundedRect(24, 20, w - 30, 6, 3);
+    container.add(hpBg);
+
+    const hpBar = this.add.graphics();
+    const ratio = u.hp / u.maxHp;
+    hpBar.fillStyle(ratio > 0.5 ? 0x00ff00 : ratio > 0.25 ? 0xffff00 : 0xff0000, 1);
+    hpBar.fillRoundedRect(24, 20, (w - 30) * ratio, 6, 3);
+    container.add(hpBar);
+
+    const mpBar = this.add.graphics();
+    mpBar.fillStyle(0x4488ff, 1).fillRoundedRect(24, 28, (w - 30) * (u.mp / Math.max(1, u.maxMp)), 3, 2);
+    container.add(mpBar);
+
+    if (!u.alive) container.setAlpha(0.15);
+    return container;
+  }
+
+  private updateDungeonCards(): void {
+    for (const unit of this.battleUnits) {
+      const c = this.unitContainers.get(unit.data.id);
+      if (!c) continue;
+      const w = 125;
+      const hpBar = c.getAt(5) as Phaser.GameObjects.Graphics;
+      hpBar.clear();
+      if (unit.alive) {
+        const ratio = unit.hp / unit.maxHp;
+        hpBar.fillStyle(ratio > 0.5 ? 0x00ff00 : ratio > 0.25 ? 0xffff00 : 0xff0000, 1);
+        hpBar.fillRoundedRect(24, 20, (w - 30) * ratio, 6, 3);
+      }
+      const hpText = c.getAt(3) as Phaser.GameObjects.Text;
+      hpText.setText(`${Math.max(0, unit.hp)}`);
+      if (!unit.alive) c.setAlpha(0.15);
+    }
   }
 
   private executeWaveBattle(waveNum: number, logTexts: Phaser.GameObjects.Text[]): void {
@@ -444,16 +502,46 @@ export class DailyDungeonScene extends Phaser.Scene {
 
         const damage = missed ? 0 : Math.max(1, Math.floor(rawDmg * critMult));
 
-        this.time.delayedCall(300 / this.battleSpeed, () => {
+        // 공격 애니메이션: 유닛 전진 → 복귀
+        const atkContainer = this.unitContainers.get(unit.data.id);
+        const defContainer = this.unitContainers.get(target.data.id);
+        if (atkContainer) {
+          const origX = atkContainer.x;
+          const moveDir = unit.side === 'player' ? 30 : -30;
+          this.tweens.add({
+            targets: atkContainer, x: origX + moveDir, duration: 120 / this.battleSpeed, yoyo: true,
+          });
+        }
+
+        this.time.delayedCall(250 / this.battleSpeed, () => {
           if (missed) {
             addLog(`${unit.data.name} → ${target.data.name} (빗나감!)`);
+            // MISS 텍스트
+            if (defContainer) {
+              const missText = this.add.text(defContainer.x + 60, defContainer.y, 'MISS', {
+                fontSize: '12px', color: '#888888', fontStyle: 'bold',
+              }).setOrigin(0.5).setDepth(100);
+              this.tweens.add({ targets: missText, y: missText.y - 20, alpha: 0, duration: 600, onComplete: () => missText.destroy() });
+            }
           } else {
             target.hp -= damage;
             let msg = `${unit.data.name} → ${target.data.name} (${damage}${isCrit ? ' 크리!' : ''})`;
             if (target.hp <= 0) { target.hp = 0; target.alive = false; msg += ' 격파!'; }
             addLog(msg);
+            // 데미지 팝업
+            if (defContainer) {
+              const dmgColor = isCrit ? '#ffaa00' : '#ff4444';
+              const dmgText = this.add.text(defContainer.x + 60, defContainer.y, `-${damage}`, {
+                fontSize: '14px', color: dmgColor, fontStyle: 'bold', stroke: '#000000', strokeThickness: 2,
+              }).setOrigin(0.5).setDepth(100);
+              this.tweens.add({ targets: dmgText, y: dmgText.y - 25, alpha: 0, duration: 700, onComplete: () => dmgText.destroy() });
+              // 피격 흔들림
+              const ox = defContainer.x;
+              this.tweens.add({ targets: defContainer, x: ox + 4, duration: 40, yoyo: true, repeat: 3, onComplete: () => { defContainer.x = ox; } });
+            }
           }
-          this.time.delayedCall(200 / this.battleSpeed, doAction);
+          this.updateDungeonCards();
+          this.time.delayedCall(300 / this.battleSpeed, doAction);
         });
       };
 
