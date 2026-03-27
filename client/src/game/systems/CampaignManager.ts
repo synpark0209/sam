@@ -64,6 +64,11 @@ export class CampaignManager {
       equipmentBag: ['bronze_sword', 'leather_armor', 'war_drum'],
       skillBag: ['encourage', 'fortify', 'heal'],
       materialBag: {},
+      stamina: 120,
+      lastStaminaUpdate: Date.now(),
+      dungeonClears: {},
+      dungeonStars: {},
+      lastDungeonReset: new Date().toISOString().split('T')[0],
     };
   }
 

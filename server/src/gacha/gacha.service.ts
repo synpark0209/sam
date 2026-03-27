@@ -131,7 +131,7 @@ export class GachaService {
       // 세이브가 없으면 자동 생성
       save = this.saveRepo.create({
         userId,
-        campaignProgress: { currentChapterId: 'prologue', currentStageIdx: 0, completedStages: [], playerUnits: createDefaultUnits(), gold: 0, inventory: [], equipmentBag: ['bronze_sword', 'leather_armor', 'war_drum'], skillBag: ['encourage', 'fortify', 'heal'], materialBag: {} },
+        campaignProgress: { currentChapterId: 'prologue', currentStageIdx: 0, completedStages: [], playerUnits: createDefaultUnits(), gold: 0, inventory: [], equipmentBag: ['bronze_sword', 'leather_armor', 'war_drum'], skillBag: ['encourage', 'fortify', 'heal'], materialBag: {}, stamina: 120, lastStaminaUpdate: Date.now(), dungeonClears: {}, dungeonStars: {}, lastDungeonReset: new Date().toISOString().split('T')[0] },
         currentChapterId: 'prologue',
         currentStageIdx: 0,
         maxLevel: 1,
@@ -206,7 +206,7 @@ export class GachaService {
     if (!save) {
       save = this.saveRepo.create({
         userId,
-        campaignProgress: { currentChapterId: 'prologue', currentStageIdx: 0, completedStages: [], playerUnits: createDefaultUnits(), gold: 0, inventory: [], equipmentBag: ['bronze_sword', 'leather_armor', 'war_drum'], skillBag: ['encourage', 'fortify', 'heal'], materialBag: {} },
+        campaignProgress: { currentChapterId: 'prologue', currentStageIdx: 0, completedStages: [], playerUnits: createDefaultUnits(), gold: 0, inventory: [], equipmentBag: ['bronze_sword', 'leather_armor', 'war_drum'], skillBag: ['encourage', 'fortify', 'heal'], materialBag: {}, stamina: 120, lastStaminaUpdate: Date.now(), dungeonClears: {}, dungeonStars: {}, lastDungeonReset: new Date().toISOString().split('T')[0] },
         currentChapterId: 'prologue',
         currentStageIdx: 0,
         maxLevel: 1,

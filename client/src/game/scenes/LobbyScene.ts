@@ -72,12 +72,13 @@ export class LobbyScene extends Phaser.Scene {
 
     const buttons: { label: string; y: number; color?: string; action: () => void }[] = [
       { label: '📜 시나리오', y: GH * 0.22, action: () => this.startCampaign() },
-      { label: '⚔️ PvP 아레나', y: GH * 0.32, color: '#4a2a2a', action: () => this.startPvPArena() },
-      { label: '🎰 장수 뽑기', y: GH * 0.42, color: '#4a2a4a', action: () => this.showGacha() },
+      { label: '⚔️ PvP 아레나', y: GH * 0.28, color: '#4a2a2a', action: () => this.startPvPArena() },
+      { label: '🏰 일일 던전', y: GH * 0.36, color: '#2a3a2a', action: () => this.startDailyDungeon() },
+      { label: '🎰 장수 뽑기', y: GH * 0.44, color: '#4a2a4a', action: () => this.showGacha() },
       { label: '👥 장수 관리', y: GH * 0.52, action: () => this.showHeroes() },
-      { label: '🎒 인벤토리', y: GH * 0.62, action: () => this.showInventory('equipment') },
-      { label: '🏆 랭킹', y: GH * 0.72, action: () => this.scene.start('RankingScene') },
-      { label: '🚪 로그아웃', y: GH * 0.82, color: '#4a2a2a', action: () => this.logout() },
+      { label: '🎒 인벤토리', y: GH * 0.60, action: () => this.showInventory('equipment') },
+      { label: '🏆 랭킹', y: GH * 0.68, action: () => this.scene.start('RankingScene') },
+      { label: '🚪 로그아웃', y: GH * 0.78, color: '#4a2a2a', action: () => this.logout() },
     ];
 
     for (const btn of buttons) {
@@ -771,6 +772,10 @@ export class LobbyScene extends Phaser.Scene {
 
   private startCampaign(): void {
     this.scene.start('WorldMapScene', { campaignManager: this.campaignManager });
+  }
+
+  private startDailyDungeon(): void {
+    this.scene.start('DailyDungeonScene', { campaignManager: this.campaignManager });
   }
 
   private startPvPArena(): void {

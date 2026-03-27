@@ -45,4 +45,9 @@ export interface CampaignProgress {
   equipmentBag: string[];        // 보유 장비 ID 목록 (미장착)
   skillBag: string[];            // 보유 스킬 ID 목록 (미장착)
   materialBag: Record<string, number>; // 소재 (스킬서 등) {id: 수량}
+  stamina: number;                    // 현재 스태미나
+  lastStaminaUpdate: number;          // 마지막 스태미나 업데이트 시각 (ms)
+  dungeonClears: Record<string, number>; // 오늘 던전 클리어 횟수 {dungeonId_difficulty: count}
+  dungeonStars: Record<string, number>;  // 던전 최고 별 {dungeonId_difficulty: stars}
+  lastDungeonReset: string;           // 마지막 일일 리셋 날짜 (YYYY-MM-DD)
 }
