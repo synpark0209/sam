@@ -103,6 +103,96 @@ export const GACHA_HERO_POOL: GachaHeroDef[] = [
   { id: 'gacha_chengpu', name: '정보', grade: 'SR', unitClass: UnitClass.ARCHER,
     baseStats: { maxHp: 110, attack: 32, defense: 14, speed: 5, moveRange: 3, attackRange: 2 },
     maxMp: 12, defaultEquippedSkills: [] },
+
+  // ── 추가 SSR (4명) ──
+  { id: 'gacha_lvmeng', name: '여몽', grade: 'SSR', unitClass: UnitClass.INFANTRY,
+    uniqueSkill: 'lvmeng_stealth', baseStats: { maxHp: 170, attack: 38, defense: 24, speed: 5, moveRange: 4, attackRange: 1, spirit: 15, agility: 35, critical: 30, morale: 30, penetration: 15, resist: 20 },
+    maxMp: 15, defaultEquippedSkills: [] },
+  { id: 'gacha_zhanghe', name: '장합', grade: 'SSR', unitClass: UnitClass.CAVALRY,
+    uniqueSkill: 'zhanghe_tactics', baseStats: { maxHp: 165, attack: 42, defense: 20, speed: 6, moveRange: 6, attackRange: 1, spirit: 12, agility: 30, critical: 28, morale: 32, penetration: 10, resist: 12 },
+    maxMp: 12, defaultEquippedSkills: [] },
+  { id: 'gacha_weiyan', name: '위연', grade: 'SSR', unitClass: UnitClass.CAVALRY,
+    uniqueSkill: 'weiyan_ambush', baseStats: { maxHp: 175, attack: 44, defense: 18, speed: 6, moveRange: 6, attackRange: 1, spirit: 8, agility: 28, critical: 35, morale: 40, penetration: 12, resist: 8 },
+    maxMp: 12, defaultEquippedSkills: [] },
+  { id: 'gacha_taishici', name: '태사자', grade: 'SSR', unitClass: UnitClass.ARCHER,
+    uniqueSkill: 'taishici_duel', baseStats: { maxHp: 130, attack: 40, defense: 16, speed: 5, moveRange: 3, attackRange: 3, spirit: 10, agility: 38, critical: 35, morale: 30, penetration: 8, resist: 10 },
+    maxMp: 14, defaultEquippedSkills: [] },
+
+  // ── 추가 SR (7명) ──
+  { id: 'gacha_xuhuang', name: '서황', grade: 'SR', unitClass: UnitClass.INFANTRY,
+    baseStats: { maxHp: 155, attack: 36, defense: 26, speed: 4, moveRange: 4, attackRange: 1, spirit: 8, agility: 18, critical: 20, morale: 35, penetration: 10, resist: 25 },
+    maxMp: 8, defaultEquippedSkills: [] },
+  { id: 'gacha_zhangzhao', name: '장소', grade: 'SR', unitClass: UnitClass.STRATEGIST,
+    baseStats: { maxHp: 90, attack: 18, defense: 10, speed: 3, moveRange: 3, attackRange: 1, spirit: 35, agility: 15, critical: 10, morale: 20, penetration: 0, resist: 25 },
+    maxMp: 30, defaultEquippedSkills: [] },
+  { id: 'gacha_masu', name: '마속', grade: 'SR', unitClass: UnitClass.STRATEGIST,
+    baseStats: { maxHp: 85, attack: 20, defense: 8, speed: 3, moveRange: 3, attackRange: 1, spirit: 32, agility: 18, critical: 12, morale: 18, penetration: 0, resist: 20 },
+    maxMp: 28, defaultEquippedSkills: [] },
+  { id: 'gacha_guanping', name: '관평', grade: 'SR', unitClass: UnitClass.INFANTRY,
+    baseStats: { maxHp: 148, attack: 35, defense: 22, speed: 4, moveRange: 4, attackRange: 1, spirit: 8, agility: 22, critical: 22, morale: 32, penetration: 8, resist: 18 },
+    maxMp: 8, defaultEquippedSkills: [] },
+  { id: 'gacha_zhangbao', name: '장포', grade: 'SR', unitClass: UnitClass.CAVALRY,
+    baseStats: { maxHp: 145, attack: 38, defense: 16, speed: 5, moveRange: 6, attackRange: 1, spirit: 8, agility: 26, critical: 28, morale: 30, penetration: 6, resist: 10 },
+    maxMp: 8, defaultEquippedSkills: [] },
+  { id: 'gacha_dingfeng', name: '정봉', grade: 'SR', unitClass: UnitClass.INFANTRY,
+    baseStats: { maxHp: 150, attack: 34, defense: 24, speed: 5, moveRange: 4, attackRange: 1, spirit: 8, agility: 28, critical: 25, morale: 30, penetration: 10, resist: 20 },
+    maxMp: 8, defaultEquippedSkills: [] },
+  { id: 'gacha_wenyang', name: '문앙', grade: 'SR', unitClass: UnitClass.CAVALRY,
+    baseStats: { maxHp: 155, attack: 40, defense: 16, speed: 6, moveRange: 6, attackRange: 1, spirit: 6, agility: 25, critical: 30, morale: 35, penetration: 8, resist: 8 },
+    maxMp: 8, defaultEquippedSkills: [] },
+
+  // ── R (17명) ──
+  { id: 'gacha_xiahoumao', name: '하후무', grade: 'R', unitClass: UnitClass.CAVALRY,
+    baseStats: { maxHp: 130, attack: 30, defense: 14, speed: 5, moveRange: 6, attackRange: 1 },
+    maxMp: 6, defaultEquippedSkills: [] },
+  { id: 'gacha_caozhen', name: '조진', grade: 'R', unitClass: UnitClass.INFANTRY,
+    baseStats: { maxHp: 135, attack: 28, defense: 20, speed: 4, moveRange: 4, attackRange: 1 },
+    maxMp: 6, defaultEquippedSkills: [] },
+  { id: 'gacha_yujin', name: '우금', grade: 'R', unitClass: UnitClass.INFANTRY,
+    baseStats: { maxHp: 130, attack: 26, defense: 22, speed: 4, moveRange: 4, attackRange: 1 },
+    maxMp: 6, defaultEquippedSkills: [] },
+  { id: 'gacha_wanglang', name: '왕랑', grade: 'R', unitClass: UnitClass.STRATEGIST,
+    baseStats: { maxHp: 70, attack: 16, defense: 6, speed: 3, moveRange: 3, attackRange: 1, spirit: 28, agility: 12, critical: 8, morale: 15 },
+    maxMp: 22, defaultEquippedSkills: [] },
+  { id: 'gacha_liyan', name: '이엄', grade: 'R', unitClass: UnitClass.INFANTRY,
+    baseStats: { maxHp: 128, attack: 28, defense: 20, speed: 4, moveRange: 4, attackRange: 1 },
+    maxMp: 6, defaultEquippedSkills: [] },
+  { id: 'gacha_mizhu', name: '미축', grade: 'R', unitClass: UnitClass.STRATEGIST,
+    baseStats: { maxHp: 68, attack: 14, defense: 6, speed: 3, moveRange: 3, attackRange: 1, spirit: 25, agility: 10, critical: 5, morale: 15 },
+    maxMp: 20, defaultEquippedSkills: [] },
+  { id: 'gacha_jianyong', name: '간옹', grade: 'R', unitClass: UnitClass.STRATEGIST,
+    baseStats: { maxHp: 65, attack: 14, defense: 5, speed: 3, moveRange: 3, attackRange: 1, spirit: 26, agility: 12, critical: 5, morale: 18 },
+    maxMp: 22, defaultEquippedSkills: [] },
+  { id: 'gacha_lvfan', name: '여범', grade: 'R', unitClass: UnitClass.STRATEGIST,
+    baseStats: { maxHp: 72, attack: 16, defense: 8, speed: 3, moveRange: 3, attackRange: 1, spirit: 24, agility: 14, critical: 8, morale: 16 },
+    maxMp: 20, defaultEquippedSkills: [] },
+  { id: 'gacha_zhoutai', name: '주태', grade: 'R', unitClass: UnitClass.INFANTRY,
+    baseStats: { maxHp: 140, attack: 30, defense: 22, speed: 4, moveRange: 4, attackRange: 1 },
+    maxMp: 6, defaultEquippedSkills: [] },
+  { id: 'gacha_panzh', name: '반장', grade: 'R', unitClass: UnitClass.CAVALRY,
+    baseStats: { maxHp: 125, attack: 30, defense: 12, speed: 5, moveRange: 6, attackRange: 1 },
+    maxMp: 6, defaultEquippedSkills: [] },
+  { id: 'gacha_handang', name: '한당', grade: 'R', unitClass: UnitClass.ARCHER,
+    baseStats: { maxHp: 90, attack: 26, defense: 10, speed: 5, moveRange: 3, attackRange: 2, agility: 28, critical: 22 },
+    maxMp: 8, defaultEquippedSkills: [] },
+  { id: 'gacha_zhangren', name: '장임', grade: 'R', unitClass: UnitClass.ARCHER,
+    baseStats: { maxHp: 88, attack: 28, defense: 10, speed: 5, moveRange: 3, attackRange: 2, agility: 25, critical: 20 },
+    maxMp: 8, defaultEquippedSkills: [] },
+  { id: 'gacha_gaolan', name: '고람', grade: 'R', unitClass: UnitClass.CAVALRY,
+    baseStats: { maxHp: 128, attack: 32, defense: 12, speed: 5, moveRange: 6, attackRange: 1 },
+    maxMp: 6, defaultEquippedSkills: [] },
+  { id: 'gacha_shenpei', name: '심배', grade: 'R', unitClass: UnitClass.STRATEGIST,
+    baseStats: { maxHp: 70, attack: 14, defense: 8, speed: 3, moveRange: 3, attackRange: 1, spirit: 26, agility: 10, critical: 6, morale: 20 },
+    maxMp: 22, defaultEquippedSkills: [] },
+  { id: 'gacha_chengyu', name: '정욱', grade: 'R', unitClass: UnitClass.STRATEGIST,
+    baseStats: { maxHp: 68, attack: 12, defense: 6, speed: 3, moveRange: 3, attackRange: 1, spirit: 30, agility: 12, critical: 5, morale: 18 },
+    maxMp: 24, defaultEquippedSkills: [] },
+  { id: 'gacha_zhangxiu', name: '장수', grade: 'R', unitClass: UnitClass.CAVALRY,
+    baseStats: { maxHp: 132, attack: 32, defense: 14, speed: 5, moveRange: 6, attackRange: 1 },
+    maxMp: 6, defaultEquippedSkills: [] },
+  { id: 'gacha_gongsunzan', name: '공손찬', grade: 'R', unitClass: UnitClass.CAVALRY,
+    baseStats: { maxHp: 135, attack: 30, defense: 16, speed: 5, moveRange: 6, attackRange: 1 },
+    maxMp: 6, defaultEquippedSkills: [] },
 ];
 
 // ═══════════════════════════════════════
@@ -146,17 +236,13 @@ export function getGradeColor(grade: HeroGrade): string {
   return GRADE_COLORS[grade];
 }
 
-/** 일반 뽑기 1회 (금화) */
+/** 일반 뽑기 1회 (금화) - R/SR/SSR만 (UR 불가) */
 export function rollNormalGacha(): GachaHeroDef {
   const rand = Math.random() * 100;
   let targetGrade: HeroGrade;
-  if (rand < 1) targetGrade = 'UR';
-  else if (rand < 10) targetGrade = 'SSR';
+  if (rand < 10) targetGrade = 'SSR';
   else if (rand < 40) targetGrade = 'SR';
   else targetGrade = 'R';
-
-  // R급은 SR 풀에서 제공 (별도 R풀 없으므로)
-  if (targetGrade === 'R') targetGrade = 'SR';
 
   const pool = GACHA_HERO_POOL.filter(h => h.grade === targetGrade);
   if (pool.length === 0) {

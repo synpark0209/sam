@@ -254,6 +254,35 @@ export const SKILL_DEFS: Record<string, SkillDef> = {
     effectType: SkillEffectType.HEAL, power: 30,
     cooldown: 4,
   },
+  lvmeng_stealth: {
+    id: 'lvmeng_stealth', name: '백의도강', description: '은신 후 기습 공격 (여몽 전용)',
+    mpCost: 14, range: 1, aoeRadius: 0,
+    targetType: SkillTargetType.SINGLE_ENEMY,
+    effectType: SkillEffectType.DAMAGE, power: 55,
+    statusEffect: 'defense_down', statusDuration: 2, statusMagnitude: 10,
+    cooldown: 3,
+  },
+  zhanghe_tactics: {
+    id: 'zhanghe_tactics', name: '교묘한 전술', description: '전술적 기동 공격 (장합 전용)',
+    mpCost: 12, range: 1, aoeRadius: 0,
+    targetType: SkillTargetType.SINGLE_ENEMY,
+    effectType: SkillEffectType.DAMAGE, power: 50,
+    cooldown: 2,
+  },
+  weiyan_ambush: {
+    id: 'weiyan_ambush', name: '자오곡 기습', description: '기습으로 큰 데미지 (위연 전용)',
+    mpCost: 14, range: 1, aoeRadius: 0,
+    targetType: SkillTargetType.SINGLE_ENEMY,
+    effectType: SkillEffectType.DAMAGE, power: 60,
+    cooldown: 3,
+  },
+  taishici_duel: {
+    id: 'taishici_duel', name: '일기토', description: '원거리 일대일 결투 (태사자 전용)',
+    mpCost: 12, range: 3, aoeRadius: 0,
+    targetType: SkillTargetType.SINGLE_ENEMY,
+    effectType: SkillEffectType.DAMAGE, power: 55,
+    cooldown: 2,
+  },
 };
 
 export function getSkillDef(id: string): SkillDef | undefined {

@@ -604,7 +604,7 @@ export class LobbyScene extends Phaser.Scene {
     multi.on('pointerdown', () => this.doServerGachaPull('premium', 10));
 
     // 일반 뽑기
-    this.add.text(GW / 2, GH * 0.44, '일반: UR 1% | SSR 9% | SR 90%', {
+    this.add.text(GW / 2, GH * 0.44, '일반: R 60% | SR 30% | SSR 10%', {
       fontSize: '10px', color: '#666666',
     }).setOrigin(0.5);
 
@@ -650,14 +650,14 @@ export class LobbyScene extends Phaser.Scene {
     this.add.text(GW / 2, 74, '── 일반 뽑기 (금화) ──', {
       fontSize: '11px', color: '#44aa44',
     }).setOrigin(0.5);
-    this.add.text(GW / 2, 90, 'UR: 1%  |  SSR: 9%  |  SR: 90%', {
+    this.add.text(GW / 2, 90, 'R: 60%  |  SR: 30%  |  SSR: 10%  (UR 불가)', {
       fontSize: '10px', color: '#888888',
     }).setOrigin(0.5);
 
     // 장수 목록
     const pool = GACHA_HERO_POOL;
 
-    const grades = ['UR', 'SSR', 'SR'];
+    const grades = ['UR', 'SSR', 'SR', 'R'];
     let y = 110;
 
     for (const grade of grades) {
