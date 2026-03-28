@@ -27,7 +27,7 @@ import type { Stage, BattleConfig } from '@shared/types/campaign.ts';
 import { pvpRecordResult } from '../../api/client.ts';
 import type { AudioManager, SfxName } from '../systems/AudioManager.ts';
 import { UNIT_CLASS_DEFS } from '@shared/data/unitClassDefs.ts';
-import { SKILL_DEFS } from '@shared/data/skillDefs.ts';
+import { SKILL_DEFS, HERO_UNIQUE_SKILLS } from '@shared/data/skillDefs.ts';
 
 type InteractionState =
   | 'IDLE'
@@ -1023,6 +1023,147 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
+  /** 병종 스킬 이펙트: 파란 기운 + 가벼운 화면 흔들림 */
+  private showClassSkillEffect(targetPos: Position): void {
+    const pos = this.gridToPixel(targetPos);
+    const g = this.add.graphics().setDepth(40);
+    this.ignoreFromUiCam(g);
+    g.setPosition(pos.x, pos.y);
+
+    // 화면 흔들림 (약하게)
+    this.cameras.main.shake(200, 0.005);
+
+    let step = 0;
+    const timer = this.time.addEvent({
+      delay: 70,
+      repeat: 5,
+      callback: () => {
+        g.clear();
+        const radius = 10 + step * 4;
+        const alpha = 0.9 - step * 0.13;
+        // 파란 기운 원
+        g.lineStyle(2, 0x4488ff, alpha);
+        g.strokeCircle(0, 0, radius);
+        // 내부 글로우
+        g.fillStyle(0x4488ff, alpha * 0.2);
+        g.fillCircle(0, 0, radius * 0.7);
+        // 상승 파티클 (작은 원)
+        for (let i = 0; i < 3; i++) {
+          const px = (Math.random() - 0.5) * radius * 1.5;
+          const py = -step * 4 - Math.random() * 10;
+          g.fillStyle(0x88ccff, alpha * 0.6);
+          g.fillCircle(px, py, 2);
+        }
+        step++;
+      },
+    });
+    this.time.delayedCall(450, () => { timer.destroy(); g.destroy(); });
+  }
+
+  /** 고유 스킬 이펙트: 강한 기운 + 화면 플래시 + 흔들림 */
+  private showUniqueSkillEffect(casterPos: Position, targetPos: Position, color: number = 0xff6600): void {
+    const cPos = this.gridToPixel(casterPos);
+    const tPos = this.gridToPixel(targetPos);
+
+    // 화면 흔들림 (강하게)
+    this.cameras.main.shake(300, 0.012);
+
+    // 화면 플래시
+    this.cameras.main.flash(200, 255, 200, 100);
+
+    // 시전자 기운 폭발
+    const gCaster = this.add.graphics().setDepth(41);
+    this.ignoreFromUiCam(gCaster);
+    gCaster.setPosition(cPos.x, cPos.y);
+
+    let step = 0;
+    const timer1 = this.time.addEvent({
+      delay: 50,
+      repeat: 6,
+      callback: () => {
+        gCaster.clear();
+        const radius = 15 + step * 5;
+        const alpha = 1 - step * 0.13;
+        // 바깥 기운
+        gCaster.lineStyle(3, color, alpha);
+        gCaster.strokeCircle(0, 0, radius);
+        // 안쪽 글로우
+        gCaster.fillStyle(color, alpha * 0.25);
+        gCaster.fillCircle(0, 0, radius * 0.5);
+        // 방사형 라인
+        for (let i = 0; i < 6; i++) {
+          const a = (i / 6) * Math.PI * 2 + step * 0.5;
+          gCaster.lineStyle(2, 0xffffff, alpha * 0.5);
+          gCaster.lineBetween(
+            Math.cos(a) * radius * 0.3, Math.sin(a) * radius * 0.3,
+            Math.cos(a) * radius, Math.sin(a) * radius,
+          );
+        }
+        step++;
+      },
+    });
+    this.time.delayedCall(400, () => { timer1.destroy(); gCaster.destroy(); });
+
+    // 타겟 위치 임팩트
+    this.time.delayedCall(150, () => {
+      const gTarget = this.add.graphics().setDepth(41);
+      this.ignoreFromUiCam(gTarget);
+      gTarget.setPosition(tPos.x, tPos.y);
+
+      let s2 = 0;
+      const timer2 = this.time.addEvent({
+        delay: 60,
+        repeat: 5,
+        callback: () => {
+          gTarget.clear();
+          const r = 5 + s2 * 6;
+          const a = 0.9 - s2 * 0.15;
+          gTarget.lineStyle(3, 0xffffff, a);
+          gTarget.strokeCircle(0, 0, r);
+          gTarget.fillStyle(color, a * 0.3);
+          gTarget.fillCircle(0, 0, r * 0.6);
+          s2++;
+        },
+      });
+      this.time.delayedCall(380, () => { timer2.destroy(); gTarget.destroy(); });
+    });
+  }
+
+  /** 힐 스킬 이펙트: 녹색 빛기둥 */
+  private showHealEffect(targetPos: Position): void {
+    const pos = this.gridToPixel(targetPos);
+    const g = this.add.graphics().setDepth(40);
+    this.ignoreFromUiCam(g);
+    g.setPosition(pos.x, pos.y);
+
+    let step = 0;
+    const timer = this.time.addEvent({
+      delay: 80,
+      repeat: 5,
+      callback: () => {
+        g.clear();
+        const alpha = 0.8 - step * 0.12;
+        const h = 10 + step * 5;
+        // 상승 빛기둥
+        g.fillStyle(0x44ff88, alpha * 0.3);
+        g.fillRect(-8, -h, 16, h * 2);
+        // 십자 빛
+        g.lineStyle(2, 0x44ff88, alpha);
+        g.lineBetween(-6, 0, 6, 0);
+        g.lineBetween(0, -8, 0, 8);
+        // 파티클
+        for (let i = 0; i < 4; i++) {
+          const px = (Math.random() - 0.5) * 20;
+          const py = -step * 6 - Math.random() * 8;
+          g.fillStyle(0x88ffaa, alpha * 0.7);
+          g.fillCircle(px, py, 1.5);
+        }
+        step++;
+      },
+    });
+    this.time.delayedCall(500, () => { timer.destroy(); g.destroy(); });
+  }
+
   /** 계략 공격 이펙트: 마법진 + 빛 */
   private showMagicEffect(targetPos: Position, color: number = 0x9944ff): void {
     const pos = this.gridToPixel(targetPos);
@@ -1166,13 +1307,27 @@ export class BattleScene extends Phaser.Scene {
 
     const result = this.skillSystem.executeSkill(caster, skill, targetPos, this.battleState.units);
 
+    // 스킬 등급 판별: 고유 스킬 vs 병종 스킬 vs 힐
+    const isUniqueSkill = Object.values(HERO_UNIQUE_SKILLS).includes(skill.id);
+    const isHealSkill = skill.effectType === SkillEffectType.HEAL;
+
     // 스킬 애니메이션 재생
     this.faceToward(caster, targetPos);
     this.playUnitAnim(caster, 'skill');
 
     this.playSfx('skill_cast');
     const casterPos = this.gridToPixel(caster.position);
-    this.showFloatingText(casterPos.x, casterPos.y - 20, skill.name, '#cc88ff');
+    const nameColor = isUniqueSkill ? '#ffaa00' : '#cc88ff';
+    this.showFloatingText(casterPos.x, casterPos.y - 20, skill.name, nameColor);
+
+    // 스킬 등급별 이펙트
+    if (isUniqueSkill) {
+      this.showUniqueSkillEffect(caster.position, targetPos);
+    } else if (isHealSkill) {
+      this.showHealEffect(targetPos);
+    } else {
+      this.showClassSkillEffect(targetPos);
+    }
 
     this.time.delayedCall(300, () => {
       for (const effect of result.effects) {
@@ -1182,7 +1337,9 @@ export class BattleScene extends Phaser.Scene {
 
         if (effect.damageDealt) {
           this.playSfx('skill_fire');
-          this.showDamageText(pos.x, pos.y, effect.damageDealt, '#cc44ff');
+          const dmgColor = isUniqueSkill ? '#ff6600' : '#cc44ff';
+          this.showDamageText(pos.x, pos.y, effect.damageDealt, dmgColor);
+          this.playUnitAnim(unit, 'hit');
         }
         if (effect.healingDone) {
           this.playSfx('skill_heal');
@@ -1192,6 +1349,7 @@ export class BattleScene extends Phaser.Scene {
           this.showFloatingText(pos.x, pos.y + 15, effect.statusApplied, '#ffff44');
         }
         if (effect.unitDied) {
+          this.playUnitAnim(unit, 'die');
           this.fadeOutUnit(effect.unitId);
         }
 
