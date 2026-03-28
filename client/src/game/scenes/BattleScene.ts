@@ -18,6 +18,7 @@ import {
   preloadUnitImages, hasUnitImage, createImageSprite, playImageAnim,
   hasSpriteSheet, createSpriteSheetSprite, playSpriteSheetAnim, createSpriteSheetAnimations,
   hasPixelLabCharacter, createPixelLabSprite, playPixelLabAnim,
+  setPixelLabDirection, getPixelLabDirection,
 } from '../systems/UnitSpriteManager.ts';
 import { TEST_MAP, TEST_UNITS } from '../data/testBattle.ts';
 import { EventBus } from '../EventBus.ts';
@@ -248,15 +249,25 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
-  /** 유닛 스프라이트를 대상 방향으로 회전 (좌우 반전) */
+  /** 유닛 스프라이트를 대상 방향으로 회전 */
   private faceToward(unit: UnitData, targetPos: Position): void {
     const container = this.unitSprites.get(unit.id);
     if (!container) return;
     const sprite = container.getAt(0) as Phaser.GameObjects.Sprite;
-    if (targetPos.x < unit.position.x) {
-      sprite.setFlipX(true);
-    } else if (targetPos.x > unit.position.x) {
-      sprite.setFlipX(false);
+
+    // PixelLab 캐릭터: 방향별 애니메이션 전환
+    if (this.pixelLabUnits.has(unit.id)) {
+      const dx = targetPos.x - unit.position.x;
+      const dy = targetPos.y - unit.position.y;
+      const dir = getPixelLabDirection(dx, dy);
+      setPixelLabDirection(this, sprite, this.pixelLabUnits.get(unit.id)!, dir);
+    } else {
+      // 기존: 좌우 반전
+      if (targetPos.x < unit.position.x) {
+        sprite.setFlipX(true);
+      } else if (targetPos.x > unit.position.x) {
+        sprite.setFlipX(false);
+      }
     }
   }
 

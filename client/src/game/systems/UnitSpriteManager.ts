@@ -87,6 +87,9 @@ const PIXELLAB_CHARACTERS: Record<string, PixelLabCharacterDef> = {
 
 /** PixelLab 기본 방향 (남쪽 = 정면) */
 const PL_DEFAULT_DIR = 'south';
+/** 전투에서 사용할 4방향 */
+const PL_DIRECTIONS = ['south', 'east', 'north', 'west'] as const;
+type PlDirection = typeof PL_DIRECTIONS[number];
 
 /** 이미지가 로드되었는지 확인 */
 export function hasUnitImage(scene: Phaser.Scene, unitClass: UnitClass, faction: Faction): boolean {
@@ -128,21 +131,23 @@ export function preloadUnitImages(scene: Phaser.Scene): void {
     }
   }
 
-  // PixelLab 캐릭터 개별 프레임 로드
+  // PixelLab 캐릭터 개별 프레임 로드 (4방향 전부)
   for (const def of Object.values(PIXELLAB_CHARACTERS)) {
-    // 정지 이미지 (south만 로드 — 기본 방향)
-    const rotKey = `${def.key}_rotation_${PL_DEFAULT_DIR}`;
-    if (!scene.textures.exists(rotKey)) {
-      scene.load.image(rotKey, `${def.basePath}/rotations/${PL_DEFAULT_DIR}.png`);
-    }
-    // 애니메이션 프레임 로드
-    for (const [animName, animDef] of Object.entries(def.anims)) {
-      if (!animDef) continue;
-      for (let i = 0; i < animDef.frames; i++) {
-        const frameKey = `${def.key}_${animName}_${PL_DEFAULT_DIR}_${i}`;
-        if (!scene.textures.exists(frameKey)) {
-          const framePath = `${def.basePath}/animations/${animDef.folder}/${PL_DEFAULT_DIR}/frame_${String(i).padStart(3, '0')}.png`;
-          scene.load.image(frameKey, framePath);
+    for (const dir of PL_DIRECTIONS) {
+      // 정지 이미지
+      const rotKey = `${def.key}_rotation_${dir}`;
+      if (!scene.textures.exists(rotKey)) {
+        scene.load.image(rotKey, `${def.basePath}/rotations/${dir}.png`);
+      }
+      // 애니메이션 프레임 로드
+      for (const [animName, animDef] of Object.entries(def.anims)) {
+        if (!animDef) continue;
+        for (let i = 0; i < animDef.frames; i++) {
+          const frameKey = `${def.key}_${animName}_${dir}_${i}`;
+          if (!scene.textures.exists(frameKey)) {
+            const framePath = `${def.basePath}/animations/${animDef.folder}/${dir}/frame_${String(i).padStart(3, '0')}.png`;
+            scene.load.image(frameKey, framePath);
+          }
         }
       }
     }
@@ -173,26 +178,27 @@ export function createSpriteSheetAnimations(scene: Phaser.Scene): void {
     }
   }
 
-  // PixelLab 캐릭터 애니메이션 (개별 텍스처 기반)
+  // PixelLab 캐릭터 애니메이션 (방향별 개별 텍스처 기반)
   for (const def of Object.values(PIXELLAB_CHARACTERS)) {
     for (const [animName, animDef] of Object.entries(def.anims)) {
       if (!animDef) continue;
-      const animKey = `${def.key}_${animName}`;
-      if (scene.anims.exists(animKey)) continue;
-      // 프레임이 로드되었는지 확인
-      const firstFrameKey = `${def.key}_${animName}_${PL_DEFAULT_DIR}_0`;
-      if (!scene.textures.exists(firstFrameKey)) continue;
+      for (const dir of PL_DIRECTIONS) {
+        const animKey = `${def.key}_${animName}_${dir}`;
+        if (scene.anims.exists(animKey)) continue;
+        const firstFrameKey = `${def.key}_${animName}_${dir}_0`;
+        if (!scene.textures.exists(firstFrameKey)) continue;
 
-      const frames: Phaser.Types.Animations.AnimationFrame[] = [];
-      for (let i = 0; i < animDef.frames; i++) {
-        frames.push({ key: `${def.key}_${animName}_${PL_DEFAULT_DIR}_${i}` });
+        const frames: Phaser.Types.Animations.AnimationFrame[] = [];
+        for (let i = 0; i < animDef.frames; i++) {
+          frames.push({ key: `${def.key}_${animName}_${dir}_${i}` });
+        }
+        scene.anims.create({
+          key: animKey,
+          frames,
+          frameRate: animDef.frameRate,
+          repeat: (animName === 'idle' || animName === 'walk') ? -1 : 0,
+        });
       }
-      scene.anims.create({
-        key: animKey,
-        frames,
-        frameRate: animDef.frameRate,
-        repeat: (animName === 'idle' || animName === 'walk') ? -1 : 0,
-      });
     }
   }
 }
@@ -241,6 +247,16 @@ export function playSpriteSheetAnim(
   }
 }
 
+/** 그리드 좌표 차이로 방향 결정 */
+export function getPixelLabDirection(dx: number, dy: number): string {
+  // dy > 0: 아래(south), dy < 0: 위(north)
+  // dx > 0: 오른쪽(east), dx < 0: 왼쪽(west)
+  if (Math.abs(dx) > Math.abs(dy)) {
+    return dx > 0 ? 'east' : 'west';
+  }
+  return dy > 0 ? 'south' : 'north';
+}
+
 /** PixelLab 캐릭터 스프라이트 생성 */
 export function createPixelLabSprite(
   scene: Phaser.Scene,
@@ -253,11 +269,12 @@ export function createPixelLabSprite(
   if (!scene.textures.exists(firstFrameKey)) return null;
 
   const sprite = scene.add.sprite(0, 0, firstFrameKey);
-  const scale = TILE_SIZE / def.size * 1.3; // 타일에 맞게 스케일 (약간 크게)
+  const scale = TILE_SIZE / def.size * 1.3;
   sprite.setScale(scale);
+  sprite.setData('plDirection', PL_DEFAULT_DIR);
 
-  // idle 애니메이션 시작
-  const idleKey = `${def.key}_idle`;
+  // idle 애니메이션 시작 (남쪽 = 정면)
+  const idleKey = `${def.key}_idle_${PL_DEFAULT_DIR}`;
   if (scene.anims.exists(idleKey)) {
     sprite.play(idleKey);
   }
@@ -265,7 +282,41 @@ export function createPixelLabSprite(
   return sprite;
 }
 
-/** PixelLab 애니메이션 재생 */
+/** PixelLab 캐릭터 방향 설정 */
+export function setPixelLabDirection(
+  scene: Phaser.Scene,
+  sprite: Phaser.GameObjects.Sprite,
+  heroId: string,
+  direction: string,
+): void {
+  const def = PIXELLAB_CHARACTERS[heroId];
+  if (!def) return;
+
+  const currentDir = sprite.getData('plDirection') as string;
+  if (currentDir === direction) return;
+
+  sprite.setData('plDirection', direction);
+  sprite.setFlipX(false); // 방향 프레임 사용하므로 flipX 해제
+
+  // 현재 재생 중인 애니메이션을 새 방향으로 전환
+  const currentAnim = sprite.anims.currentAnim;
+  if (currentAnim) {
+    // 애니메이션 키에서 animName 추출 (pl_lubu_idle_south → idle)
+    const parts = currentAnim.key.split('_');
+    // key format: pl_lubu_{animName}_{direction}
+    // 마지막이 direction, 그 앞이 animName
+    parts.pop(); // direction 제거
+    const prefix = `${def.key}_`;
+    const animName = currentAnim.key.slice(prefix.length, currentAnim.key.lastIndexOf('_'));
+
+    const newAnimKey = `${def.key}_${animName}_${direction}`;
+    if (scene.anims.exists(newAnimKey)) {
+      sprite.play(newAnimKey);
+    }
+  }
+}
+
+/** PixelLab 애니메이션 재생 (현재 방향 기준) */
 export function playPixelLabAnim(
   scene: Phaser.Scene,
   sprite: Phaser.GameObjects.Sprite,
@@ -275,13 +326,15 @@ export function playPixelLabAnim(
   const def = PIXELLAB_CHARACTERS[heroId];
   if (!def) return;
 
-  const animKey = `${def.key}_${anim}`;
+  const dir = (sprite.getData('plDirection') as string) || PL_DEFAULT_DIR;
+  const animKey = `${def.key}_${anim}_${dir}`;
+
   if (scene.anims.exists(animKey)) {
     sprite.play(animKey);
     // 공격/스킬/피격 후 idle로 복귀
     if (anim === 'attack' || anim === 'skill' || anim === 'hit') {
       sprite.once('animationcomplete', () => {
-        const idleKey = `${def.key}_idle`;
+        const idleKey = `${def.key}_idle_${dir}`;
         if (scene.anims.exists(idleKey)) sprite.play(idleKey);
       });
     }
