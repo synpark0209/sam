@@ -89,7 +89,6 @@ const PIXELLAB_CHARACTERS: Record<string, PixelLabCharacterDef> = {
 const PL_DEFAULT_DIR = 'south';
 /** 전투에서 사용할 4방향 */
 const PL_DIRECTIONS = ['south', 'east', 'north', 'west'] as const;
-type PlDirection = typeof PL_DIRECTIONS[number];
 
 /** 이미지가 로드되었는지 확인 */
 export function hasUnitImage(scene: Phaser.Scene, unitClass: UnitClass, faction: Faction): boolean {
