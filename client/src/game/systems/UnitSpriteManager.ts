@@ -338,7 +338,12 @@ export function playPixelLabAnim(
   if (!def) return;
 
   const dir = (sprite.getData('plDirection') as string) || PL_DEFAULT_DIR;
-  const animKey = `${def.key}_${anim}_${dir}`;
+  let animKey = `${def.key}_${anim}_${dir}`;
+
+  // skill 애니메이션이 없으면 attack으로 폴백
+  if (!scene.anims.exists(animKey) && anim === 'skill') {
+    animKey = `${def.key}_attack_${dir}`;
+  }
 
   if (scene.anims.exists(animKey)) {
     sprite.play(animKey);

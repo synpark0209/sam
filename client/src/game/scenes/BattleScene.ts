@@ -1166,6 +1166,10 @@ export class BattleScene extends Phaser.Scene {
 
     const result = this.skillSystem.executeSkill(caster, skill, targetPos, this.battleState.units);
 
+    // 스킬 애니메이션 재생
+    this.faceToward(caster, targetPos);
+    this.playUnitAnim(caster, 'skill');
+
     this.playSfx('skill_cast');
     const casterPos = this.gridToPixel(caster.position);
     this.showFloatingText(casterPos.x, casterPos.y - 20, skill.name, '#cc88ff');
