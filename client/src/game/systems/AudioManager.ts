@@ -33,6 +33,8 @@ export class AudioManager {
     this.muted = localStorage.getItem('jojo_audio_muted') === 'true';
   }
 
+  private visibilityHandler: (() => void) | null = null;
+
   init(): void {
     try {
       this.ctx = new AudioContext();
@@ -47,6 +49,17 @@ export class AudioManager {
       this.sfxGain = this.ctx.createGain();
       this.sfxGain.gain.value = 0.5;
       this.sfxGain.connect(this.masterGain);
+
+      // 앱 백그라운드/포그라운드 전환 시 오디오 suspend/resume
+      this.visibilityHandler = () => {
+        if (!this.ctx) return;
+        if (document.hidden) {
+          this.ctx.suspend().catch(() => {});
+        } else if (!this.muted) {
+          this.ctx.resume().catch(() => {});
+        }
+      };
+      document.addEventListener('visibilitychange', this.visibilityHandler);
     } catch {
       // Web Audio not supported
     }
@@ -61,6 +74,10 @@ export class AudioManager {
 
   destroy(): void {
     this.stopBgm();
+    if (this.visibilityHandler) {
+      document.removeEventListener('visibilitychange', this.visibilityHandler);
+      this.visibilityHandler = null;
+    }
     this.ctx?.close().catch(() => {});
     this.ctx = null;
   }
