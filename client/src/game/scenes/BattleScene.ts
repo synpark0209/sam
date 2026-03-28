@@ -904,9 +904,9 @@ export class BattleScene extends Phaser.Scene {
     const container = this.unitSprites.get(unit.id);
     if (!container) { onComplete(); return; }
 
-    // 이동 시작 시 방향 설정
+    // 이동 시작 시 첫 방향 설정
     if (path.length >= 2) {
-      this.faceToward(unit, path[path.length - 1]);
+      this.faceToward(unit, path[1]);
     }
 
     this.playUnitAnim(unit, 'walk');
@@ -915,7 +915,16 @@ export class BattleScene extends Phaser.Scene {
     const tweens: Phaser.Types.Tweens.TweenBuilderConfig[] = [];
     for (let i = 1; i < path.length; i++) {
       const target = this.gridToPixel(path[i]);
-      tweens.push({ targets: container, x: target.x, y: target.y, duration: 120, ease: 'Linear' });
+      const prevPos = path[i - 1];
+      const nextPos = path[i];
+      tweens.push({
+        targets: container, x: target.x, y: target.y, duration: 120, ease: 'Linear',
+        onStart: () => {
+          // 각 구간마다 이동 방향으로 전환
+          const fakeUnit = { ...unit, position: prevPos };
+          this.faceToward(fakeUnit as UnitData, nextPos);
+        },
+      });
     }
     void this.tweens.chain({
       tweens,
