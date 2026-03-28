@@ -17,6 +17,7 @@ import {
 import {
   preloadUnitImages, hasUnitImage, createImageSprite, playImageAnim,
   hasSpriteSheet, createSpriteSheetSprite, playSpriteSheetAnim, createSpriteSheetAnimations,
+  hasPixelLabCharacter, createPixelLabSprite, playPixelLabAnim,
 } from '../systems/UnitSpriteManager.ts';
 import { TEST_MAP, TEST_UNITS } from '../data/testBattle.ts';
 import { EventBus } from '../EventBus.ts';
@@ -75,6 +76,7 @@ export class BattleScene extends Phaser.Scene {
   private _menuClickConsumed = false;
   private imageUnits: Set<string> = new Set();
   private spriteSheetUnits: Map<string, string> = new Map();
+  private pixelLabUnits: Map<string, string> = new Map();
 
   // 자동 전투 / 배속
   private autoMode = false;
@@ -359,8 +361,12 @@ export class BattleScene extends Phaser.Scene {
     const uc = unit.unitClass ?? UnitClass.INFANTRY;
 
     let sprite: Phaser.GameObjects.Sprite;
+    // 0. PixelLab 캐릭터 (최우선)
+    if (hasPixelLabCharacter(this, unit.id)) {
+      sprite = createPixelLabSprite(this, unit.id)!;
+      this.pixelLabUnits.set(unit.id, unit.id);
     // 1. 스프라이트 시트 (장수별)
-    if (hasSpriteSheet(this, unit.id)) {
+    } else if (hasSpriteSheet(this, unit.id)) {
       sprite = createSpriteSheetSprite(this, unit.id)!;
       this.spriteSheetUnits.set(unit.id, unit.id);
     // 2. 단일 이미지 (병종별)
@@ -432,7 +438,9 @@ export class BattleScene extends Phaser.Scene {
     if (!container) return;
     const sprite = container.getAt(0) as Phaser.GameObjects.Sprite;
 
-    if (this.spriteSheetUnits.has(unit.id)) {
+    if (this.pixelLabUnits.has(unit.id)) {
+      playPixelLabAnim(this, sprite, this.pixelLabUnits.get(unit.id)!, anim);
+    } else if (this.spriteSheetUnits.has(unit.id)) {
       playSpriteSheetAnim(this, sprite, this.spriteSheetUnits.get(unit.id)!, anim);
     } else if (this.imageUnits.has(unit.id)) {
       playImageAnim(this, container, sprite, anim);
@@ -480,16 +488,16 @@ export class BattleScene extends Phaser.Scene {
     this.endTurnButton.on('pointerout', () => this.endTurnButton.setStyle({ backgroundColor: '#4a4a6a' }));
 
     // 음소거 토글 버튼
-    const audio = this.getAudio();
-    const muteBtn = this.add.text(gw - 30, uiY + 18, audio?.isMuted() ? '🔇' : '🔊', {
+    const muteBtn = this.add.text(gw - 30, uiY + 18, this.getAudio()?.isMuted() ? '🔇' : '🔊', {
       fontSize: '20px',
     }).setInteractive({ useHandCursor: true }).setDepth(201);
     muteBtn.on('pointerdown', () => {
       this._menuClickConsumed = true;
-      if (!audio) return;
-      audio.setMuted(!audio.isMuted());
-      muteBtn.setText(audio.isMuted() ? '🔇' : '🔊');
-      if (!audio.isMuted()) audio.playBgm('battle');
+      const a = this.getAudio();
+      if (!a) return;
+      a.setMuted(!a.isMuted());
+      muteBtn.setText(a.isMuted() ? '🔇' : '🔊');
+      if (!a.isMuted()) a.playBgm('battle');
     });
     this.uiObjects.push(muteBtn);
     this.cameras.main.ignore(muteBtn);

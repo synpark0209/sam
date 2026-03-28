@@ -143,7 +143,7 @@ export class LobbyScene extends Phaser.Scene {
       { label: '장수', icon: '👥', action: () => this.showHeroes() },
       { label: '인벤토리', icon: '🎒', action: () => this.showInventory('equipment') },
       { label: '랭킹', icon: '🏆', action: () => this.scene.start('RankingScene') },
-      { label: '설정', icon: '⚙️', action: () => this.logout() },
+      { label: '설정', icon: '⚙️', action: () => this.showSettings() },
     ];
 
     for (let i = 0; i < subButtons.length; i++) {
@@ -913,8 +913,72 @@ export class LobbyScene extends Phaser.Scene {
     this.scene.start('PvPArenaScene', { campaignManager: this.campaignManager });
   }
 
-  private logout(): void {
-    doLogout();
-    this.scene.start('TitleScene');
+  private showSettings(): void {
+    const GW = TILE_SIZE * MAP_WIDTH;
+    const GH = TILE_SIZE * MAP_HEIGHT + 60;
+
+    // 배경 오버레이
+    const overlay = this.add.graphics();
+    overlay.fillStyle(0x000000, 0.7);
+    overlay.fillRect(0, 0, GW, GH);
+    overlay.setDepth(300).setInteractive(
+      new Phaser.Geom.Rectangle(0, 0, GW, GH),
+      Phaser.Geom.Rectangle.Contains,
+    );
+
+    const settingsObjects: Phaser.GameObjects.GameObject[] = [overlay];
+
+    // 패널
+    const panelW = 280;
+    const panelH = 220;
+    const px = (GW - panelW) / 2;
+    const py = (GH - panelH) / 2;
+
+    const panel = this.add.graphics();
+    panel.fillStyle(0x1a1a2e, 1);
+    panel.fillRoundedRect(px, py, panelW, panelH, 12);
+    panel.lineStyle(2, 0x4444aa, 1);
+    panel.strokeRoundedRect(px, py, panelW, panelH, 12);
+    panel.setDepth(301);
+    settingsObjects.push(panel);
+
+    const title = this.add.text(GW / 2, py + 20, '설정', {
+      fontSize: '18px', color: '#ffffff', fontStyle: 'bold',
+    }).setOrigin(0.5, 0).setDepth(302);
+    settingsObjects.push(title);
+
+    const cleanup = () => settingsObjects.forEach(o => o.destroy());
+
+    // 진행도 초기화 버튼
+    const resetBtn = this.add.text(GW / 2, py + 70, '🔄 진행도 초기화', {
+      fontSize: '15px', color: '#ffffff', backgroundColor: '#aa4444',
+      padding: { x: 20, y: 8 },
+    }).setOrigin(0.5, 0).setInteractive({ useHandCursor: true }).setDepth(302);
+    resetBtn.on('pointerdown', () => {
+      this.campaignManager.resetProgress();
+      cleanup();
+      this.scene.restart({ campaignManager: this.campaignManager });
+    });
+    settingsObjects.push(resetBtn);
+
+    // 로그아웃 버튼
+    const logoutBtn = this.add.text(GW / 2, py + 115, '🚪 로그아웃', {
+      fontSize: '15px', color: '#ffffff', backgroundColor: '#4a4a6a',
+      padding: { x: 20, y: 8 },
+    }).setOrigin(0.5, 0).setInteractive({ useHandCursor: true }).setDepth(302);
+    logoutBtn.on('pointerdown', () => {
+      cleanup();
+      doLogout();
+      this.scene.start('TitleScene');
+    });
+    settingsObjects.push(logoutBtn);
+
+    // 닫기 버튼
+    const closeBtn = this.add.text(GW / 2, py + 165, '닫기', {
+      fontSize: '14px', color: '#aaaaaa',
+      padding: { x: 20, y: 6 },
+    }).setOrigin(0.5, 0).setInteractive({ useHandCursor: true }).setDepth(302);
+    closeBtn.on('pointerdown', cleanup);
+    settingsObjects.push(closeBtn);
   }
 }
