@@ -392,6 +392,11 @@ export class BattleScene extends Phaser.Scene {
       sprite.play(`${texKey}_idle`);
     }
 
+    // 적군 유닛 틴트 적용 (붉은 톤)
+    if (unit.faction === 'enemy') {
+      sprite.setTint(0xff9999);
+    }
+
     const hpBarBg = this.add.graphics();
     hpBarBg.fillStyle(0x000000, 0.6);
     hpBarBg.fillRect(-TILE_SIZE * 0.35, TILE_SIZE * 0.32, TILE_SIZE * 0.7, 4);
