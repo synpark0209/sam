@@ -98,6 +98,82 @@ const PIXELLAB_CHARACTERS: Record<string, PixelLabCharacterDef> = {
   },
 };
 
+/** 병종 → PixelLab 캐릭터 매핑 (장수 ID에 매칭 안 될 때 폴백) */
+const PIXELLAB_CLASS_UNITS: Record<string, PixelLabCharacterDef> = {
+  [UnitClass.INFANTRY]: {
+    key: 'pl_infantry',
+    basePath: 'assets/characters/infantry',
+    size: 96,
+    anims: {
+      idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
+      walk:   { folder: 'walking-4-frames',   frames: 4, frameRate: 6 },
+      attack: { folder: 'sword-attack',       frames: 4, frameRate: 6 },
+      hit:    { folder: 'taking-punch',       frames: 6, frameRate: 8 },
+      die:    { folder: 'falling-back-death', frames: 7, frameRate: 5 },
+    },
+  },
+  [UnitClass.CAVALRY]: {
+    key: 'pl_cavalry',
+    basePath: 'assets/characters/cavalry',
+    size: 96,
+    anims: {
+      idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
+      walk:   { folder: 'walking-4-frames',   frames: 4, frameRate: 6 },
+      attack: { folder: 'spear-attack',       frames: 4, frameRate: 6 },
+      hit:    { folder: 'taking-punch',       frames: 6, frameRate: 8 },
+      die:    { folder: 'falling-back-death', frames: 7, frameRate: 5 },
+    },
+  },
+  [UnitClass.ARCHER]: {
+    key: 'pl_archer',
+    basePath: 'assets/characters/archer',
+    size: 96,
+    anims: {
+      idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
+      walk:   { folder: 'walking-4-frames',   frames: 4, frameRate: 6 },
+      attack: { folder: 'bow-attack',         frames: 4, frameRate: 6 },
+      hit:    { folder: 'taking-punch',       frames: 6, frameRate: 8 },
+      die:    { folder: 'falling-back-death', frames: 7, frameRate: 5 },
+    },
+  },
+  [UnitClass.STRATEGIST]: {
+    key: 'pl_strategist',
+    basePath: 'assets/characters/strategist',
+    size: 96,
+    anims: {
+      idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
+      walk:   { folder: 'walking-4-frames',   frames: 4, frameRate: 6 },
+      attack: { folder: 'fan-attack',         frames: 4, frameRate: 6 },
+      hit:    { folder: 'taking-punch',       frames: 6, frameRate: 8 },
+      die:    { folder: 'falling-back-death', frames: 7, frameRate: 5 },
+    },
+  },
+  [UnitClass.BANDIT]: {
+    key: 'pl_bandit',
+    basePath: 'assets/characters/bandit',
+    size: 96,
+    anims: {
+      idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
+      walk:   { folder: 'walking-4-frames',   frames: 4, frameRate: 6 },
+      attack: { folder: 'dagger-attack',      frames: 4, frameRate: 6 },
+      hit:    { folder: 'taking-punch',       frames: 6, frameRate: 8 },
+      die:    { folder: 'falling-back-death', frames: 7, frameRate: 5 },
+    },
+  },
+  [UnitClass.MARTIAL_ARTIST]: {
+    key: 'pl_martial_artist',
+    basePath: 'assets/characters/martial_artist',
+    size: 96,
+    anims: {
+      idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
+      walk:   { folder: 'walking-4-frames',   frames: 4, frameRate: 6 },
+      attack: { folder: 'cross-punch',        frames: 6, frameRate: 8 },
+      hit:    { folder: 'taking-punch',       frames: 6, frameRate: 8 },
+      die:    { folder: 'falling-back-death', frames: 7, frameRate: 5 },
+    },
+  },
+};
+
 /** PixelLab 기본 방향 (남쪽 = 정면) */
 const PL_DEFAULT_DIR = 'south';
 /** 전투에서 사용할 4방향 */
@@ -108,11 +184,19 @@ export function hasUnitImage(scene: Phaser.Scene, unitClass: UnitClass, faction:
   return scene.textures.exists(imageKey(unitClass, faction));
 }
 
-/** 장수 ID로 PixelLab 캐릭터 확인 */
-export function hasPixelLabCharacter(scene: Phaser.Scene, heroId: string): boolean {
-  const def = PIXELLAB_CHARACTERS[heroId];
+/** 장수 ID 또는 병종으로 PixelLab 캐릭터 정의 가져오기 */
+function getPixelLabDef(heroId: string, unitClass?: UnitClass): PixelLabCharacterDef | undefined {
+  // 1. 장수 ID로 매칭
+  if (PIXELLAB_CHARACTERS[heroId]) return PIXELLAB_CHARACTERS[heroId];
+  // 2. 병종으로 폴백
+  if (unitClass && PIXELLAB_CLASS_UNITS[unitClass]) return PIXELLAB_CLASS_UNITS[unitClass];
+  return undefined;
+}
+
+/** 장수 ID 또는 병종으로 PixelLab 캐릭터 확인 */
+export function hasPixelLabCharacter(scene: Phaser.Scene, heroId: string, unitClass?: UnitClass): boolean {
+  const def = getPixelLabDef(heroId, unitClass);
   if (!def) return false;
-  // idle의 첫 프레임이 로드되었는지 확인
   return scene.textures.exists(`${def.key}_idle_${PL_DEFAULT_DIR}_0`);
 }
 
@@ -143,8 +227,9 @@ export function preloadUnitImages(scene: Phaser.Scene): void {
     }
   }
 
-  // PixelLab 캐릭터 개별 프레임 로드 (4방향 전부)
-  for (const def of Object.values(PIXELLAB_CHARACTERS)) {
+  // PixelLab 캐릭터 + 병종 유닛 개별 프레임 로드 (4방향 전부)
+  const allPixelLabDefs = [...Object.values(PIXELLAB_CHARACTERS), ...Object.values(PIXELLAB_CLASS_UNITS)];
+  for (const def of allPixelLabDefs) {
     for (const dir of PL_DIRECTIONS) {
       // 정지 이미지
       const rotKey = `${def.key}_rotation_${dir}`;
@@ -190,8 +275,9 @@ export function createSpriteSheetAnimations(scene: Phaser.Scene): void {
     }
   }
 
-  // PixelLab 캐릭터 애니메이션 (방향별 개별 텍스처 기반)
-  for (const def of Object.values(PIXELLAB_CHARACTERS)) {
+  // PixelLab 캐릭터 + 병종 유닛 애니메이션 (방향별 개별 텍스처 기반)
+  const allPixelLabDefs2 = [...Object.values(PIXELLAB_CHARACTERS), ...Object.values(PIXELLAB_CLASS_UNITS)];
+  for (const def of allPixelLabDefs2) {
     for (const [animName, animDef] of Object.entries(def.anims)) {
       if (!animDef) continue;
       for (const dir of PL_DIRECTIONS) {
@@ -273,8 +359,9 @@ export function getPixelLabDirection(dx: number, dy: number): string {
 export function createPixelLabSprite(
   scene: Phaser.Scene,
   heroId: string,
+  unitClass?: UnitClass,
 ): Phaser.GameObjects.Sprite | null {
-  const def = PIXELLAB_CHARACTERS[heroId];
+  const def = getPixelLabDef(heroId, unitClass);
   if (!def) return null;
 
   const firstFrameKey = `${def.key}_idle_${PL_DEFAULT_DIR}_0`;
@@ -300,8 +387,9 @@ export function setPixelLabDirection(
   sprite: Phaser.GameObjects.Sprite,
   heroId: string,
   direction: string,
+  unitClass?: UnitClass,
 ): void {
-  const def = PIXELLAB_CHARACTERS[heroId];
+  const def = getPixelLabDef(heroId, unitClass);
   if (!def) return;
 
   const currentDir = sprite.getData('plDirection') as string;
@@ -334,8 +422,9 @@ export function playPixelLabAnim(
   sprite: Phaser.GameObjects.Sprite,
   heroId: string,
   anim: string,
+  unitClass?: UnitClass,
 ): void {
-  const def = PIXELLAB_CHARACTERS[heroId];
+  const def = getPixelLabDef(heroId, unitClass);
   if (!def) return;
 
   const dir = (sprite.getData('plDirection') as string) || PL_DEFAULT_DIR;

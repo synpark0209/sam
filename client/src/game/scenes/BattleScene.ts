@@ -260,7 +260,7 @@ export class BattleScene extends Phaser.Scene {
       const dx = targetPos.x - unit.position.x;
       const dy = targetPos.y - unit.position.y;
       const dir = getPixelLabDirection(dx, dy);
-      setPixelLabDirection(this, sprite, this.pixelLabUnits.get(unit.id)!, dir);
+      setPixelLabDirection(this, sprite, this.pixelLabUnits.get(unit.id)!, dir, unit.unitClass);
     } else {
       // 기존: 좌우 반전
       if (targetPos.x < unit.position.x) {
@@ -373,8 +373,8 @@ export class BattleScene extends Phaser.Scene {
 
     let sprite: Phaser.GameObjects.Sprite;
     // 0. PixelLab 캐릭터 (최우선)
-    if (hasPixelLabCharacter(this, unit.id)) {
-      sprite = createPixelLabSprite(this, unit.id)!;
+    if (hasPixelLabCharacter(this, unit.id, uc)) {
+      sprite = createPixelLabSprite(this, unit.id, uc)!;
       this.pixelLabUnits.set(unit.id, unit.id);
     // 1. 스프라이트 시트 (장수별)
     } else if (hasSpriteSheet(this, unit.id)) {
@@ -450,7 +450,7 @@ export class BattleScene extends Phaser.Scene {
     const sprite = container.getAt(0) as Phaser.GameObjects.Sprite;
 
     if (this.pixelLabUnits.has(unit.id)) {
-      playPixelLabAnim(this, sprite, this.pixelLabUnits.get(unit.id)!, anim);
+      playPixelLabAnim(this, sprite, this.pixelLabUnits.get(unit.id)!, anim, unit.unitClass);
     } else if (this.spriteSheetUnits.has(unit.id)) {
       playSpriteSheetAnim(this, sprite, this.spriteSheetUnits.get(unit.id)!, anim);
     } else if (this.imageUnits.has(unit.id)) {
