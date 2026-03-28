@@ -93,6 +93,7 @@ const PIXELLAB_CHARACTERS: Record<string, PixelLabCharacterDef> = {
       attack: { folder: 'polearm-attack',     frames: 4, frameRate: 6 },
       hit:    { folder: 'taking-punch',       frames: 6, frameRate: 8 },
       die:    { folder: 'falling-back-death', frames: 7, frameRate: 5 },
+      skill:  { folder: 'charge-skill',       frames: 4, frameRate: 6 },
     },
   },
 };
