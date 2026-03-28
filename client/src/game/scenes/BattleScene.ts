@@ -904,35 +904,29 @@ export class BattleScene extends Phaser.Scene {
     const container = this.unitSprites.get(unit.id);
     if (!container) { onComplete(); return; }
 
-    // 이동 시작 시 첫 방향 설정
-    if (path.length >= 2) {
-      this.faceToward(unit, path[1]);
-    }
-
-    this.playUnitAnim(unit, 'walk');
     this.playSfx('move');
 
-    const tweens: Phaser.Types.Tweens.TweenBuilderConfig[] = [];
-    for (let i = 1; i < path.length; i++) {
-      const target = this.gridToPixel(path[i]);
-      const prevPos = path[i - 1];
-      const nextPos = path[i];
-      tweens.push({
-        targets: container, x: target.x, y: target.y, duration: 120, ease: 'Linear',
-        onStart: () => {
-          // 각 구간마다 이동 방향으로 전환
-          const fakeUnit = { ...unit, position: prevPos };
-          this.faceToward(fakeUnit as UnitData, nextPos);
-        },
-      });
-    }
-    void this.tweens.chain({
-      tweens,
-      onComplete: () => {
+    // 각 경로 구간을 순차적으로 이동 (구간마다 방향 전환)
+    const moveStep = (stepIdx: number) => {
+      if (stepIdx >= path.length) {
         this.playUnitAnim(unit, 'idle');
         onComplete();
-      },
-    });
+        return;
+      }
+      // 이동 방향 설정
+      const prevPos = path[stepIdx - 1];
+      const nextPos = path[stepIdx];
+      const fakeUnit = { ...unit, position: prevPos } as UnitData;
+      this.faceToward(fakeUnit, nextPos);
+      this.playUnitAnim(unit, 'walk');
+
+      const target = this.gridToPixel(nextPos);
+      this.tweens.add({
+        targets: container, x: target.x, y: target.y, duration: 120, ease: 'Linear',
+        onComplete: () => moveStep(stepIdx + 1),
+      });
+    };
+    moveStep(1);
   }
 
   private onMoveComplete(unit: UnitData): void {
