@@ -313,12 +313,12 @@ export class PvPArenaScene extends Phaser.Scene {
       g.fillRect(0, Math.round((GH / steps) * i), GW, Math.ceil(GH / steps) + 1);
     }
 
-    this.add.text(GW / 2, 18, '⚔️ PvP 아레나 - 배치', {
-      fontSize: '22px', color: '#ffd700', fontStyle: 'bold',
+    this.add.text(GW / 2, 22, '⚔️ PvP 아레나 - 배치', {
+      fontSize: '20px', color: '#ffd700', fontStyle: 'bold',
     }).setOrigin(0.5);
 
     // Decorative gold line under title
-    const lineY = 44;
+    const lineY = 48;
     g.fillStyle(0xffd700, 0.4);
     g.fillRect(20, lineY, GW - 40, 1);
     g.fillStyle(0xffd700, 0.8);
@@ -334,17 +334,17 @@ export class PvPArenaScene extends Phaser.Scene {
       ? `"${this.selectedHeroForDeploy.name}" 배치할 칸을 선택하세요`
       : `장수를 선택하세요 (${this.deployedCount}/${MAX_DEPLOY})`;
     const statusColor = this.selectedHeroForDeploy ? '#ffaa00' : '#aaaaaa';
-    this.add.text(GW / 2, 54, statusText, {
+    this.add.text(GW / 2, 58, statusText, {
       fontSize: '15px', color: statusColor,
     }).setOrigin(0.5);
 
     // 열 라벨 (후열←→전열)
     const colLabels = ['후열', '중열', '전열'];
     const gridX = (GW - GRID_COLS * CELL_W) / 2;
-    const gridY = 78;
+    const gridY = 86;
 
     for (let c = 0; c < GRID_COLS; c++) {
-      this.add.text(gridX + c * CELL_W + CELL_W / 2, gridY - 16, colLabels[c], {
+      this.add.text(gridX + c * CELL_W + CELL_W / 2, gridY - 18, colLabels[c], {
         fontSize: '14px', color: '#446688',
       }).setOrigin(0.5);
     }

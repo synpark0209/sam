@@ -271,12 +271,12 @@ export class DailyDungeonScene extends Phaser.Scene {
       g.fillRect(0, Math.round((GH / bgSteps) * i), GW, Math.ceil(GH / bgSteps) + 1);
     }
 
-    this.add.text(GW / 2, 18, `${dungeon.icon} ${dungeon.name} - ${difficulty.label}`, {
-      fontSize: '22px', color: '#ffd700', fontStyle: 'bold',
+    this.add.text(GW / 2, 22, `${dungeon.icon} ${dungeon.name} - ${difficulty.label}`, {
+      fontSize: '20px', color: '#ffd700', fontStyle: 'bold',
     }).setOrigin(0.5);
 
     // Decorative gold line under title
-    const lineY = 46;
+    const lineY = 50;
     g.fillStyle(0xffd700, 0.4);
     g.fillRect(20, lineY, GW - 40, 1);
     g.fillStyle(0xffd700, 0.8);
@@ -287,12 +287,12 @@ export class DailyDungeonScene extends Phaser.Scene {
     }).setInteractive({ useHandCursor: true });
     backBtn.on('pointerdown', () => this.showDungeonList());
 
-    this.add.text(GW / 2, 58, `웨이브 ${difficulty.waves}  |  적 Lv.${difficulty.enemyLevel}  |  ⚡${difficulty.stamina}`, {
+    this.add.text(GW / 2, 62, `웨이브 ${difficulty.waves}  |  적 Lv.${difficulty.enemyLevel}  |  ⚡${difficulty.stamina}`, {
       fontSize: '15px', color: '#aaaaaa',
     }).setOrigin(0.5);
 
     // 장수 목록 (전체 선택 → 상위 5명 자동 출전)
-    this.add.text(GW / 2, 82, '보유 장수 중 상위 5명이 자동 출전합니다', {
+    this.add.text(GW / 2, 84, '보유 장수 중 상위 5명이 자동 출전합니다', {
       fontSize: '14px', color: '#888888',
     }).setOrigin(0.5);
 
@@ -316,7 +316,7 @@ export class DailyDungeonScene extends Phaser.Scene {
       this.add.text(56, y + 6, `${unit.name}  ${cls} Lv.${unit.level ?? 1}`, {
         fontSize: '17px', color: '#ffffff',
       });
-      this.add.text(GW - 30, y + 10, `ATK:${unit.stats.attack}`, { fontSize: '15px', color: '#888888' });
+      this.add.text(GW - 24, y + 10, `ATK:${unit.stats.attack}`, { fontSize: '14px', color: '#888888' }).setOrigin(1, 0);
     }
 
     // 전투 시작 버튼 (full width, prominent)
