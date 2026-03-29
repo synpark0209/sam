@@ -15,7 +15,9 @@ export class RankingScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GAME_W, GAME_H);
+    const bg = this.add.graphics();
+    bg.fillGradientStyle(0x0c1220, 0x0c1220, 0x1a1a30, 0x1a1a30, 1);
+    bg.fillRect(0, 0, GAME_W, GAME_H);
 
     this.add.text(GAME_W / 2, 22, '랭킹', {
       fontSize: '26px', color: '#ffd700', fontStyle: 'bold',

@@ -197,7 +197,7 @@ export class LobbyScene extends Phaser.Scene {
 
     const units = this.campaignManager.getProgress().playerUnits;
     this.add.text(GW / 2, 40, `보유 장수: ${units.length}명`, {
-      fontSize: '10px', color: '#888888',
+      fontSize: '12px', color: '#888888',
     }).setOrigin(0.5);
 
     const startY = 55;
@@ -233,21 +233,21 @@ export class LobbyScene extends Phaser.Scene {
       // 병종 + 레벨
       const className = unit.promotionClass ?? UNIT_CLASS_DEFS[unit.unitClass ?? 'infantry']?.name ?? '';
       this.add.text(50, y + 28, `${className}  Lv.${unit.level ?? 1}`, {
-        fontSize: '9px', color: '#88aacc',
+        fontSize: '12px', color: '#88aacc',
       });
 
       // 간략 스탯
       this.add.text(50, y + 42, `ATK:${unit.stats.attack}  DEF:${unit.stats.defense}  HP:${unit.stats.maxHp}`, {
-        fontSize: '8px', color: '#666688',
+        fontSize: '12px', color: '#666688',
       });
 
       // 상세 버튼
       const detBg = this.add.graphics();
-      detBg.fillStyle(0x2a3a5a, 1).fillRoundedRect(GW - 72, y + 14, 48, 26, 5);
-      this.add.text(GW - 48, y + 27, '상세', {
-        fontSize: '11px', color: '#88ccff', fontStyle: 'bold',
+      detBg.fillStyle(0x2a3a5a, 1).fillRoundedRect(GW - 75, y + 10, 54, 36, 5);
+      this.add.text(GW - 48, y + 28, '상세', {
+        fontSize: '13px', color: '#88ccff', fontStyle: 'bold',
       }).setOrigin(0.5);
-      const hit = this.add.rectangle(GW - 48, y + 27, 48, 26, 0x000000, 0)
+      const hit = this.add.rectangle(GW - 48, y + 28, 54, 36, 0x000000, 0)
         .setInteractive({ useHandCursor: true });
       hit.on('pointerdown', () => this.showHeroDetail(unit));
     }
@@ -263,11 +263,9 @@ export class LobbyScene extends Phaser.Scene {
     bg.fillRect(0, 0, GW, GH);
 
     // 뒤로 버튼
-    const backBg = this.add.graphics();
-    backBg.fillStyle(0x1a1a3a, 1).fillRoundedRect(10, 8, 55, 24, 6);
-    const backBtn = this.add.text(37, 20, '← 목록', {
-      fontSize: '11px', color: '#88aacc',
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    const backBtn = this.add.text(16, 14, '← 뒤로', {
+      fontSize: '15px', color: '#88aacc', backgroundColor: '#1a1a3a', padding: { x: 12, y: 8 },
+    }).setInteractive({ useHandCursor: true });
     backBtn.on('pointerdown', () => this.showHeroes());
 
     // 장수 헤더 카드
@@ -297,7 +295,7 @@ export class LobbyScene extends Phaser.Scene {
     const expBarX = 40;
     this.add.graphics().fillStyle(0x222233, 1).fillRoundedRect(expBarX, 95, expBarW, 6, 3);
     this.add.graphics().fillStyle(0x6666cc, 1).fillRoundedRect(expBarX, 95, expBarW * (exp / 100), 6, 3);
-    this.add.text(GW - 38, 92, `${exp}/100`, { fontSize: '8px', color: '#8888aa' });
+    this.add.text(GW - 38, 92, `${exp}/100`, { fontSize: '12px', color: '#8888aa' });
 
     // 스탯 카드
     const statBg = this.add.graphics();
@@ -319,7 +317,7 @@ export class LobbyScene extends Phaser.Scene {
       const row = Math.floor(i / 4);
       const x = 28 + col * ((GW - 56) / 4);
       const y = 118 + row * 30;
-      this.add.text(x, y, statData[i].label, { fontSize: '9px', color: '#888888' });
+      this.add.text(x, y, statData[i].label, { fontSize: '12px', color: '#888888' });
       this.add.text(x, y + 12, `${statData[i].value}`, {
         fontSize: '12px', color: statData[i].color, fontStyle: 'bold',
       });
@@ -405,7 +403,7 @@ export class LobbyScene extends Phaser.Scene {
       });
       if (bonus) {
         this.add.text(200, equipY + 22 + i * 24, bonus, {
-          fontSize: '10px', color: '#88aa88',
+          fontSize: '12px', color: '#88aa88',
         });
       }
       // 해제 버튼
@@ -459,21 +457,21 @@ export class LobbyScene extends Phaser.Scene {
       const tabW = (GW - 50) / 3;
       const tabBg = this.add.graphics();
       tabBg.fillStyle(isActive ? 0x2a3a5a : 0x141428, 1);
-      tabBg.fillRoundedRect(t.x - tabW / 2, 42, tabW, 28, 5);
+      tabBg.fillRoundedRect(t.x - tabW / 2, 42, tabW, 40, 5);
       if (isActive) {
         tabBg.lineStyle(1.5, 0x4488cc, 0.8);
-        tabBg.strokeRoundedRect(t.x - tabW / 2, 42, tabW, 28, 5);
+        tabBg.strokeRoundedRect(t.x - tabW / 2, 42, tabW, 40, 5);
       }
-      this.add.text(t.x, 56, `${t.icon} ${t.label}`, {
-        fontSize: '11px', color: isActive ? '#ffffff' : '#666666', fontStyle: isActive ? 'bold' : 'normal',
+      this.add.text(t.x, 62, `${t.icon} ${t.label}`, {
+        fontSize: '13px', color: isActive ? '#ffffff' : '#666666', fontStyle: isActive ? 'bold' : 'normal',
       }).setOrigin(0.5);
-      const hit = this.add.rectangle(t.x, 56, tabW, 28, 0x000000, 0)
+      const hit = this.add.rectangle(t.x, 62, tabW, 40, 0x000000, 0)
         .setInteractive({ useHandCursor: true });
       hit.on('pointerdown', () => this.showInventory(t.key));
     }
 
     const progress = this.campaignManager.getProgress();
-    const startY = 80;
+    const startY = 92;
 
     if (tab === 'equipment') {
       this.renderEquipmentBag(progress.equipmentBag ?? [], startY);
@@ -565,7 +563,9 @@ export class LobbyScene extends Phaser.Scene {
   /** 장비 장착 대상 장수 선택 */
   private showEquipTarget(bag: string[], bagIdx: number, itemId: string): void {
     this.children.removeAll();
-    this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GW, GH);
+    const eqBg = this.add.graphics();
+    eqBg.fillGradientStyle(0x0c1220, 0x0c1220, 0x1a1a30, 0x1a1a30, 1);
+    eqBg.fillRect(0, 0, GW, GH);
 
     const itemDef = EQUIPMENT_DEFS[itemId];
     this.add.text(GW / 2, 20, `${itemDef?.name ?? itemId} 장착`, {
@@ -616,7 +616,9 @@ export class LobbyScene extends Phaser.Scene {
   /** 스킬 장착 대상 장수 선택 */
   private showSkillTarget(bag: string[], bagIdx: number, skillId: string): void {
     this.children.removeAll();
-    this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GW, GH);
+    const skBg = this.add.graphics();
+    skBg.fillGradientStyle(0x0c1220, 0x0c1220, 0x1a1a30, 0x1a1a30, 1);
+    skBg.fillRect(0, 0, GW, GH);
 
     const skillDef = SKILL_DEFS[skillId];
     this.add.text(GW / 2, 20, `${skillDef?.name ?? skillId} 장착`, {
@@ -906,7 +908,9 @@ export class LobbyScene extends Phaser.Scene {
 
   private showGachaPool(): void {
     this.children.removeAll();
-    this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GW, GH);
+    const poolBgG = this.add.graphics();
+    poolBgG.fillGradientStyle(0x0c1220, 0x0c1220, 0x1a1a30, 0x1a1a30, 1);
+    poolBgG.fillRect(0, 0, GW, GH);
 
     this.add.text(GW / 2, 15, '📋 장수 뽑기 확률', {
       fontSize: '20px', color: '#ffd700', fontStyle: 'bold',
@@ -951,11 +955,11 @@ export class LobbyScene extends Phaser.Scene {
         const cls = hero.unitClass ? (UNIT_CLASS_DEFS[hero.unitClass as UnitClass]?.name ?? '') : '';
         const skillName = hero.uniqueSkill ? (SKILL_DEFS[hero.uniqueSkill]?.name ?? '') : '';
 
-        this.add.text(20, y, `[${grade}]`, { fontSize: '9px', color: gradeColor, fontStyle: 'bold' });
-        this.add.text(45, y, hero.name, { fontSize: '11px', color: '#ffffff' });
-        this.add.text(110, y, cls, { fontSize: '9px', color: '#888888' });
+        this.add.text(20, y, `[${grade}]`, { fontSize: '12px', color: gradeColor, fontStyle: 'bold' });
+        this.add.text(45, y, hero.name, { fontSize: '12px', color: '#ffffff' });
+        this.add.text(110, y, cls, { fontSize: '12px', color: '#888888' });
         if (skillName) {
-          this.add.text(160, y, `✨${skillName}`, { fontSize: '9px', color: '#cc88ff' });
+          this.add.text(160, y, `✨${skillName}`, { fontSize: '12px', color: '#cc88ff' });
         }
         y += 16;
       }
@@ -982,7 +986,9 @@ export class LobbyScene extends Phaser.Scene {
 
   private showGachaResults(result: GachaPullResult): void {
     this.children.removeAll();
-    this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GW, GH);
+    const resBg = this.add.graphics();
+    resBg.fillGradientStyle(0x0c1220, 0x0c1220, 0x1a1a30, 0x1a1a30, 1);
+    resBg.fillRect(0, 0, GW, GH);
 
     this.add.text(GW / 2, 20, '🎊 뽑기 결과', {
       fontSize: '24px', color: '#ffd700', fontStyle: 'bold',

@@ -167,7 +167,7 @@ export class WorldMapScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     this.add.text(GW / 2, 48, '시나리오 장수 외 1명을 선택하세요', {
-      fontSize: '11px', color: '#aaaaaa',
+      fontSize: '13px', color: '#aaaaaa',
     }).setOrigin(0.5);
 
     // 선택 안 함 버튼
@@ -202,15 +202,15 @@ export class WorldMapScene extends Phaser.Scene {
 
       const cls = unit.unitClass ? (UNIT_CLASS_DEFS[unit.unitClass]?.name ?? '') : '';
       this.add.text(52, y + 24, `${cls} Lv.${unit.level ?? 1}  ATK:${unit.stats.attack}`, {
-        fontSize: '9px', color: '#88aacc',
+        fontSize: '12px', color: '#88aacc',
       });
 
       const selBg = this.add.graphics();
-      selBg.fillStyle(0x3366aa, 1).fillRoundedRect(GW - 75, y + 10, 50, 26, 5);
-      this.add.text(GW - 50, y + 23, '선택', {
-        fontSize: '12px', color: '#ffffff', fontStyle: 'bold',
+      selBg.fillStyle(0x3366aa, 1).fillRoundedRect(GW - 80, y + 8, 60, 36, 5);
+      this.add.text(GW - 50, y + 26, '선택', {
+        fontSize: '13px', color: '#ffffff', fontStyle: 'bold',
       }).setOrigin(0.5);
-      const hit = this.add.rectangle(GW - 50, y + 23, 50, 26, 0x000000, 0)
+      const hit = this.add.rectangle(GW - 50, y + 26, 60, 36, 0x000000, 0)
         .setInteractive({ useHandCursor: true });
       hit.on('pointerdown', () => this.launchBattle(stage, unit.id));
     }

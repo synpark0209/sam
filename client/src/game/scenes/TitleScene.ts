@@ -85,7 +85,7 @@ export class TitleScene extends Phaser.Scene {
 
     // 버전
     this.add.text(GW / 2, GH - 20, 'v0.1.0', {
-      fontSize: '11px', color: '#333344',
+      fontSize: '12px', color: '#333344',
     }).setOrigin(0.5);
 
     if (isLoggedIn()) {

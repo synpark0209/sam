@@ -1789,7 +1789,7 @@ export class BattleScene extends Phaser.Scene {
     this.cameras.main.ignore(nameText);
 
     const factionText = this.add.text(gw - 40, panelY + 8, faction, {
-      fontSize: '11px', color: fColor,
+      fontSize: '13px', color: fColor,
     }).setDepth(181);
     this.unitInfoPanel.push(factionText);
     this.cameras.main.ignore(factionText);
@@ -1801,14 +1801,14 @@ export class BattleScene extends Phaser.Scene {
     const hpColor = hpRatio > 0.5 ? '#44ff44' : hpRatio > 0.25 ? '#ffff44' : '#ff4444';
 
     const hpText = this.add.text(15, panelY + 28, `HP: ${hp}/${maxHp}`, {
-      fontSize: '11px', color: hpColor,
+      fontSize: '13px', color: hpColor,
     }).setDepth(181);
     this.unitInfoPanel.push(hpText);
     this.cameras.main.ignore(hpText);
 
     if (unit.maxMp && unit.maxMp > 0) {
       const mpText = this.add.text(130, panelY + 28, `MP: ${unit.mp ?? 0}/${unit.maxMp}`, {
-        fontSize: '11px', color: '#4488ff',
+        fontSize: '13px', color: '#4488ff',
       }).setDepth(181);
       this.unitInfoPanel.push(mpText);
       this.cameras.main.ignore(mpText);
@@ -1818,10 +1818,10 @@ export class BattleScene extends Phaser.Scene {
     const statLine1 = `공격:${unit.stats.attack}  방어:${unit.stats.defense}  속도:${unit.stats.speed}`;
     const statLine2 = `이동:${unit.stats.moveRange}  사거리:${unit.stats.attackRange}`;
     const s1 = this.add.text(15, panelY + 46, statLine1, {
-      fontSize: '10px', color: '#cccccc',
+      fontSize: '12px', color: '#cccccc',
     }).setDepth(181);
     const s2 = this.add.text(15, panelY + 60, statLine2, {
-      fontSize: '10px', color: '#cccccc',
+      fontSize: '12px', color: '#cccccc',
     }).setDepth(181);
     this.unitInfoPanel.push(s1, s2);
     this.cameras.main.ignore(s1);

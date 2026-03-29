@@ -40,7 +40,9 @@ export class PvpLobbyScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GAME_W, GAME_H);
+    const bg = this.add.graphics();
+    bg.fillGradientStyle(0x0c1220, 0x0c1220, 0x1a0a2e, 0x1a0a2e, 1);
+    bg.fillRect(0, 0, GAME_W, GAME_H);
 
     this.add.text(GAME_W / 2, 22, 'PvP 대전', {
       fontSize: '26px', color: '#ff6644', fontStyle: 'bold',

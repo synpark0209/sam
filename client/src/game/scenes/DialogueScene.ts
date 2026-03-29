@@ -52,8 +52,8 @@ export class DialogueScene extends Phaser.Scene {
     moon.fillCircle(GW * 0.8, GH * 0.15, 80);
 
     // 음소거 버튼
-    const muteBtn = this.add.text(GW - 35, 12, audio?.isMuted() ? '🔇' : '🔊', {
-      fontSize: '18px',
+    const muteBtn = this.add.text(GW - 40, 16, audio?.isMuted() ? '🔇' : '🔊', {
+      fontSize: '24px',
     }).setInteractive({ useHandCursor: true }).setDepth(100);
     muteBtn.on('pointerdown', () => {
       if (!audio) return;
