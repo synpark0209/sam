@@ -1,6 +1,7 @@
 import type { DialogueEvent } from './dialogue.ts';
 import type { UnitData } from './unit.ts';
 import type { TileData } from './grid.ts';
+import type { DailyMissionState, LoginBonusState } from './dailyMission.ts';
 
 export interface StageReward {
   gold?: number;
@@ -50,4 +51,6 @@ export interface CampaignProgress {
   dungeonClears: Record<string, number>; // 오늘 던전 클리어 횟수 {dungeonId_difficulty: count}
   dungeonStars: Record<string, number>;  // 던전 최고 별 {dungeonId_difficulty: stars}
   lastDungeonReset: string;           // 마지막 일일 리셋 날짜 (YYYY-MM-DD)
+  dailyMissions?: DailyMissionState;
+  loginBonus?: LoginBonusState;
 }

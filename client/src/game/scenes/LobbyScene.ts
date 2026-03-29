@@ -11,6 +11,7 @@ import type { HeroGrade } from '@shared/data/gachaDefs.ts';
 import { UNIT_CLASS_DEFS } from '@shared/data/unitClassDefs.ts';
 import { SKILL_DEFS } from '@shared/data/skillDefs.ts';
 import { EQUIPMENT_DEFS } from '@shared/data/equipmentDefs.ts';
+import { DAILY_MISSIONS, ALL_COMPLETE_BONUS, areAllMissionsComplete, LOGIN_BONUS_TABLE } from '@shared/data/dailyMissionDefs.ts';
 
 const GW = GAME_WIDTH;
 const GH = GAME_HEIGHT;
@@ -136,10 +137,11 @@ export class LobbyScene extends Phaser.Scene {
 
     // ── 하단 메뉴 (소형 버튼 4개) ──
     const subY = gridStartY + 2 * (btnH + gap) + 20;
-    const subBtnW = (GW - 54) / 4;
+    const subBtnW = (GW - 66) / 5;
     const subBtnH = 64;
 
     const subButtons: { label: string; icon: string; action: () => void }[] = [
+      { label: '임무', icon: '📋', action: () => this.showDailyMissions() },
       { label: '장수', icon: '👥', action: () => this.showHeroes() },
       { label: '인벤토리', icon: '🎒', action: () => this.showInventory('equipment') },
       { label: '랭킹', icon: '🏆', action: () => this.scene.start('RankingScene') },
@@ -148,7 +150,7 @@ export class LobbyScene extends Phaser.Scene {
 
     for (let i = 0; i < subButtons.length; i++) {
       const btn = subButtons[i];
-      const x = 16 + i * (subBtnW + 6);
+      const x = 14 + i * (subBtnW + 5);
 
       const subBg = this.add.graphics();
       subBg.fillStyle(0x1a1a2e, 1);
@@ -175,10 +177,285 @@ export class LobbyScene extends Phaser.Scene {
     bottomLine.fillRect(0, GH - 2, GW, 2);
   }
 
+  // ── 일일 임무 ──
+
+  private showDailyMissions(tab: 'missions' | 'login' = 'missions'): void {
+    this.children.removeAll();
+
+    // 배경 그라데이션
+    const bg = this.add.graphics();
+    bg.fillGradientStyle(0x0c1220, 0x0c1220, 0x1a1a30, 0x1a1a30, 1);
+    bg.fillRect(0, 0, GW, GH);
+
+    // 상단 장식선
+    const topLine = this.add.graphics();
+    topLine.fillGradientStyle(0xffd700, 0xffa500, 0xffa500, 0xffd700, 1);
+    topLine.fillRect(0, 0, GW, 3);
+
+    // 뒤로 버튼
+    const backBtn = this.add.text(16, 14, '← 뒤로', {
+      fontSize: '15px', color: '#88aacc', backgroundColor: '#1a1a3a', padding: { x: 12, y: 8 },
+    }).setInteractive({ useHandCursor: true });
+    backBtn.on('pointerdown', () => this.showMainMenu());
+
+    // 타이틀
+    this.add.text(GW / 2, 24, '📋 일일 임무', {
+      fontSize: '24px', color: '#ffd700', fontStyle: 'bold',
+      stroke: '#000000', strokeThickness: 4,
+    }).setOrigin(0.5);
+
+    // ── 탭 ──
+    const tabY = 55;
+    const tabW = (GW - 32) / 2;
+    const tabH = 40;
+    const tabs: { label: string; key: 'missions' | 'login' }[] = [
+      { label: '일일 임무', key: 'missions' },
+      { label: '출석 보너스', key: 'login' },
+    ];
+    for (let i = 0; i < tabs.length; i++) {
+      const t = tabs[i];
+      const tx = 16 + i * tabW;
+      const isActive = tab === t.key;
+
+      const tabBg = this.add.graphics();
+      tabBg.fillStyle(isActive ? 0x1a1a3a : 0x0e0e1e, 1);
+      tabBg.fillRect(tx, tabY, tabW, tabH);
+      if (isActive) {
+        tabBg.fillStyle(0xffd700, 1);
+        tabBg.fillRect(tx, tabY + tabH - 3, tabW, 3);
+      }
+
+      this.add.text(tx + tabW / 2, tabY + tabH / 2 - 2, t.label, {
+        fontSize: '14px', color: isActive ? '#ffd700' : '#666666', fontStyle: isActive ? 'bold' : 'normal',
+      }).setOrigin(0.5);
+
+      const hit = this.add.rectangle(tx + tabW / 2, tabY + tabH / 2, tabW, tabH, 0x000000, 0)
+        .setInteractive({ useHandCursor: true });
+      hit.on('pointerdown', () => this.showDailyMissions(t.key));
+    }
+
+    // ── 탭 콘텐츠 ──
+    if (tab === 'missions') {
+      this.renderMissionsTab();
+    } else {
+      this.renderLoginBonusTab();
+    }
+  }
+
+  private renderMissionsTab(): void {
+    const missionState = this.campaignManager.getDailyMissions();
+    const progress = this.campaignManager.getProgress();
+    const contentY = 100;
+    const cardW = GW - 32;
+    const cardH = 72;
+    const cardGap = 6;
+
+    for (let i = 0; i < DAILY_MISSIONS.length; i++) {
+      const def = DAILY_MISSIONS[i];
+      const mp = missionState.missions[def.id];
+      const current = mp?.current ?? 0;
+      const claimed = mp?.claimed ?? false;
+      const completed = current >= def.target;
+      const y = contentY + i * (cardH + cardGap);
+
+      // 카드 배경
+      const card = this.add.graphics();
+      card.fillStyle(claimed ? 0x111122 : 0x141428, 1);
+      card.fillRoundedRect(16, y, cardW, cardH, 8);
+      card.lineStyle(1, completed && !claimed ? 0x44aa44 : 0x2a2a44, 0.6);
+      card.strokeRoundedRect(16, y, cardW, cardH, 8);
+
+      // 아이콘
+      this.add.text(30, y + 12, def.icon, { fontSize: '24px' });
+
+      // 이름 + 설명
+      this.add.text(62, y + 10, def.name, {
+        fontSize: '16px', color: claimed ? '#555555' : '#ffffff', fontStyle: 'bold',
+      });
+      this.add.text(62, y + 30, def.description, {
+        fontSize: '12px', color: claimed ? '#444444' : '#888888',
+      });
+
+      // 보상 표시
+      this.add.text(62, y + 50, `💰 ${def.reward.gold}`, {
+        fontSize: '11px', color: claimed ? '#444444' : '#ffd700',
+      });
+
+      // 진행도 텍스트
+      const progressText = `${Math.min(current, def.target)}/${def.target}`;
+      this.add.text(GW - 100, y + 10, progressText, {
+        fontSize: '16px', color: completed ? '#44ff44' : '#aaaaaa',
+      });
+
+      // 진행 바
+      const barX = GW - 110;
+      const barY2 = y + 32;
+      const barW = 80;
+      const barH2 = 8;
+      const barBg = this.add.graphics();
+      barBg.fillStyle(0x222233, 1).fillRoundedRect(barX, barY2, barW, barH2, 4);
+      const fillW = Math.min(current / def.target, 1) * barW;
+      if (fillW > 0) {
+        barBg.fillStyle(completed ? 0x44aa44 : 0x4466aa, 1).fillRoundedRect(barX, barY2, fillW, barH2, 4);
+      }
+
+      // 수령 버튼 또는 완료 텍스트
+      if (completed && !claimed) {
+        const claimBg = this.add.graphics();
+        claimBg.fillStyle(0x228833, 1).fillRoundedRect(GW - 82, y + 44, 50, 24, 5);
+        this.add.text(GW - 57, y + 56, '수령', {
+          fontSize: '13px', color: '#ffffff', fontStyle: 'bold',
+        }).setOrigin(0.5);
+        const claimHit = this.add.rectangle(GW - 57, y + 56, 50, 24, 0x000000, 0)
+          .setInteractive({ useHandCursor: true });
+        claimHit.on('pointerdown', () => {
+          mp.claimed = true;
+          progress.gold += def.reward.gold;
+          this.campaignManager.save();
+          this.showDailyMissions('missions');
+        });
+      } else if (claimed) {
+        this.add.text(GW - 70, y + 52, '완료 ✓', {
+          fontSize: '12px', color: '#555555',
+        });
+      }
+    }
+
+    // ── 전체 완료 보너스 ──
+    const bonusY = contentY + DAILY_MISSIONS.length * (cardH + cardGap) + 10;
+    const allComplete = areAllMissionsComplete(missionState);
+    const allClaimed = DAILY_MISSIONS.every(def => missionState.missions[def.id]?.claimed);
+    const bonusTaken = missionState.allClaimedBonusTaken;
+
+    const bonusCard = this.add.graphics();
+    bonusCard.fillStyle(bonusTaken ? 0x111122 : 0x1a1a3a, 1);
+    bonusCard.fillRoundedRect(16, bonusY, cardW, 60, 8);
+    bonusCard.lineStyle(1.5, allComplete && allClaimed && !bonusTaken ? 0xffd700 : 0x333355, 0.6);
+    bonusCard.strokeRoundedRect(16, bonusY, cardW, 60, 8);
+
+    this.add.text(30, bonusY + 10, '🏆 전체 완료 보너스', {
+      fontSize: '16px', color: bonusTaken ? '#555555' : '#ffd700', fontStyle: 'bold',
+    });
+    this.add.text(30, bonusY + 34, `💰 ${ALL_COMPLETE_BONUS.gold}  +  💎 ${ALL_COMPLETE_BONUS.gems}`, {
+      fontSize: '14px', color: bonusTaken ? '#444444' : '#ffffff',
+    });
+
+    if (allComplete && allClaimed && !bonusTaken) {
+      const bonusClaimBg = this.add.graphics();
+      bonusClaimBg.fillStyle(0xaa6600, 1).fillRoundedRect(GW - 130, bonusY + 14, 100, 32, 6);
+      this.add.text(GW - 80, bonusY + 30, '전체 보상 수령', {
+        fontSize: '12px', color: '#ffffff', fontStyle: 'bold',
+      }).setOrigin(0.5);
+      const bonusHit = this.add.rectangle(GW - 80, bonusY + 30, 100, 32, 0x000000, 0)
+        .setInteractive({ useHandCursor: true });
+      bonusHit.on('pointerdown', () => {
+        missionState.allClaimedBonusTaken = true;
+        progress.gold += ALL_COMPLETE_BONUS.gold;
+        // 보석은 서버에서 지급
+        this.campaignManager.save();
+        this.showDailyMissions('missions');
+      });
+    } else if (bonusTaken) {
+      this.add.text(GW - 80, bonusY + 30, '수령 완료 ✓', {
+        fontSize: '12px', color: '#555555',
+      }).setOrigin(0.5);
+    }
+  }
+
+  private renderLoginBonusTab(): void {
+    const loginState = this.campaignManager.getLoginBonus();
+    const progress = this.campaignManager.getProgress();
+    const contentY = 100;
+    const cardW = (GW - 42) / 2;
+    const cardH = 90;
+    const gap = 10;
+
+    for (let i = 0; i < LOGIN_BONUS_TABLE.length; i++) {
+      const def = LOGIN_BONUS_TABLE[i];
+      const col = i % 2;
+      const row = Math.floor(i / 2);
+      const x = 16 + col * (cardW + gap);
+      const y = contentY + row * (cardH + gap);
+
+      const isClaimed = loginState.claimedDays.includes(def.day);
+      const isCurrentDay = def.day === loginState.consecutiveDays;
+      const canClaim = isCurrentDay && !isClaimed;
+      const isFuture = def.day > loginState.consecutiveDays;
+
+      // 카드 배경
+      const card = this.add.graphics();
+      if (canClaim) {
+        card.fillStyle(0x2a3a2a, 1);
+        card.fillRoundedRect(x, y, cardW, cardH, 8);
+        card.lineStyle(2, 0xffd700, 0.8);
+        card.strokeRoundedRect(x, y, cardW, cardH, 8);
+      } else if (isClaimed) {
+        card.fillStyle(0x111122, 0.8);
+        card.fillRoundedRect(x, y, cardW, cardH, 8);
+        card.lineStyle(1, 0x333355, 0.4);
+        card.strokeRoundedRect(x, y, cardW, cardH, 8);
+      } else {
+        card.fillStyle(0x141428, 0.6);
+        card.fillRoundedRect(x, y, cardW, cardH, 8);
+        card.lineStyle(1, 0x222244, 0.4);
+        card.strokeRoundedRect(x, y, cardW, cardH, 8);
+      }
+
+      // Day 표시
+      this.add.text(x + cardW / 2, y + 12, `Day ${def.day}`, {
+        fontSize: '14px', color: canClaim ? '#ffd700' : isClaimed ? '#555555' : isFuture ? '#444444' : '#888888',
+        fontStyle: 'bold',
+      }).setOrigin(0.5);
+
+      // 보상 내용
+      const rewards: string[] = [];
+      if (def.gold > 0) rewards.push(`💰 ${def.gold}`);
+      if (def.gems > 0) rewards.push(`💎 ${def.gems}`);
+      this.add.text(x + cardW / 2, y + 34, rewards.join('  '), {
+        fontSize: '13px', color: isClaimed ? '#444444' : isFuture ? '#555555' : '#ffffff',
+      }).setOrigin(0.5);
+
+      // 상태 표시
+      if (canClaim) {
+        const claimBg = this.add.graphics();
+        claimBg.fillStyle(0x228833, 1).fillRoundedRect(x + cardW / 2 - 30, y + 54, 60, 28, 5);
+        this.add.text(x + cardW / 2, y + 68, '수령', {
+          fontSize: '14px', color: '#ffffff', fontStyle: 'bold',
+        }).setOrigin(0.5);
+        const claimHit = this.add.rectangle(x + cardW / 2, y + 68, 60, 28, 0x000000, 0)
+          .setInteractive({ useHandCursor: true });
+        claimHit.on('pointerdown', () => {
+          loginState.claimedDays.push(def.day);
+          if (def.gold > 0) progress.gold += def.gold;
+          if (def.gems > 0) {
+            // 💎 보석은 서버에서 지급됩니다
+          }
+          this.campaignManager.save();
+          this.showDailyMissions('login');
+        });
+      } else if (isClaimed) {
+        this.add.text(x + cardW / 2, y + 66, '✓ 수령완료', {
+          fontSize: '12px', color: '#555555',
+        }).setOrigin(0.5);
+      } else if (isFuture) {
+        this.add.text(x + cardW / 2, y + 66, '🔒 잠금', {
+          fontSize: '12px', color: '#444444',
+        }).setOrigin(0.5);
+      }
+    }
+
+    // 보석 안내 문구
+    const noteY = contentY + Math.ceil(LOGIN_BONUS_TABLE.length / 2) * (cardH + gap) + 10;
+    this.add.text(GW / 2, noteY, '💎 보석은 서버에서 지급됩니다', {
+      fontSize: '11px', color: '#666666',
+    }).setOrigin(0.5);
+  }
+
   // ── 장수 관리 ──
 
   private showHeroes(): void {
     this.children.removeAll();
+    this.campaignManager.incrementMission('heroes_1');
 
     const bg = this.add.graphics();
     bg.fillGradientStyle(0x0c1220, 0x0c1220, 0x1a1a30, 0x1a1a30, 1);
@@ -974,6 +1251,7 @@ export class LobbyScene extends Phaser.Scene {
 
     gachaPull(type, count).then(result => {
       loadingText.destroy();
+      this.campaignManager.incrementMission('gacha_1');
       // 세이브 리로드 (서버에서 장수가 추가됨)
       this.campaignManager.loadFromServer().then(() => {
         this.showGachaResults(result);

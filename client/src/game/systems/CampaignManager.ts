@@ -1,7 +1,9 @@
 import { UnitClass } from '@shared/types/index.ts';
 import type { UnitData } from '@shared/types/index.ts';
 import type { CampaignProgress, Stage, BattleConfig } from '@shared/types/campaign.ts';
+import type { DailyMissionId, DailyMissionState, LoginBonusState } from '@shared/types/dailyMission.ts';
 import { ALL_CHAPTERS } from '@shared/data/campaign/chapters.ts';
+import { createDailyMissionState, DAILY_MISSIONS } from '@shared/data/dailyMissionDefs.ts';
 import { saveToServer, loadServerSave } from '../../api/client.ts';
 
 function createDefaultPlayerUnits(): UnitData[] {
@@ -188,5 +190,53 @@ export class CampaignManager {
 
   setHasSave(value: boolean): void {
     this._hasSave = value;
+  }
+
+  // ── 일일 임무 ──
+
+  getDailyMissions(): DailyMissionState {
+    const today = new Date().toISOString().split('T')[0];
+    if (!this.progress.dailyMissions || this.progress.dailyMissions.date !== today) {
+      this.progress.dailyMissions = createDailyMissionState();
+    }
+    return this.progress.dailyMissions;
+  }
+
+  incrementMission(missionId: DailyMissionId): void {
+    const state = this.getDailyMissions();
+    const mission = state.missions[missionId];
+    if (!mission) return;
+    const def = DAILY_MISSIONS.find(m => m.id === missionId);
+    if (!def) return;
+    if (mission.current < def.target) {
+      mission.current++;
+      this.save();
+    }
+  }
+
+  // ── 출석 보너스 ──
+
+  getLoginBonus(): LoginBonusState {
+    const today = new Date().toISOString().split('T')[0];
+    if (!this.progress.loginBonus) {
+      this.progress.loginBonus = { lastLoginDate: today, consecutiveDays: 1, claimedDays: [] };
+      return this.progress.loginBonus;
+    }
+    const lb = this.progress.loginBonus;
+    if (lb.lastLoginDate === today) return lb;
+
+    const last = new Date(lb.lastLoginDate);
+    const now = new Date(today);
+    const diffDays = Math.round((now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 1 && lb.consecutiveDays < 7) {
+      lb.consecutiveDays++;
+    } else if (diffDays > 1 || lb.consecutiveDays >= 7) {
+      lb.consecutiveDays = 1;
+      lb.claimedDays = [];
+    }
+    lb.lastLoginDate = today;
+    this.save();
+    return lb;
   }
 }

@@ -1068,6 +1068,9 @@ export class PvPArenaScene extends Phaser.Scene {
     // 서버에 결과 기록
     pvpRecordResult(0, won).catch(() => {});
 
+    this.campaignManager.incrementMission('battle_3');
+    this.campaignManager.incrementMission('pvp_1');
+
     this.children.removeAll();
     this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GW, GH);
 

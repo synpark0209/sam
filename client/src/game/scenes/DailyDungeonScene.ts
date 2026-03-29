@@ -366,6 +366,9 @@ export class DailyDungeonScene extends Phaser.Scene {
     if (!progress.dungeonClears) progress.dungeonClears = {};
     progress.dungeonClears[key] = (progress.dungeonClears[key] ?? 0) + 1;
 
+    this.campaignManager.incrementMission('battle_3');
+    this.campaignManager.incrementMission('dungeon_1');
+
     const reward = generateReward(this.selectedDungeon.id, diff);
     this.applyReward(reward);
     this.campaignManager.save();
@@ -718,6 +721,9 @@ export class DailyDungeonScene extends Phaser.Scene {
       progress.dungeonClears[key] = (progress.dungeonClears[key] ?? 0) + 1;
       if (!progress.dungeonStars) progress.dungeonStars = {};
       if ((progress.dungeonStars[key] ?? 0) < stars) progress.dungeonStars[key] = stars;
+
+      this.campaignManager.incrementMission('battle_3');
+      this.campaignManager.incrementMission('dungeon_1');
 
       const reward = generateReward(this.selectedDungeon!.id, diff);
       this.applyReward(reward);

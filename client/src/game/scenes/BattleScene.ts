@@ -1720,6 +1720,7 @@ export class BattleScene extends Phaser.Scene {
           if (winner === 'player') {
             const survivors = this.battleState.units.filter(u => u.faction === 'player' && u.isAlive);
             this.campaignManager!.completeBattle(survivors, this.campaignStage!);
+            this.campaignManager!.incrementMission('battle_3');
             this.scene.start('DialogueScene', {
               dialogue: this.campaignStage!.postDialogue,
               nextScene: 'WorldMapScene',
