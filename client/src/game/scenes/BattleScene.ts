@@ -253,7 +253,7 @@ export class BattleScene extends Phaser.Scene {
   private faceToward(unit: UnitData, targetPos: Position): void {
     const container = this.unitSprites.get(unit.id);
     if (!container) return;
-    const sprite = container.getAt(0) as Phaser.GameObjects.Sprite;
+    const sprite = container.getAt(1) as Phaser.GameObjects.Sprite;
 
     // PixelLab 캐릭터: 방향별 애니메이션 전환
     if (this.pixelLabUnits.has(unit.id)) {
@@ -392,10 +392,13 @@ export class BattleScene extends Phaser.Scene {
       sprite.play(`${texKey}_idle`);
     }
 
-    // 적군 유닛 틴트 적용 (붉은 톤)
-    if (unit.faction === 'enemy') {
-      sprite.setTint(0xff9999);
-    }
+    // 진영 표시 베이스 (유닛 발밑 타원)
+    const factionBase = this.add.graphics();
+    const baseColor = unit.faction === 'player' ? 0x3366ff : 0xdd3333;
+    factionBase.fillStyle(baseColor, 0.5);
+    factionBase.fillEllipse(0, TILE_SIZE * 0.28, TILE_SIZE * 0.5, TILE_SIZE * 0.18);
+    factionBase.lineStyle(1, baseColor, 0.8);
+    factionBase.strokeEllipse(0, TILE_SIZE * 0.28, TILE_SIZE * 0.5, TILE_SIZE * 0.18);
 
     const hpBarBg = this.add.graphics();
     hpBarBg.fillStyle(0x000000, 0.6);
@@ -407,7 +410,7 @@ export class BattleScene extends Phaser.Scene {
     const mpBar = this.add.graphics();
     this.drawMpBar(mpBar, unit);
 
-    container.add([sprite, hpBarBg, hpBar, mpBar]);
+    container.add([factionBase, sprite, hpBarBg, hpBar, mpBar]);
     container.setSize(TILE_SIZE, TILE_SIZE);
     container.setInteractive();
     container.setData('unitId', unit.id);
@@ -440,10 +443,10 @@ export class BattleScene extends Phaser.Scene {
     if (!container) return;
     if (!unit.isAlive) { container.setVisible(false); return; }
 
-    // 인덱스: 0=sprite, 1=hpBarBg, 2=hpBar, 3=mpBar
-    const hpBar = container.getAt(2) as Phaser.GameObjects.Graphics;
+    // 인덱스: 0=factionBase, 1=sprite, 2=hpBarBg, 3=hpBar, 4=mpBar
+    const hpBar = container.getAt(3) as Phaser.GameObjects.Graphics;
     this.drawHpBar(hpBar, unit);
-    const mpBar = container.getAt(3) as Phaser.GameObjects.Graphics;
+    const mpBar = container.getAt(4) as Phaser.GameObjects.Graphics;
     this.drawMpBar(mpBar, unit);
 
     container.setAlpha(unit.hasActed ? 0.5 : 1);
@@ -452,7 +455,7 @@ export class BattleScene extends Phaser.Scene {
   private playUnitAnim(unit: UnitData, anim: string): void {
     const container = this.unitSprites.get(unit.id);
     if (!container) return;
-    const sprite = container.getAt(0) as Phaser.GameObjects.Sprite;
+    const sprite = container.getAt(1) as Phaser.GameObjects.Sprite;
 
     if (this.pixelLabUnits.has(unit.id)) {
       playPixelLabAnim(this, sprite, this.pixelLabUnits.get(unit.id)!, anim, unit.unitClass);
