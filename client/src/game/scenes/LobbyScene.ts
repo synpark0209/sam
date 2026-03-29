@@ -190,11 +190,9 @@ export class LobbyScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // 뒤로 버튼
-    const backBg = this.add.graphics();
-    backBg.fillStyle(0x1a1a3a, 1).fillRoundedRect(10, 8, 55, 24, 6);
-    const backBtn = this.add.text(37, 20, '← 홈', {
-      fontSize: '11px', color: '#88aacc',
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    const backBtn = this.add.text(16, 14, '← 뒤로', {
+      fontSize: '15px', color: '#88aacc', backgroundColor: '#1a1a3a', padding: { x: 12, y: 8 },
+    }).setInteractive({ useHandCursor: true });
     backBtn.on('pointerdown', () => this.showMainMenu());
 
     const units = this.campaignManager.getProgress().playerUnits;
@@ -445,11 +443,9 @@ export class LobbyScene extends Phaser.Scene {
       stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0.5);
 
-    const backBg = this.add.graphics();
-    backBg.fillStyle(0x1a1a3a, 1).fillRoundedRect(10, 8, 55, 24, 6);
-    const backBtn = this.add.text(37, 20, '← 홈', {
-      fontSize: '11px', color: '#88aacc',
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    const backBtn = this.add.text(16, 14, '← 뒤로', {
+      fontSize: '15px', color: '#88aacc', backgroundColor: '#1a1a3a', padding: { x: 12, y: 8 },
+    }).setInteractive({ useHandCursor: true });
     backBtn.on('pointerdown', () => this.showMainMenu());
 
     // 탭 버튼 (카드 스타일)
@@ -576,8 +572,8 @@ export class LobbyScene extends Phaser.Scene {
       fontSize: '20px', color: '#ffd700', fontStyle: 'bold',
     }).setOrigin(0.5);
 
-    const backBtn = this.add.text(20, 15, '← 뒤로', {
-      fontSize: '14px', color: '#aaaaaa', backgroundColor: '#1a1a3a', padding: { x: 8, y: 4 },
+    const backBtn = this.add.text(16, 14, '← 뒤로', {
+      fontSize: '15px', color: '#88aacc', backgroundColor: '#1a1a3a', padding: { x: 12, y: 8 },
     }).setInteractive({ useHandCursor: true });
     backBtn.on('pointerdown', () => this.showInventory('equipment'));
 
@@ -627,8 +623,8 @@ export class LobbyScene extends Phaser.Scene {
       fontSize: '20px', color: '#cc88ff', fontStyle: 'bold',
     }).setOrigin(0.5);
 
-    const backBtn = this.add.text(20, 15, '← 뒤로', {
-      fontSize: '14px', color: '#aaaaaa', backgroundColor: '#1a1a3a', padding: { x: 8, y: 4 },
+    const backBtn = this.add.text(16, 14, '← 뒤로', {
+      fontSize: '15px', color: '#88aacc', backgroundColor: '#1a1a3a', padding: { x: 12, y: 8 },
     }).setInteractive({ useHandCursor: true });
     backBtn.on('pointerdown', () => this.showInventory('skill'));
 
@@ -700,12 +696,9 @@ export class LobbyScene extends Phaser.Scene {
     topLine.fillRect(0, 0, GW, 3);
 
     // Back button - touch-friendly
-    const backBg = this.add.graphics();
-    backBg.fillStyle(0x1a1a3a, 0.9).fillRoundedRect(12, 12, 72, 36, 8);
-    backBg.lineStyle(1, 0x444466, 0.6).strokeRoundedRect(12, 12, 72, 36, 8);
-    const backBtn = this.add.text(48, 30, '← 홈', {
-      fontSize: '15px', color: '#99bbdd', fontStyle: 'bold',
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    const backBtn = this.add.text(16, 14, '← 뒤로', {
+      fontSize: '15px', color: '#88aacc', backgroundColor: '#1a1a3a', padding: { x: 12, y: 8 },
+    }).setInteractive({ useHandCursor: true });
     backBtn.on('pointerdown', () => this.showMainMenu());
 
     // Title
@@ -919,8 +912,8 @@ export class LobbyScene extends Phaser.Scene {
       fontSize: '20px', color: '#ffd700', fontStyle: 'bold',
     }).setOrigin(0.5);
 
-    const backBtn = this.add.text(20, 10, '← 뒤로', {
-      fontSize: '12px', color: '#aaaaaa', backgroundColor: '#1a1a3a', padding: { x: 6, y: 4 },
+    const backBtn = this.add.text(16, 14, '← 뒤로', {
+      fontSize: '15px', color: '#88aacc', backgroundColor: '#1a1a3a', padding: { x: 12, y: 8 },
     }).setInteractive({ useHandCursor: true });
     backBtn.on('pointerdown', () => this.showGacha());
 

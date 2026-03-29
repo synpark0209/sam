@@ -47,10 +47,10 @@ export class RankingScene extends Phaser.Scene {
     });
 
     // 뒤로가기
-    const backBtn = this.add.text(20, 16, '← 뒤로', {
-      fontSize: '15px', color: '#888888', backgroundColor: '#1a1a3a', padding: { x: 10, y: 8 },
+    const backBtn = this.add.text(16, 14, '← 뒤로', {
+      fontSize: '15px', color: '#88aacc', backgroundColor: '#1a1a3a', padding: { x: 12, y: 8 },
     }).setInteractive({ useHandCursor: true });
-    backBtn.on('pointerdown', () => this.scene.start('TitleScene'));
+    backBtn.on('pointerdown', () => this.scene.start('LobbyScene'));
 
     this.contentGroup = this.add.group();
     this.loadRanking();

@@ -41,14 +41,11 @@ export class WorldMapScene extends Phaser.Scene {
       if (!audio.isMuted()) audio.playBgm('worldmap');
     });
 
-    // 홈 버튼
-    const homeBg = this.add.graphics();
-    homeBg.fillStyle(0x1a1a3a, 1).fillRoundedRect(10, 10, 70, 36, 8);
-    homeBg.lineStyle(1, 0x4466aa, 0.5).strokeRoundedRect(10, 10, 70, 36, 8);
-    const homeBtn = this.add.text(45, 28, '← 홈', {
-      fontSize: '15px', color: '#88aacc',
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    homeBtn.on('pointerdown', () => this.scene.start('LobbyScene', { campaignManager: this.campaignManager }));
+    // 뒤로 버튼
+    const backBtn = this.add.text(16, 14, '← 뒤로', {
+      fontSize: '15px', color: '#88aacc', backgroundColor: '#1a1a3a', padding: { x: 12, y: 8 },
+    }).setInteractive({ useHandCursor: true });
+    backBtn.on('pointerdown', () => this.scene.start('LobbyScene', { campaignManager: this.campaignManager }));
 
     // 모든 챕터 완료
     if (!chapter) {

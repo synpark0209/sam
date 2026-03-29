@@ -93,11 +93,10 @@ export class PvPArenaScene extends Phaser.Scene {
       g.fillRect(0, Math.round((GH / steps) * i), GW, Math.ceil(GH / steps) + 1);
     }
 
-    // 2. Back button (top-left, touch-friendly 44px hit area)
-    const backBtn = this.add.text(15, 15, '< 뒤로', {
-      fontSize: '17px', color: '#cccccc', fontFamily: 'sans-serif',
-    }).setOrigin(0, 0).setInteractive({ useHandCursor: true });
-    backBtn.setFixedSize(80, 44);
+    // 2. Back button (top-left, touch-friendly)
+    const backBtn = this.add.text(16, 14, '← 뒤로', {
+      fontSize: '15px', color: '#88aacc', backgroundColor: '#1a1a3a', padding: { x: 12, y: 8 },
+    }).setInteractive({ useHandCursor: true });
     backBtn.on('pointerdown', () => this.scene.start('LobbyScene', { campaignManager: this.campaignManager }));
 
     // 3. Title with decorative line
@@ -307,8 +306,8 @@ export class PvPArenaScene extends Phaser.Scene {
       fontSize: '22px', color: '#ffd700', fontStyle: 'bold',
     }).setOrigin(0.5);
 
-    const backBtn = this.add.text(20, 12, '← 뒤로', {
-      fontSize: '14px', color: '#aaaaaa', backgroundColor: '#1a1a3a', padding: { x: 10, y: 8 },
+    const backBtn = this.add.text(16, 14, '← 뒤로', {
+      fontSize: '15px', color: '#88aacc', backgroundColor: '#1a1a3a', padding: { x: 12, y: 8 },
     }).setInteractive({ useHandCursor: true });
     backBtn.on('pointerdown', () => this.showArenaHome());
 

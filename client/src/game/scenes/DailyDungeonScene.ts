@@ -72,61 +72,119 @@ export class DailyDungeonScene extends Phaser.Scene {
 
   private showDungeonList(): void {
     this.children.removeAll();
-    const bg = this.add.graphics();
-    bg.fillGradientStyle(0x0c1a10, 0x0c1a10, 0x0c1220, 0x0c1220, 1);
-    bg.fillRect(0, 0, GW, GH);
+    const g = this.add.graphics();
+    const pad = 20;
+    const cardW = GW - pad * 2;
 
-    this.add.text(GW / 2, 18, '🏰 일일 던전', {
-      fontSize: '22px', color: '#ffd700', fontStyle: 'bold',
-      stroke: '#000000', strokeThickness: 3,
-    }).setOrigin(0.5);
+    // 1. Dark gradient background
+    const steps = 32;
+    for (let i = 0; i < steps; i++) {
+      const t = i / steps;
+      const r = Math.round(6 + t * 8);
+      const green = Math.round(12 + t * 10);
+      const b = Math.round(10 + t * 16);
+      const color = (r << 16) | (green << 8) | b;
+      g.fillStyle(color, 1);
+      g.fillRect(0, Math.round((GH / steps) * i), GW, Math.ceil(GH / steps) + 1);
+    }
 
-    const backBg = this.add.graphics();
-    backBg.fillStyle(0x1a1a3a, 1).fillRoundedRect(10, 6, 65, 32, 6);
-    const backBtn = this.add.text(42, 22, '← 홈', {
-      fontSize: '14px', color: '#88aacc',
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    // 2. Back button
+    const backBtn = this.add.text(16, 14, '← 뒤로', {
+      fontSize: '15px', color: '#88aacc', backgroundColor: '#1a1a3a', padding: { x: 12, y: 8 },
+    }).setInteractive({ useHandCursor: true });
     backBtn.on('pointerdown', () => this.scene.start('LobbyScene', { campaignManager: this.campaignManager }));
 
-    // 스태미나 표시
+    // 3. Title with decorative gold line
+    this.add.text(GW / 2, 24, '일일 던전', {
+      fontSize: '22px', color: '#ffd700', fontStyle: 'bold', fontFamily: 'sans-serif',
+    }).setOrigin(0.5, 0);
+    const lineY = 54;
+    g.fillStyle(0xffd700, 0.4);
+    g.fillRect(pad, lineY, cardW, 1);
+    g.fillStyle(0xffd700, 0.8);
+    g.fillRect(GW / 2 - 40, lineY, 80, 2);
+
+    // -- Data --
     const progress = this.campaignManager.getProgress();
     const stamina = progress.stamina ?? MAX_STAMINA;
-    this.add.text(GW / 2, 44, `⚡ 스태미나: ${stamina} / ${MAX_STAMINA}`, {
-      fontSize: '15px', color: stamina > 20 ? '#44ff44' : '#ff4444',
-    }).setOrigin(0.5);
-
-    // 오늘 던전 목록
-    const todayDungeons = getTodayDungeons();
     const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
     const today = new Date().getDay();
-    this.add.text(GW / 2, 66, `오늘: ${dayNames[today]}요일`, {
-      fontSize: '13px', color: '#888888',
-    }).setOrigin(0.5);
+
+    // 4. Stamina card (full width)
+    const staminaY = 64;
+    const staminaH = 62;
+    g.fillStyle(0x1a1a2e, 0.9);
+    g.fillRoundedRect(pad, staminaY, cardW, staminaH, 12);
+    g.lineStyle(1, 0x334466, 0.5);
+    g.strokeRoundedRect(pad, staminaY, cardW, staminaH, 12);
+
+    // Stamina label + day
+    this.add.text(pad + 14, staminaY + 10, '⚡ 스태미나', {
+      fontSize: '14px', color: '#8899aa', fontFamily: 'sans-serif',
+    });
+    this.add.text(cardW + pad - 14, staminaY + 10, `${dayNames[today]}요일`, {
+      fontSize: '13px', color: '#667788', fontFamily: 'sans-serif',
+    }).setOrigin(1, 0);
+
+    // Stamina value
+    const staminaColor = stamina > 20 ? '#44ff88' : stamina > 0 ? '#ffaa44' : '#ff4444';
+    this.add.text(pad + 14, staminaY + 32, `${stamina} / ${MAX_STAMINA}`, {
+      fontSize: '20px', color: staminaColor, fontStyle: 'bold', fontFamily: 'sans-serif',
+    });
+
+    // Stamina bar
+    const barX = pad + 110;
+    const barW = cardW - 124;
+    const barH = 14;
+    const barY = staminaY + 38;
+    g.fillStyle(0x222244, 1);
+    g.fillRoundedRect(barX, barY, barW, barH, 7);
+    const staminaRatio = Math.min(1, stamina / MAX_STAMINA);
+    if (staminaRatio > 0) {
+      const barColor = stamina > 20 ? 0x44cc66 : stamina > 0 ? 0xcc8822 : 0xcc3333;
+      g.fillStyle(barColor, 1);
+      g.fillRoundedRect(barX, barY, Math.max(barW * staminaRatio, 12), barH, 7);
+    }
+
+    // 5. Today's dungeons
+    const todayDungeons = getTodayDungeons();
 
     if (todayDungeons.length === 0) {
-      this.add.text(GW / 2, GH * 0.4, '오늘은 열린 던전이 없습니다', {
-        fontSize: '16px', color: '#555555',
+      const emptyY = staminaY + staminaH + 40;
+      g.fillStyle(0x1a1a2e, 0.6);
+      g.fillRoundedRect(pad, emptyY, cardW, 80, 12);
+      this.add.text(GW / 2, emptyY + 40, '오늘은 열린 던전이 없습니다', {
+        fontSize: '16px', color: '#555566', fontFamily: 'sans-serif',
       }).setOrigin(0.5);
       return;
     }
 
-    const startY = 86;
+    let curY = staminaY + staminaH + 14;
+
     for (let i = 0; i < todayDungeons.length; i++) {
       const dungeon = todayDungeons[i];
-      const y = startY + i * 95;
 
-      const bg = this.add.graphics();
-      bg.fillStyle(0x1a2a3a, 1).fillRoundedRect(12, y, GW - 24, 86, 6);
-      bg.lineStyle(1, 0x3366aa, 1).strokeRoundedRect(12, y, GW - 24, 86, 6);
+      // Dungeon card
+      const cardH = 54 + dungeon.difficulties.length * 52;
+      g.fillStyle(0x14142a, 0.9);
+      g.fillRoundedRect(pad, curY, cardW, cardH, 14);
+      g.lineStyle(1, 0x334466, 0.5);
+      g.strokeRoundedRect(pad, curY, cardW, cardH, 14);
 
-      this.add.text(22, y + 8, `${dungeon.icon} ${dungeon.name}`, {
-        fontSize: '17px', color: '#ffffff', fontStyle: 'bold',
+      // Dungeon header bar
+      g.fillStyle(0x1e1e40, 1);
+      g.fillRoundedRect(pad, curY, cardW, 42, { tl: 14, tr: 14, bl: 0, br: 0 });
+
+      // Dungeon icon + name
+      this.add.text(pad + 14, curY + 8, `${dungeon.icon} ${dungeon.name}`, {
+        fontSize: '18px', color: '#ffffff', fontStyle: 'bold', fontFamily: 'sans-serif',
       });
-      this.add.text(22, y + 30, dungeon.description, {
-        fontSize: '13px', color: '#888888',
+      this.add.text(pad + 14, curY + 28, dungeon.description, {
+        fontSize: '12px', color: '#667788', fontFamily: 'sans-serif',
       });
 
-      // 난이도 버튼
+      // Difficulty buttons (large, touch-friendly)
+      const diffStartY = curY + 48;
       for (let d = 0; d < dungeon.difficulties.length; d++) {
         const diff = dungeon.difficulties[d];
         const key = `${dungeon.id}_${diff.level}`;
@@ -134,22 +192,62 @@ export class DailyDungeonScene extends Phaser.Scene {
         const stars = (progress.dungeonStars ?? {})[key] ?? 0;
         const canPlay = clears < DUNGEON_DAILY_LIMIT && stamina >= diff.stamina;
 
-        const btnX = 22 + d * 105;
-        const btnColor = canPlay ? (d === 0 ? '#2a4a2a' : d === 1 ? '#3a3a2a' : '#4a2a2a') : '#222222';
-        const btn = this.add.text(btnX, y + 50, `${diff.label} (${diff.stamina}⚡) ${'★'.repeat(stars)}`, {
-          fontSize: '12px', color: canPlay ? '#ffffff' : '#555555',
-          backgroundColor: btnColor, padding: { x: 8, y: 6 },
-        }).setInteractive({ useHandCursor: canPlay });
+        const btnY = diffStartY + d * 52;
+        const btnH = 48;
 
+        // Button background
+        const btnBgColor = canPlay
+          ? (d === 0 ? 0x1a3a2a : d === 1 ? 0x2a2a1a : 0x3a1a1a)
+          : 0x181822;
+        const btnBorderColor = canPlay
+          ? (d === 0 ? 0x44aa66 : d === 1 ? 0xaaaa44 : 0xaa4444)
+          : 0x2a2a33;
+        g.fillStyle(btnBgColor, 1);
+        g.fillRoundedRect(pad + 8, btnY, cardW - 16, btnH, 10);
+        g.lineStyle(1, btnBorderColor, canPlay ? 0.6 : 0.3);
+        g.strokeRoundedRect(pad + 8, btnY, cardW - 16, btnH, 10);
+
+        // Difficulty label (left)
+        const labelColor = canPlay ? '#ffffff' : '#444455';
+        this.add.text(pad + 20, btnY + 8, diff.label, {
+          fontSize: '16px', color: labelColor, fontStyle: 'bold', fontFamily: 'sans-serif',
+        });
+
+        // Stamina cost
+        this.add.text(pad + 20, btnY + 28, `⚡${diff.stamina}`, {
+          fontSize: '12px', color: canPlay ? '#88aacc' : '#333344', fontFamily: 'sans-serif',
+        });
+
+        // Stars display (center)
+        const starStr = stars > 0
+          ? '★'.repeat(stars) + '☆'.repeat(3 - stars)
+          : '☆☆☆';
+        const starColor = stars > 0 ? '#ffd700' : '#333344';
+        this.add.text(GW / 2, btnY + btnH / 2, starStr, {
+          fontSize: '18px', color: starColor,
+        }).setOrigin(0.5);
+
+        // Clears remaining (right)
+        this.add.text(cardW + pad - 20, btnY + 10, `${clears}/${DUNGEON_DAILY_LIMIT}`, {
+          fontSize: '13px', color: canPlay ? '#88aa88' : '#333344', fontFamily: 'sans-serif',
+        }).setOrigin(1, 0);
+
+        // Play indicator
         if (canPlay) {
-          btn.on('pointerdown', () => this.showTeamSelect(dungeon, diff));
+          this.add.text(cardW + pad - 20, btnY + 28, '도전 ▶', {
+            fontSize: '13px', color: '#ffffff', fontStyle: 'bold', fontFamily: 'sans-serif',
+          }).setOrigin(1, 0);
         }
 
-        // 남은 횟수
-        this.add.text(btnX + 85, y + 54, `${clears}/${DUNGEON_DAILY_LIMIT}`, {
-          fontSize: '10px', color: '#666666',
-        });
+        // Hit area
+        const hitZone = this.add.zone(GW / 2, btnY + btnH / 2, cardW - 16, btnH)
+          .setInteractive({ useHandCursor: canPlay });
+        if (canPlay) {
+          hitZone.on('pointerdown', () => this.showTeamSelect(dungeon, diff));
+        }
       }
+
+      curY += cardH + 12;
     }
   }
 
@@ -165,8 +263,8 @@ export class DailyDungeonScene extends Phaser.Scene {
       fontSize: '20px', color: '#ffd700', fontStyle: 'bold',
     }).setOrigin(0.5);
 
-    const backBtn = this.add.text(20, 12, '← 뒤로', {
-      fontSize: '14px', color: '#aaaaaa', backgroundColor: '#1a1a3a', padding: { x: 10, y: 8 },
+    const backBtn = this.add.text(16, 14, '← 뒤로', {
+      fontSize: '15px', color: '#88aacc', backgroundColor: '#1a1a3a', padding: { x: 12, y: 8 },
     }).setInteractive({ useHandCursor: true });
     backBtn.on('pointerdown', () => this.showDungeonList());
 
