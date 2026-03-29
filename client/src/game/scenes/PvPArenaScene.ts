@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT } from '@shared/constants.ts';
+import { GAME_WIDTH, GAME_HEIGHT } from '@shared/constants.ts';
 import type { UnitData } from '@shared/types/index.ts';
 import { UnitClass } from '@shared/types/index.ts';
 import { UNIT_CLASS_DEFS } from '@shared/data/unitClassDefs.ts';
@@ -14,8 +14,8 @@ import { getTier, calculateEloChange, getNextTierProgress, DAILY_PVP_TICKETS } f
 import { pvpRecordResult } from '../../api/client.ts';
 import { preloadUnitImages, hasUnitImage } from '../systems/UnitSpriteManager.ts';
 
-const GW = TILE_SIZE * MAP_WIDTH;
-const GH = TILE_SIZE * MAP_HEIGHT + 60;
+const GW = GAME_WIDTH;
+const GH = GAME_HEIGHT;
 const GRID_COLS = 3; // 열: 후열/중열/전열
 const GRID_ROWS = 3; // 행: 배치 라인
 const CELL_W = 75;

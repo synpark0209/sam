@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT } from '@shared/constants.ts';
+import { GAME_WIDTH, GAME_HEIGHT } from '@shared/constants.ts';
 import type { UnitData } from '@shared/types/index.ts';
 import { UNIT_CLASS_DEFS } from '@shared/data/unitClassDefs.ts';
 import { SKILL_DEFS } from '@shared/data/skillDefs.ts';
@@ -13,8 +13,8 @@ import {
 } from '@shared/data/dungeonDefs.ts';
 import type { DungeonDef, DungeonDifficulty, DungeonReward } from '@shared/data/dungeonDefs.ts';
 
-const GW = TILE_SIZE * MAP_WIDTH;
-const GH = TILE_SIZE * MAP_HEIGHT + 60;
+const GW = GAME_WIDTH;
+const GH = GAME_HEIGHT;
 
 interface DungeonUnit {
   data: UnitData;

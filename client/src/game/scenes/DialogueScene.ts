@@ -1,11 +1,11 @@
 import Phaser from 'phaser';
 import type { DialogueEvent } from '@shared/types/dialogue.ts';
-import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT } from '@shared/constants.ts';
+import { GAME_WIDTH, GAME_HEIGHT } from '@shared/constants.ts';
 import type { AudioManager } from '../systems/AudioManager.ts';
 
-const GW = TILE_SIZE * MAP_WIDTH;
-const GH = TILE_SIZE * MAP_HEIGHT + 60;
-const BOX_H = 130;
+const GW = GAME_WIDTH;
+const GH = GAME_HEIGHT;
+const BOX_H = 160;
 const BOX_Y = GH - BOX_H;
 
 export interface DialogueSceneData {
@@ -75,20 +75,20 @@ export class DialogueScene extends Phaser.Scene {
     boxLine.fillRect(20, BOX_Y - 1, GW - 40, 2);
 
     // 화자 이름 배경
-    this.speakerText = this.add.text(25, BOX_Y + 12, '', {
-      fontSize: '16px', color: '#ffd700', fontStyle: 'bold',
+    this.speakerText = this.add.text(25, BOX_Y + 15, '', {
+      fontSize: '20px', color: '#ffd700', fontStyle: 'bold',
       stroke: '#000000', strokeThickness: 2,
     });
 
     // 본문
-    this.bodyText = this.add.text(25, BOX_Y + 38, '', {
-      fontSize: '14px', color: '#e0e0e0',
+    this.bodyText = this.add.text(25, BOX_Y + 45, '', {
+      fontSize: '16px', color: '#e0e0e0',
       wordWrap: { width: GW - 50 }, lineSpacing: 6,
     });
 
     // 계속 표시 (깜빡임)
     const continueText = this.add.text(GW - 30, GH - 18, '▼', {
-      fontSize: '12px', color: '#888888',
+      fontSize: '14px', color: '#888888',
     }).setOrigin(0.5);
     this.tweens.add({
       targets: continueText, alpha: { from: 1, to: 0.3 },
@@ -97,7 +97,7 @@ export class DialogueScene extends Phaser.Scene {
 
     // 진행도 표시
     this.add.text(20, 10, `${this.currentLine + 1}/${this.dialogue.lines.length}`, {
-      fontSize: '10px', color: '#444455',
+      fontSize: '12px', color: '#444455',
     });
 
     this.showLine();

@@ -40,7 +40,7 @@ type InteractionState =
   | 'ENEMY_TURN'
   | 'GAME_OVER';
 
-const UI_BAR_H = 60;
+const UI_BAR_H = 80;
 
 export class BattleScene extends Phaser.Scene {
   private battleState!: BattleState;

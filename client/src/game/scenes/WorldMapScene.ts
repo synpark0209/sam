@@ -1,13 +1,13 @@
 import Phaser from 'phaser';
-import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT } from '@shared/constants.ts';
+import { GAME_WIDTH, GAME_HEIGHT } from '@shared/constants.ts';
 import type { CampaignManager } from '../systems/CampaignManager.ts';
 import type { AudioManager } from '../systems/AudioManager.ts';
 import { UNIT_CLASS_DEFS } from '@shared/data/unitClassDefs.ts';
 import { getGradeColor } from '@shared/data/gachaDefs.ts';
 import type { HeroGrade } from '@shared/data/gachaDefs.ts';
 
-const GW = TILE_SIZE * MAP_WIDTH;
-const GH = TILE_SIZE * MAP_HEIGHT + 60;
+const GW = GAME_WIDTH;
+const GH = GAME_HEIGHT;
 
 export class WorldMapScene extends Phaser.Scene {
   private campaignManager!: CampaignManager;

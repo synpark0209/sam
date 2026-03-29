@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT } from '@shared/constants.ts';
+import { GAME_WIDTH, GAME_HEIGHT, TILE_SIZE } from '@shared/constants.ts';
 import type { CampaignManager } from '../systems/CampaignManager.ts';
 import type { AudioManager } from '../systems/AudioManager.ts';
 import type { UnitData } from '@shared/types/index.ts';
@@ -12,8 +12,8 @@ import { UNIT_CLASS_DEFS } from '@shared/data/unitClassDefs.ts';
 import { SKILL_DEFS } from '@shared/data/skillDefs.ts';
 import { EQUIPMENT_DEFS } from '@shared/data/equipmentDefs.ts';
 
-const GW = TILE_SIZE * MAP_WIDTH;
-const GH = TILE_SIZE * MAP_HEIGHT + 60;
+const GW = GAME_WIDTH;
+const GH = GAME_HEIGHT;
 
 export class LobbyScene extends Phaser.Scene {
   private campaignManager!: CampaignManager;
@@ -602,7 +602,7 @@ export class LobbyScene extends Phaser.Scene {
         fontSize: '12px', color: '#ffffff', backgroundColor: '#3366aa', padding: { x: 10, y: 4 },
       }).setInteractive({ useHandCursor: true });
       selectBtn.on('pointerdown', () => {
-        // 기존 장비가 있으면 인벤토리로
+        // 기존 장비��� 있으면 인벤토리로
         if (unit.equipment?.[slotKey as 'weapon' | 'armor' | 'accessory']) {
           bag.push(unit.equipment[slotKey as 'weapon' | 'armor' | 'accessory']!);
         }
@@ -914,8 +914,8 @@ export class LobbyScene extends Phaser.Scene {
   }
 
   private showSettings(): void {
-    const GW = TILE_SIZE * MAP_WIDTH;
-    const GH = TILE_SIZE * MAP_HEIGHT + 60;
+    const GW = GAME_WIDTH;
+    const GH = GAME_HEIGHT;
 
     // 배경 오버레이
     const overlay = this.add.graphics();

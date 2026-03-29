@@ -1,13 +1,13 @@
 import Phaser from 'phaser';
-import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT, TILE_CONFIGS } from '@shared/constants.ts';
+import { GAME_WIDTH, GAME_HEIGHT, TILE_CONFIGS } from '@shared/constants.ts';
 import { TileType } from '@shared/types/index.ts';
 import type { UnitData, TileData } from '@shared/types/index.ts';
 import { pvpFindMatch } from '../../api/client.ts';
 import type { PvpMatchResult } from '../../api/client.ts';
 import type { CampaignManager } from '../systems/CampaignManager.ts';
 
-const GAME_W = TILE_SIZE * MAP_WIDTH;
-const GAME_H = TILE_SIZE * MAP_HEIGHT + 60;
+const GAME_W = GAME_WIDTH;
+const GAME_H = GAME_HEIGHT;
 
 function createPvpMap(): TileData[][] {
   const tiles: TileData[][] = [];

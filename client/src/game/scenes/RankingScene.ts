@@ -1,10 +1,10 @@
 import Phaser from 'phaser';
-import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT } from '@shared/constants.ts';
+import { GAME_WIDTH, GAME_HEIGHT } from '@shared/constants.ts';
 import { getRanking, getPvpRanking } from '../../api/client.ts';
 import type { RankingEntry, PvpRankingEntry } from '../../api/client.ts';
 
-const GAME_W = TILE_SIZE * MAP_WIDTH;
-const GAME_H = TILE_SIZE * MAP_HEIGHT + 60;
+const GAME_W = GAME_WIDTH;
+const GAME_H = GAME_HEIGHT;
 
 export class RankingScene extends Phaser.Scene {
   private activeTab: 'campaign' | 'pvp' = 'campaign';
