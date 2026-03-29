@@ -31,8 +31,8 @@ export class WorldMapScene extends Phaser.Scene {
 
     // 음소거 버튼
     const audio = this.registry.get('audioManager') as AudioManager;
-    const muteBtn = this.add.text(GW - 35, 12, audio?.isMuted() ? '🔇' : '🔊', {
-      fontSize: '18px',
+    const muteBtn = this.add.text(GW - 40, 16, audio?.isMuted() ? '🔇' : '🔊', {
+      fontSize: '24px',
     }).setInteractive({ useHandCursor: true }).setDepth(100);
     muteBtn.on('pointerdown', () => {
       if (!audio) return;
@@ -43,10 +43,10 @@ export class WorldMapScene extends Phaser.Scene {
 
     // 홈 버튼
     const homeBg = this.add.graphics();
-    homeBg.fillStyle(0x1a1a3a, 1).fillRoundedRect(10, 8, 60, 26, 6);
-    homeBg.lineStyle(1, 0x4466aa, 0.5).strokeRoundedRect(10, 8, 60, 26, 6);
-    const homeBtn = this.add.text(40, 21, '← 홈', {
-      fontSize: '12px', color: '#88aacc',
+    homeBg.fillStyle(0x1a1a3a, 1).fillRoundedRect(10, 10, 70, 36, 8);
+    homeBg.lineStyle(1, 0x4466aa, 0.5).strokeRoundedRect(10, 10, 70, 36, 8);
+    const homeBtn = this.add.text(45, 28, '← 홈', {
+      fontSize: '15px', color: '#88aacc',
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     homeBtn.on('pointerdown', () => this.scene.start('LobbyScene', { campaignManager: this.campaignManager }));
 
@@ -57,31 +57,31 @@ export class WorldMapScene extends Phaser.Scene {
         fontSize: '24px', color: '#ffd700', fontStyle: 'bold',
       }).setOrigin(0.5);
       this.add.text(GW / 2, GH * 0.52, '현재 스토리를 모두 완료했습니다', {
-        fontSize: '13px', color: '#aaaaaa',
+        fontSize: '16px', color: '#aaaaaa',
       }).setOrigin(0.5);
       this.add.text(GW / 2, GH * 0.58, '새로운 챕터가 곧 추가됩니다!', {
-        fontSize: '11px', color: '#666666',
+        fontSize: '14px', color: '#666666',
       }).setOrigin(0.5);
       return;
     }
 
     // 챕터 헤더 카드
     const headerBg = this.add.graphics();
-    headerBg.fillStyle(0x1a2a3a, 0.8).fillRoundedRect(15, 42, GW - 30, 55, 8);
-    headerBg.lineStyle(1, 0x4466aa, 0.5).strokeRoundedRect(15, 42, GW - 30, 55, 8);
+    headerBg.fillStyle(0x1a2a3a, 0.8).fillRoundedRect(16, 55, GW - 32, 70, 10);
+    headerBg.lineStyle(1, 0x4466aa, 0.5).strokeRoundedRect(16, 55, GW - 32, 70, 10);
 
-    this.add.text(GW / 2, 56, chapter.name, {
-      fontSize: '18px', color: '#ffd700', fontStyle: 'bold',
+    this.add.text(GW / 2, 72, chapter.name, {
+      fontSize: '22px', color: '#ffd700', fontStyle: 'bold',
       stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5);
 
-    this.add.text(GW / 2, 78, chapter.description, {
-      fontSize: '10px', color: '#aaaaaa', wordWrap: { width: GW - 60 },
+    this.add.text(GW / 2, 100, chapter.description, {
+      fontSize: '13px', color: '#aaaaaa', wordWrap: { width: GW - 60 },
     }).setOrigin(0.5);
 
     // 스테이지 목록
-    const startY = 108;
-    const stageH = 68;
+    const startY = 140;
+    const stageH = 85;
 
     for (let i = 0; i < chapter.stages.length; i++) {
       const stage = chapter.stages[i];
@@ -97,18 +97,18 @@ export class WorldMapScene extends Phaser.Scene {
 
       // 번호 원
       const numBg = this.add.graphics();
-      numBg.fillStyle(borderColor, 1).fillCircle(44, y + (stageH - 6) / 2, 14);
-      this.add.text(44, y + (stageH - 6) / 2, `${i + 1}`, {
-        fontSize: '16px', color: '#ffffff', fontStyle: 'bold',
+      numBg.fillStyle(borderColor, 1).fillCircle(46, y + (stageH - 6) / 2, 17);
+      this.add.text(46, y + (stageH - 6) / 2, `${i + 1}`, {
+        fontSize: '18px', color: '#ffffff', fontStyle: 'bold',
       }).setOrigin(0.5);
 
       // 스테이지 이름/설명
       const nameColor = status === 'locked' ? '#555555' : '#ffffff';
-      this.add.text(66, y + 12, stage.name, {
-        fontSize: '14px', color: nameColor, fontStyle: 'bold',
+      this.add.text(72, y + 14, stage.name, {
+        fontSize: '17px', color: nameColor, fontStyle: 'bold',
       });
-      this.add.text(66, y + 32, stage.description, {
-        fontSize: '10px', color: status === 'locked' ? '#333333' : '#888888',
+      this.add.text(72, y + 38, stage.description, {
+        fontSize: '13px', color: status === 'locked' ? '#333333' : '#888888',
       });
 
       // 상태 표시
@@ -118,11 +118,11 @@ export class WorldMapScene extends Phaser.Scene {
         }).setOrigin(0.5);
       } else if (status === 'available') {
         const playBg = this.add.graphics();
-        playBg.fillStyle(0x3366aa, 1).fillRoundedRect(GW - 90, y + 14, 60, 30, 6);
-        this.add.text(GW - 60, y + 29, '출전 ▶', {
-          fontSize: '13px', color: '#ffffff', fontStyle: 'bold',
+        playBg.fillStyle(0x3366aa, 1).fillRoundedRect(GW - 100, y + 18, 76, 40, 8);
+        this.add.text(GW - 62, y + 38, '출전 ▶', {
+          fontSize: '16px', color: '#ffffff', fontStyle: 'bold',
         }).setOrigin(0.5);
-        const hit = this.add.rectangle(GW - 60, y + 29, 60, 30, 0x000000, 0)
+        const hit = this.add.rectangle(GW - 62, y + 38, 76, 40, 0x000000, 0)
           .setInteractive({ useHandCursor: true });
         hit.on('pointerdown', () => this.startStage(stage.id));
       } else {
@@ -133,16 +133,16 @@ export class WorldMapScene extends Phaser.Scene {
     }
 
     // 하단 유닛 정보 카드
-    const infoY = GH - 45;
+    const infoY = GH - 55;
     const infoBg = this.add.graphics();
-    infoBg.fillStyle(0x0a0a1a, 0.9).fillRoundedRect(10, infoY, GW - 20, 38, 6);
+    infoBg.fillStyle(0x0a0a1a, 0.9).fillRoundedRect(10, infoY, GW - 20, 48, 8);
 
     const progress = this.campaignManager.getProgress();
     this.add.text(20, infoY + 8, `💰 ${progress.gold}`, {
-      fontSize: '11px', color: '#ffd700',
+      fontSize: '14px', color: '#ffd700',
     });
     const unitSummary = progress.playerUnits.filter(u => u.isScenarioUnit).map(u => `${u.name} Lv.${u.level ?? 1}`).join('  ');
-    this.add.text(20, infoY + 24, unitSummary, { fontSize: '9px', color: '#667788' });
+    this.add.text(20, infoY + 28, unitSummary, { fontSize: '12px', color: '#667788' });
   }
 
   private startStage(stageId: string): void {

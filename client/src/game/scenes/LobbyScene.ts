@@ -49,8 +49,8 @@ export class LobbyScene extends Phaser.Scene {
 
     // 음소거 버튼
     const audio = this.registry.get('audioManager') as AudioManager;
-    const muteBtn = this.add.text(GW - 35, 12, audio?.isMuted() ? '🔇' : '🔊', {
-      fontSize: '18px',
+    const muteBtn = this.add.text(GW - 40, 16, audio?.isMuted() ? '🔇' : '🔊', {
+      fontSize: '24px',
     }).setInteractive({ useHandCursor: true }).setDepth(100);
     muteBtn.on('pointerdown', () => {
       if (!audio) return;
@@ -60,43 +60,43 @@ export class LobbyScene extends Phaser.Scene {
     });
 
     // 타이틀
-    this.add.text(GW / 2, 28, '방구석 여포뎐', {
-      fontSize: '26px', color: '#ffd700', fontStyle: 'bold',
-      stroke: '#000000', strokeThickness: 4,
+    this.add.text(GW / 2, 40, '방구석 여포뎐', {
+      fontSize: '32px', color: '#ffd700', fontStyle: 'bold',
+      stroke: '#000000', strokeThickness: 5,
     }).setOrigin(0.5);
 
     // 유저 정보 카드
-    const cardY = 52;
+    const cardY = 80;
     const card = this.add.graphics();
     card.fillStyle(0x1a1a3a, 0.8);
-    card.fillRoundedRect(20, cardY, GW - 40, 42, 8);
+    card.fillRoundedRect(16, cardY, GW - 32, 56, 10);
     card.lineStyle(1, 0x4466aa, 0.5);
-    card.strokeRoundedRect(20, cardY, GW - 40, 42, 8);
+    card.strokeRoundedRect(16, cardY, GW - 32, 56, 10);
 
-    this.add.text(35, cardY + 8, `💰 ${progress.gold}`, {
-      fontSize: '13px', color: '#ffd700',
+    this.add.text(30, cardY + 10, `💰 ${progress.gold}`, {
+      fontSize: '16px', color: '#ffd700',
     });
-    this.add.text(GW / 2, cardY + 8, `👥 ${progress.playerUnits.length}명`, {
-      fontSize: '13px', color: '#88ccff',
+    this.add.text(GW / 2, cardY + 10, `👥 ${progress.playerUnits.length}명`, {
+      fontSize: '16px', color: '#88ccff',
     }).setOrigin(0.5, 0);
-    this.add.text(GW - 35, cardY + 8, `⚡ ${progress.stamina ?? 120}`, {
-      fontSize: '13px', color: '#44ff44',
+    this.add.text(GW - 30, cardY + 10, `⚡ ${progress.stamina ?? 120}`, {
+      fontSize: '16px', color: '#44ff44',
     }).setOrigin(1, 0);
 
     // 대표 장수 표시
     const mainUnit = progress.playerUnits[0];
     if (mainUnit) {
       const cls = mainUnit.unitClass ? UNIT_CLASS_DEFS[mainUnit.unitClass]?.name ?? '' : '';
-      this.add.text(GW / 2, cardY + 28, `${mainUnit.name} (${cls} Lv.${mainUnit.level ?? 1})`, {
-        fontSize: '10px', color: '#888888',
+      this.add.text(GW / 2, cardY + 36, `${mainUnit.name} (${cls} Lv.${mainUnit.level ?? 1})`, {
+        fontSize: '13px', color: '#888888',
       }).setOrigin(0.5);
     }
 
     // ── 메인 버튼 (2열 그리드) ──
-    const gridStartY = 105;
-    const btnW = (GW - 50) / 2;
-    const btnH = 52;
-    const gap = 8;
+    const gridStartY = 155;
+    const btnW = (GW - 42) / 2;
+    const btnH = 72;
+    const gap = 10;
 
     const mainButtons: { label: string; icon: string; color: number; borderColor: number; action: () => void }[] = [
       { label: '시나리오', icon: '📜', color: 0x2a3a5a, borderColor: 0x4488cc, action: () => this.startCampaign() },
@@ -119,11 +119,11 @@ export class LobbyScene extends Phaser.Scene {
       btnBg.strokeRoundedRect(x, y, btnW, btnH, 8);
 
       this.add.text(x + 14, y + btnH / 2, btn.icon, {
-        fontSize: '22px',
+        fontSize: '28px',
       }).setOrigin(0, 0.5);
 
-      this.add.text(x + 42, y + btnH / 2, btn.label, {
-        fontSize: '15px', color: '#ffffff', fontStyle: 'bold',
+      this.add.text(x + 50, y + btnH / 2, btn.label, {
+        fontSize: '18px', color: '#ffffff', fontStyle: 'bold',
       }).setOrigin(0, 0.5);
 
       // 클릭 영역
@@ -135,9 +135,9 @@ export class LobbyScene extends Phaser.Scene {
     }
 
     // ── 하단 메뉴 (소형 버튼 4개) ──
-    const subY = gridStartY + 2 * (btnH + gap) + 15;
-    const subBtnW = (GW - 60) / 4;
-    const subBtnH = 50;
+    const subY = gridStartY + 2 * (btnH + gap) + 20;
+    const subBtnW = (GW - 54) / 4;
+    const subBtnH = 64;
 
     const subButtons: { label: string; icon: string; action: () => void }[] = [
       { label: '장수', icon: '👥', action: () => this.showHeroes() },
@@ -148,7 +148,7 @@ export class LobbyScene extends Phaser.Scene {
 
     for (let i = 0; i < subButtons.length; i++) {
       const btn = subButtons[i];
-      const x = 20 + i * (subBtnW + 7);
+      const x = 16 + i * (subBtnW + 6);
 
       const subBg = this.add.graphics();
       subBg.fillStyle(0x1a1a2e, 1);
@@ -156,12 +156,12 @@ export class LobbyScene extends Phaser.Scene {
       subBg.lineStyle(1, 0x333355, 0.6);
       subBg.strokeRoundedRect(x, subY, subBtnW, subBtnH, 6);
 
-      this.add.text(x + subBtnW / 2, subY + 16, btn.icon, {
-        fontSize: '18px',
+      this.add.text(x + subBtnW / 2, subY + 20, btn.icon, {
+        fontSize: '24px',
       }).setOrigin(0.5);
 
-      this.add.text(x + subBtnW / 2, subY + 38, btn.label, {
-        fontSize: '9px', color: '#aaaaaa',
+      this.add.text(x + subBtnW / 2, subY + 46, btn.label, {
+        fontSize: '12px', color: '#aaaaaa',
       }).setOrigin(0.5);
 
       const hit = this.add.rectangle(x + subBtnW / 2, subY + subBtnH / 2, subBtnW, subBtnH, 0x000000, 0)

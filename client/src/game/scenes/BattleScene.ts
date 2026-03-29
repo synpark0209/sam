@@ -494,21 +494,21 @@ export class BattleScene extends Phaser.Scene {
     uiBg.lineStyle(2, 0x4a4a6a, 1);
     uiBg.strokeRect(0, uiY, gw, UI_BAR_H);
 
-    this.turnText = this.add.text(16, uiY + 18, '', {
-      fontSize: '18px', color: '#ffffff',
+    this.turnText = this.add.text(16, uiY + 25, '', {
+      fontSize: '20px', color: '#ffffff',
     }).setDepth(201);
 
-    this.endTurnButton = this.add.text(gw - 120, uiY + 14, '턴 종료', {
-      fontSize: '18px', color: '#ffffff', backgroundColor: '#4a4a6a',
-      padding: { x: 14, y: 8 },
+    this.endTurnButton = this.add.text(gw - 130, uiY + 16, '턴 종료', {
+      fontSize: '20px', color: '#ffffff', backgroundColor: '#4a4a6a',
+      padding: { x: 16, y: 10 },
     }).setInteractive({ useHandCursor: true }).setDepth(201);
     this.endTurnButton.on('pointerdown', () => { this._menuClickConsumed = true; this.onEndTurnClicked(); });
     this.endTurnButton.on('pointerover', () => this.endTurnButton.setStyle({ backgroundColor: '#6a6a8a' }));
     this.endTurnButton.on('pointerout', () => this.endTurnButton.setStyle({ backgroundColor: '#4a4a6a' }));
 
     // 음소거 토글 버튼
-    const muteBtn = this.add.text(gw - 30, uiY + 18, this.getAudio()?.isMuted() ? '🔇' : '🔊', {
-      fontSize: '20px',
+    const muteBtn = this.add.text(gw - 35, uiY + 22, this.getAudio()?.isMuted() ? '🔇' : '🔊', {
+      fontSize: '24px',
     }).setInteractive({ useHandCursor: true }).setDepth(201);
     muteBtn.on('pointerdown', () => {
       this._menuClickConsumed = true;
@@ -524,7 +524,7 @@ export class BattleScene extends Phaser.Scene {
     // AUTO/배속 버튼은 create() 맨 마지막에 추가 (카메라 ignore 루프 이후)
 
     this.gameOverText = this.add.text(gw / 2, gh / 2, '', {
-      fontSize: '36px', color: '#ffffff', fontStyle: 'bold',
+      fontSize: '32px', color: '#ffffff', fontStyle: 'bold',
       backgroundColor: '#000000aa', padding: { x: 30, y: 20 },
     }).setOrigin(0.5).setVisible(false).setDepth(300);
 
