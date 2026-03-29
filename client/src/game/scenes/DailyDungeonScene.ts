@@ -257,60 +257,100 @@ export class DailyDungeonScene extends Phaser.Scene {
     this.selectedDungeon = dungeon;
     this.selectedDifficulty = difficulty;
     this.children.removeAll();
-    this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GW, GH);
+
+    // Gradient background
+    const g = this.add.graphics();
+    const bgSteps = 32;
+    for (let i = 0; i < bgSteps; i++) {
+      const t = i / bgSteps;
+      const r = Math.round(6 + t * 8);
+      const green = Math.round(12 + t * 10);
+      const b = Math.round(10 + t * 16);
+      const color = (r << 16) | (green << 8) | b;
+      g.fillStyle(color, 1);
+      g.fillRect(0, Math.round((GH / bgSteps) * i), GW, Math.ceil(GH / bgSteps) + 1);
+    }
 
     this.add.text(GW / 2, 18, `${dungeon.icon} ${dungeon.name} - ${difficulty.label}`, {
-      fontSize: '20px', color: '#ffd700', fontStyle: 'bold',
+      fontSize: '22px', color: '#ffd700', fontStyle: 'bold',
     }).setOrigin(0.5);
+
+    // Decorative gold line under title
+    const lineY = 46;
+    g.fillStyle(0xffd700, 0.4);
+    g.fillRect(20, lineY, GW - 40, 1);
+    g.fillStyle(0xffd700, 0.8);
+    g.fillRect(GW / 2 - 40, lineY, 80, 2);
 
     const backBtn = this.add.text(16, 14, '← 뒤로', {
       fontSize: '15px', color: '#88aacc', backgroundColor: '#1a1a3a', padding: { x: 12, y: 8 },
     }).setInteractive({ useHandCursor: true });
     backBtn.on('pointerdown', () => this.showDungeonList());
 
-    this.add.text(GW / 2, 44, `웨이브 ${difficulty.waves}  |  적 Lv.${difficulty.enemyLevel}  |  ⚡${difficulty.stamina}`, {
+    this.add.text(GW / 2, 54, `웨이브 ${difficulty.waves}  |  적 Lv.${difficulty.enemyLevel}  |  ⚡${difficulty.stamina}`, {
       fontSize: '14px', color: '#aaaaaa',
     }).setOrigin(0.5);
 
     // 장수 목록 (전체 선택 → 상위 5명 자동 출전)
-    this.add.text(GW / 2, 66, '보유 장수 중 상위 5명이 자동 출전합니다', {
-      fontSize: '13px', color: '#888888',
+    this.add.text(GW / 2, 76, '보유 장수 중 상위 5명이 자동 출전합니다', {
+      fontSize: '14px', color: '#888888',
     }).setOrigin(0.5);
 
     const units = this.campaignManager.getProgress().playerUnits;
     const sortedUnits = [...units].sort((a, b) => (b.level ?? 1) - (a.level ?? 1)).slice(0, 5);
 
-    const startY = 88;
+    const startY = 98;
+    const itemH = 48;
     for (let i = 0; i < sortedUnits.length; i++) {
       const unit = sortedUnits[i];
-      const y = startY + i * 40;
+      const y = startY + i * itemH;
       const grade = unit.grade ?? 'N';
       const gradeColor = getGradeColor(grade as HeroGrade);
       const cls = unit.unitClass ? UNIT_CLASS_DEFS[unit.unitClass]?.name ?? '' : '';
 
-      this.add.text(20, y, `[${grade}]`, { fontSize: '13px', color: gradeColor, fontStyle: 'bold' });
-      this.add.text(50, y, `${unit.name}  ${cls} Lv.${unit.level ?? 1}`, {
-        fontSize: '14px', color: '#ffffff',
+      const rowBg = this.add.graphics();
+      rowBg.fillStyle(0x111122, 0.8);
+      rowBg.fillRoundedRect(12, y - 4, GW - 24, itemH - 4, 4);
+
+      this.add.text(20, y + 4, `[${grade}]`, { fontSize: '14px', color: gradeColor, fontStyle: 'bold' });
+      this.add.text(52, y + 2, `${unit.name}  ${cls} Lv.${unit.level ?? 1}`, {
+        fontSize: '15px', color: '#ffffff',
       });
-      this.add.text(GW - 60, y, `ATK:${unit.stats.attack}`, { fontSize: '12px', color: '#888888' });
+      this.add.text(GW - 70, y + 4, `ATK:${unit.stats.attack}`, { fontSize: '13px', color: '#888888' });
     }
 
-    // 전투 시작 버튼
-    const startBtn = this.add.text(GW / 2, GH - 45, '⚔️ 전투 시작', {
-      fontSize: '20px', color: '#ffffff', backgroundColor: '#aa3333',
-      padding: { x: 24, y: 14 },
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    startBtn.on('pointerdown', () => this.startDungeonBattle(sortedUnits));
+    // 전투 시작 버튼 (full width, prominent)
+    const btnG = this.add.graphics();
+    btnG.fillStyle(0xaa3333, 1);
+    btnG.fillRoundedRect(20, GH - 70, GW - 40, 54, 8);
+    btnG.lineStyle(2, 0xffd700, 0.6);
+    btnG.strokeRoundedRect(20, GH - 70, GW - 40, 54, 8);
+
+    this.add.text(GW / 2, GH - 43, '⚔️ 전투 시작', {
+      fontSize: '22px', color: '#ffffff', fontStyle: 'bold',
+    }).setOrigin(0.5);
+
+    const startHit = this.add.rectangle(GW / 2, GH - 43, GW - 40, 54, 0x000000, 0)
+      .setInteractive({ useHandCursor: true });
+    startHit.on('pointerdown', () => this.startDungeonBattle(sortedUnits));
 
     // 소탕 버튼 (★3 클리어 시)
     const key = `${dungeon.id}_${difficulty.level}`;
     const stars = (this.campaignManager.getProgress().dungeonStars ?? {})[key] ?? 0;
     if (stars >= 3) {
-      const sweepBtn = this.add.text(GW / 2, GH - 95, '🧹 소탕 (전투 스킵)', {
-        fontSize: '16px', color: '#44ff44', backgroundColor: '#1a3a1a',
-        padding: { x: 18, y: 10 },
-      }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-      sweepBtn.on('pointerdown', () => this.executeSweep());
+      const sweepG = this.add.graphics();
+      sweepG.fillStyle(0x1a3a1a, 1);
+      sweepG.fillRoundedRect(20, GH - 132, GW - 40, 50, 8);
+      sweepG.lineStyle(1, 0x44ff44, 0.4);
+      sweepG.strokeRoundedRect(20, GH - 132, GW - 40, 50, 8);
+
+      this.add.text(GW / 2, GH - 107, '🧹 소탕 (전투 스킵)', {
+        fontSize: '18px', color: '#44ff44', fontStyle: 'bold',
+      }).setOrigin(0.5);
+
+      const sweepHit = this.add.rectangle(GW / 2, GH - 107, GW - 40, 50, 0x000000, 0)
+        .setInteractive({ useHandCursor: true });
+      sweepHit.on('pointerdown', () => this.executeSweep());
     }
   }
 

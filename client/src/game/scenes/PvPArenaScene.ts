@@ -300,11 +300,29 @@ export class PvPArenaScene extends Phaser.Scene {
 
   private showDeployPhase(): void {
     this.children.removeAll();
-    this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GW, GH);
+
+    // Gradient background
+    const g = this.add.graphics();
+    const steps = 32;
+    for (let i = 0; i < steps; i++) {
+      const t = i / steps;
+      const r = Math.round(8 + t * 6);
+      const gb = Math.round(8 + t * 14);
+      const color = (r << 16) | (gb << 8) | (gb + 8);
+      g.fillStyle(color, 1);
+      g.fillRect(0, Math.round((GH / steps) * i), GW, Math.ceil(GH / steps) + 1);
+    }
 
     this.add.text(GW / 2, 18, '⚔️ PvP 아레나 - 배치', {
       fontSize: '22px', color: '#ffd700', fontStyle: 'bold',
     }).setOrigin(0.5);
+
+    // Decorative gold line under title
+    const lineY = 44;
+    g.fillStyle(0xffd700, 0.4);
+    g.fillRect(20, lineY, GW - 40, 1);
+    g.fillStyle(0xffd700, 0.8);
+    g.fillRect(GW / 2 - 40, lineY, 80, 2);
 
     const backBtn = this.add.text(16, 14, '← 뒤로', {
       fontSize: '15px', color: '#88aacc', backgroundColor: '#1a1a3a', padding: { x: 12, y: 8 },
@@ -316,18 +334,18 @@ export class PvPArenaScene extends Phaser.Scene {
       ? `"${this.selectedHeroForDeploy.name}" 배치할 칸을 선택하세요`
       : `장수를 선택하세요 (${this.deployedCount}/${MAX_DEPLOY})`;
     const statusColor = this.selectedHeroForDeploy ? '#ffaa00' : '#aaaaaa';
-    this.add.text(GW / 2, 42, statusText, {
+    this.add.text(GW / 2, 50, statusText, {
       fontSize: '14px', color: statusColor,
     }).setOrigin(0.5);
 
     // 열 라벨 (후열←→전열)
     const colLabels = ['후열', '중열', '전열'];
     const gridX = (GW - GRID_COLS * CELL_W) / 2;
-    const gridY = 62;
+    const gridY = 72;
 
     for (let c = 0; c < GRID_COLS; c++) {
       this.add.text(gridX + c * CELL_W + CELL_W / 2, gridY - 14, colLabels[c], {
-        fontSize: '12px', color: '#446688',
+        fontSize: '13px', color: '#446688',
       }).setOrigin(0.5);
     }
 
@@ -351,19 +369,19 @@ export class PvPArenaScene extends Phaser.Scene {
           const grade = unit.grade ?? 'N';
           const gradeColor = getGradeColor(grade as HeroGrade);
           this.add.text(x + (CELL_W - 4) / 2, y + 10, `[${grade}]`, {
-            fontSize: '11px', color: gradeColor, fontStyle: 'bold',
+            fontSize: '12px', color: gradeColor, fontStyle: 'bold',
           }).setOrigin(0.5);
           this.add.text(x + (CELL_W - 4) / 2, y + 26, unit.name, {
-            fontSize: '13px', color: '#ffffff', fontStyle: 'bold',
+            fontSize: '14px', color: '#ffffff', fontStyle: 'bold',
           }).setOrigin(0.5);
           const cls = unit.unitClass ? UNIT_CLASS_DEFS[unit.unitClass]?.name ?? '' : '';
           this.add.text(x + (CELL_W - 4) / 2, y + 44, `${cls} Lv.${unit.level ?? 1}`, {
-            fontSize: '11px', color: '#88aacc',
+            fontSize: '12px', color: '#88aacc',
           }).setOrigin(0.5);
 
           // 제거 버튼
           const removeBtn = this.add.text(x + CELL_W - 12, y + 2, '×', {
-            fontSize: '14px', color: '#ff6666',
+            fontSize: '16px', color: '#ff6666',
           }).setInteractive({ useHandCursor: true });
           removeBtn.on('pointerdown', () => {
             this.playerSlots[idx] = null;
@@ -376,7 +394,7 @@ export class PvPArenaScene extends Phaser.Scene {
           const cellText = isHighlight ? '여기에 배치' : '빈칸';
           const cellColor = isHighlight ? '#44aa44' : '#444444';
           this.add.text(x + (CELL_W - 4) / 2, y + (CELL_H - 4) / 2, cellText, {
-            fontSize: '12px', color: cellColor,
+            fontSize: '13px', color: cellColor,
           }).setOrigin(0.5);
 
           if (isHighlight) {
@@ -397,12 +415,12 @@ export class PvPArenaScene extends Phaser.Scene {
     // 장수 목록
     const listY = gridY + GRID_ROWS * CELL_H + 10;
     this.add.text(15, listY, '── 장수 선택 ──', {
-      fontSize: '14px', color: '#88aacc', fontStyle: 'bold',
+      fontSize: '15px', color: '#88aacc', fontStyle: 'bold',
     });
 
     if (this.selectedHeroForDeploy) {
       const cancelBtn = this.add.text(GW - 80, listY, '선택 취소', {
-        fontSize: '13px', color: '#ff8888', backgroundColor: '#2a1a1a', padding: { x: 10, y: 6 },
+        fontSize: '14px', color: '#ff8888', backgroundColor: '#2a1a1a', padding: { x: 10, y: 6 },
       }).setInteractive({ useHandCursor: true });
       cancelBtn.on('pointerdown', () => {
         this.selectedHeroForDeploy = null;
@@ -414,11 +432,11 @@ export class PvPArenaScene extends Phaser.Scene {
     const deployedIds = new Set(this.playerSlots.filter(Boolean).map(u => u!.id));
     const available = allUnits.filter(u => !deployedIds.has(u.id));
 
-    const itemH = 38;
+    const itemH = 46;
     const maxShow = Math.min(available.length, 5);
     for (let i = 0; i < maxShow; i++) {
       const unit = available[i];
-      const y = listY + 24 + i * itemH;
+      const y = listY + 28 + i * itemH;
       const grade = unit.grade ?? 'N';
       const gradeColor = getGradeColor(grade as HeroGrade);
       const cls = unit.unitClass ? UNIT_CLASS_DEFS[unit.unitClass]?.name ?? '' : '';
@@ -428,32 +446,40 @@ export class PvPArenaScene extends Phaser.Scene {
       rowBg.fillStyle(isSelected ? 0x2a3a2a : 0x111122, 0.8);
       rowBg.fillRoundedRect(12, y - 2, GW - 24, itemH - 2, 3);
 
-      this.add.text(18, y + 4, `[${grade}]`, { fontSize: '12px', color: gradeColor, fontStyle: 'bold' });
-      this.add.text(48, y + 2, unit.name, { fontSize: '14px', color: isSelected ? '#44ff44' : '#ffffff', fontStyle: 'bold' });
-      this.add.text(48, y + 18, `${cls} Lv.${unit.level ?? 1}  ATK:${unit.stats.attack}`, { fontSize: '12px', color: '#888888' });
+      this.add.text(18, y + 6, `[${grade}]`, { fontSize: '13px', color: gradeColor, fontStyle: 'bold' });
+      this.add.text(50, y + 4, unit.name, { fontSize: '15px', color: isSelected ? '#44ff44' : '#ffffff', fontStyle: 'bold' });
+      this.add.text(50, y + 22, `${cls} Lv.${unit.level ?? 1}  ATK:${unit.stats.attack}`, { fontSize: '13px', color: '#888888' });
 
       if (this.deployedCount < MAX_DEPLOY && !isSelected) {
-        const selectBtn = this.add.text(GW - 65, y + 5, '선택', {
-          fontSize: '13px', color: '#ffffff', backgroundColor: '#3366aa', padding: { x: 12, y: 6 },
+        const selectBtn = this.add.text(GW - 65, y + 6, '선택', {
+          fontSize: '14px', color: '#ffffff', backgroundColor: '#3366aa', padding: { x: 12, y: 8 },
         }).setInteractive({ useHandCursor: true });
         selectBtn.on('pointerdown', () => {
           this.selectedHeroForDeploy = unit;
           this.showDeployPhase();
         });
       } else if (isSelected) {
-        this.add.text(GW - 65, y + 5, '선택됨', {
-          fontSize: '13px', color: '#44ff44',
+        this.add.text(GW - 65, y + 6, '선택됨', {
+          fontSize: '14px', color: '#44ff44',
         });
       }
     }
 
-    // 전투 시작 버튼
+    // 전투 시작 버튼 (full width, prominent)
     if (this.deployedCount > 0 && !this.selectedHeroForDeploy) {
-      const startBtn = this.add.text(GW / 2, GH - 30, '⚔️ 전투 시작', {
-        fontSize: '20px', color: '#ffffff', backgroundColor: '#aa3333',
-        padding: { x: 24, y: 14 },
-      }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-      startBtn.on('pointerdown', () => this.startArenaBattle());
+      const btnG = this.add.graphics();
+      btnG.fillStyle(0xaa3333, 1);
+      btnG.fillRoundedRect(20, GH - 70, GW - 40, 54, 8);
+      btnG.lineStyle(2, 0xffd700, 0.6);
+      btnG.strokeRoundedRect(20, GH - 70, GW - 40, 54, 8);
+
+      this.add.text(GW / 2, GH - 43, '⚔️ 전투 시작', {
+        fontSize: '22px', color: '#ffffff', fontStyle: 'bold',
+      }).setOrigin(0.5);
+
+      this.add.rectangle(GW / 2, GH - 43, GW - 40, 54, 0x000000, 0)
+        .setInteractive({ useHandCursor: true })
+        .on('pointerdown', () => this.startArenaBattle());
     }
   }
 
