@@ -77,53 +77,53 @@ export class DailyDungeonScene extends Phaser.Scene {
     bg.fillRect(0, 0, GW, GH);
 
     this.add.text(GW / 2, 18, '🏰 일일 던전', {
-      fontSize: '20px', color: '#ffd700', fontStyle: 'bold',
+      fontSize: '22px', color: '#ffd700', fontStyle: 'bold',
       stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0.5);
 
     const backBg = this.add.graphics();
-    backBg.fillStyle(0x1a1a3a, 1).fillRoundedRect(10, 8, 55, 24, 6);
-    const backBtn = this.add.text(37, 20, '← 홈', {
-      fontSize: '11px', color: '#88aacc',
+    backBg.fillStyle(0x1a1a3a, 1).fillRoundedRect(10, 6, 65, 32, 6);
+    const backBtn = this.add.text(42, 22, '← 홈', {
+      fontSize: '14px', color: '#88aacc',
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     backBtn.on('pointerdown', () => this.scene.start('LobbyScene', { campaignManager: this.campaignManager }));
 
     // 스태미나 표시
     const progress = this.campaignManager.getProgress();
     const stamina = progress.stamina ?? MAX_STAMINA;
-    this.add.text(GW / 2, 42, `⚡ 스태미나: ${stamina} / ${MAX_STAMINA}`, {
-      fontSize: '13px', color: stamina > 20 ? '#44ff44' : '#ff4444',
+    this.add.text(GW / 2, 44, `⚡ 스태미나: ${stamina} / ${MAX_STAMINA}`, {
+      fontSize: '15px', color: stamina > 20 ? '#44ff44' : '#ff4444',
     }).setOrigin(0.5);
 
     // 오늘 던전 목록
     const todayDungeons = getTodayDungeons();
     const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
     const today = new Date().getDay();
-    this.add.text(GW / 2, 62, `오늘: ${dayNames[today]}요일`, {
-      fontSize: '10px', color: '#888888',
+    this.add.text(GW / 2, 66, `오늘: ${dayNames[today]}요일`, {
+      fontSize: '13px', color: '#888888',
     }).setOrigin(0.5);
 
     if (todayDungeons.length === 0) {
       this.add.text(GW / 2, GH * 0.4, '오늘은 열린 던전이 없습니다', {
-        fontSize: '14px', color: '#555555',
+        fontSize: '16px', color: '#555555',
       }).setOrigin(0.5);
       return;
     }
 
-    const startY = 80;
+    const startY = 86;
     for (let i = 0; i < todayDungeons.length; i++) {
       const dungeon = todayDungeons[i];
-      const y = startY + i * 80;
+      const y = startY + i * 95;
 
       const bg = this.add.graphics();
-      bg.fillStyle(0x1a2a3a, 1).fillRoundedRect(15, y, GW - 30, 72, 6);
-      bg.lineStyle(1, 0x3366aa, 1).strokeRoundedRect(15, y, GW - 30, 72, 6);
+      bg.fillStyle(0x1a2a3a, 1).fillRoundedRect(12, y, GW - 24, 86, 6);
+      bg.lineStyle(1, 0x3366aa, 1).strokeRoundedRect(12, y, GW - 24, 86, 6);
 
-      this.add.text(25, y + 8, `${dungeon.icon} ${dungeon.name}`, {
-        fontSize: '16px', color: '#ffffff', fontStyle: 'bold',
+      this.add.text(22, y + 8, `${dungeon.icon} ${dungeon.name}`, {
+        fontSize: '17px', color: '#ffffff', fontStyle: 'bold',
       });
-      this.add.text(25, y + 28, dungeon.description, {
-        fontSize: '10px', color: '#888888',
+      this.add.text(22, y + 30, dungeon.description, {
+        fontSize: '13px', color: '#888888',
       });
 
       // 난이도 버튼
@@ -134,11 +134,11 @@ export class DailyDungeonScene extends Phaser.Scene {
         const stars = (progress.dungeonStars ?? {})[key] ?? 0;
         const canPlay = clears < DUNGEON_DAILY_LIMIT && stamina >= diff.stamina;
 
-        const btnX = 25 + d * 100;
+        const btnX = 22 + d * 105;
         const btnColor = canPlay ? (d === 0 ? '#2a4a2a' : d === 1 ? '#3a3a2a' : '#4a2a2a') : '#222222';
-        const btn = this.add.text(btnX, y + 44, `${diff.label} (${diff.stamina}⚡) ${'★'.repeat(stars)}`, {
-          fontSize: '10px', color: canPlay ? '#ffffff' : '#555555',
-          backgroundColor: btnColor, padding: { x: 6, y: 4 },
+        const btn = this.add.text(btnX, y + 50, `${diff.label} (${diff.stamina}⚡) ${'★'.repeat(stars)}`, {
+          fontSize: '12px', color: canPlay ? '#ffffff' : '#555555',
+          backgroundColor: btnColor, padding: { x: 8, y: 6 },
         }).setInteractive({ useHandCursor: canPlay });
 
         if (canPlay) {
@@ -146,8 +146,8 @@ export class DailyDungeonScene extends Phaser.Scene {
         }
 
         // 남은 횟수
-        this.add.text(btnX + 80, y + 46, `${clears}/${DUNGEON_DAILY_LIMIT}`, {
-          fontSize: '8px', color: '#666666',
+        this.add.text(btnX + 85, y + 54, `${clears}/${DUNGEON_DAILY_LIMIT}`, {
+          fontSize: '10px', color: '#666666',
         });
       }
     }
@@ -161,46 +161,46 @@ export class DailyDungeonScene extends Phaser.Scene {
     this.children.removeAll();
     this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GW, GH);
 
-    this.add.text(GW / 2, 15, `${dungeon.icon} ${dungeon.name} - ${difficulty.label}`, {
-      fontSize: '18px', color: '#ffd700', fontStyle: 'bold',
+    this.add.text(GW / 2, 18, `${dungeon.icon} ${dungeon.name} - ${difficulty.label}`, {
+      fontSize: '20px', color: '#ffd700', fontStyle: 'bold',
     }).setOrigin(0.5);
 
-    const backBtn = this.add.text(20, 10, '← 뒤로', {
-      fontSize: '12px', color: '#aaaaaa', backgroundColor: '#1a1a3a', padding: { x: 6, y: 4 },
+    const backBtn = this.add.text(20, 12, '← 뒤로', {
+      fontSize: '14px', color: '#aaaaaa', backgroundColor: '#1a1a3a', padding: { x: 10, y: 8 },
     }).setInteractive({ useHandCursor: true });
     backBtn.on('pointerdown', () => this.showDungeonList());
 
-    this.add.text(GW / 2, 40, `웨이브 ${difficulty.waves}  |  적 Lv.${difficulty.enemyLevel}  |  ⚡${difficulty.stamina}`, {
-      fontSize: '11px', color: '#aaaaaa',
+    this.add.text(GW / 2, 44, `웨이브 ${difficulty.waves}  |  적 Lv.${difficulty.enemyLevel}  |  ⚡${difficulty.stamina}`, {
+      fontSize: '14px', color: '#aaaaaa',
     }).setOrigin(0.5);
 
     // 장수 목록 (전체 선택 → 상위 5명 자동 출전)
-    this.add.text(GW / 2, 60, '보유 장수 중 상위 5명이 자동 출전합니다', {
-      fontSize: '10px', color: '#888888',
+    this.add.text(GW / 2, 66, '보유 장수 중 상위 5명이 자동 출전합니다', {
+      fontSize: '13px', color: '#888888',
     }).setOrigin(0.5);
 
     const units = this.campaignManager.getProgress().playerUnits;
     const sortedUnits = [...units].sort((a, b) => (b.level ?? 1) - (a.level ?? 1)).slice(0, 5);
 
-    const startY = 80;
+    const startY = 88;
     for (let i = 0; i < sortedUnits.length; i++) {
       const unit = sortedUnits[i];
-      const y = startY + i * 35;
+      const y = startY + i * 40;
       const grade = unit.grade ?? 'N';
       const gradeColor = getGradeColor(grade as HeroGrade);
       const cls = unit.unitClass ? UNIT_CLASS_DEFS[unit.unitClass]?.name ?? '' : '';
 
-      this.add.text(20, y, `[${grade}]`, { fontSize: '10px', color: gradeColor, fontStyle: 'bold' });
-      this.add.text(48, y, `${unit.name}  ${cls} Lv.${unit.level ?? 1}`, {
-        fontSize: '12px', color: '#ffffff',
+      this.add.text(20, y, `[${grade}]`, { fontSize: '13px', color: gradeColor, fontStyle: 'bold' });
+      this.add.text(50, y, `${unit.name}  ${cls} Lv.${unit.level ?? 1}`, {
+        fontSize: '14px', color: '#ffffff',
       });
-      this.add.text(GW - 60, y, `ATK:${unit.stats.attack}`, { fontSize: '9px', color: '#888888' });
+      this.add.text(GW - 60, y, `ATK:${unit.stats.attack}`, { fontSize: '12px', color: '#888888' });
     }
 
     // 전투 시작 버튼
-    const startBtn = this.add.text(GW / 2, GH - 40, '⚔️ 전투 시작', {
-      fontSize: '18px', color: '#ffffff', backgroundColor: '#aa3333',
-      padding: { x: 20, y: 10 },
+    const startBtn = this.add.text(GW / 2, GH - 45, '⚔️ 전투 시작', {
+      fontSize: '20px', color: '#ffffff', backgroundColor: '#aa3333',
+      padding: { x: 24, y: 14 },
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     startBtn.on('pointerdown', () => this.startDungeonBattle(sortedUnits));
 
@@ -208,9 +208,9 @@ export class DailyDungeonScene extends Phaser.Scene {
     const key = `${dungeon.id}_${difficulty.level}`;
     const stars = (this.campaignManager.getProgress().dungeonStars ?? {})[key] ?? 0;
     if (stars >= 3) {
-      const sweepBtn = this.add.text(GW / 2, GH - 80, '🧹 소탕 (전투 스킵)', {
-        fontSize: '14px', color: '#44ff44', backgroundColor: '#1a3a1a',
-        padding: { x: 16, y: 8 },
+      const sweepBtn = this.add.text(GW / 2, GH - 95, '🧹 소탕 (전투 스킵)', {
+        fontSize: '16px', color: '#44ff44', backgroundColor: '#1a3a1a',
+        padding: { x: 18, y: 10 },
       }).setOrigin(0.5).setInteractive({ useHandCursor: true });
       sweepBtn.on('pointerdown', () => this.executeSweep());
     }
@@ -325,13 +325,13 @@ export class DailyDungeonScene extends Phaser.Scene {
 
     // 웨이브 표시
     this.add.text(GW / 2, 14, `⚔️ Wave ${waveNum}/${diff.waves}${isBoss ? ' 🔥BOSS' : ''}`, {
-      fontSize: '14px', color: isBoss ? '#ff4444' : '#ffd700', fontStyle: 'bold',
+      fontSize: '16px', color: isBoss ? '#ff4444' : '#ffd700', fontStyle: 'bold',
       stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5);
 
     // 배속 버튼
-    const speedBtn = this.add.text(GW - 40, 8, `${this.battleSpeed}x`, {
-      fontSize: '13px', color: '#ffffff', backgroundColor: '#000000cc', padding: { x: 6, y: 4 },
+    const speedBtn = this.add.text(GW - 45, 8, `${this.battleSpeed}x`, {
+      fontSize: '15px', color: '#ffffff', backgroundColor: '#000000cc', padding: { x: 8, y: 6 },
     }).setInteractive({ useHandCursor: true }).setDepth(50);
     speedBtn.on('pointerdown', () => {
       this.battleSpeed = this.battleSpeed === 1 ? 2 : this.battleSpeed === 2 ? 3 : 1;
@@ -341,13 +341,13 @@ export class DailyDungeonScene extends Phaser.Scene {
     // 아군 (좌측)
     const players = this.battleUnits.filter(u => u.side === 'player');
     const enemies = this.battleUnits.filter(u => u.side === 'enemy' && u.alive);
-    const unitH = 48;
-    const cardW = 125;
+    const unitH = 50;
+    const cardW = 110;
 
     for (let i = 0; i < players.length; i++) {
       const u = players[i];
       const y = 36 + i * unitH;
-      const c = this.createDungeonUnitCard(u, 10, y, cardW, true);
+      const c = this.createDungeonUnitCard(u, 8, y, cardW, true);
       this.unitContainers.set(u.data.id, c);
     }
 
@@ -358,19 +358,19 @@ export class DailyDungeonScene extends Phaser.Scene {
       const c = this.createDungeonUnitCard(u, GW + 30, y, cardW, false);
       this.unitContainers.set(u.data.id, c);
       this.tweens.add({
-        targets: c, x: GW - cardW - 10, duration: 400, ease: 'Back.easeOut', delay: i * 100,
+        targets: c, x: GW - cardW - 8, duration: 400, ease: 'Back.easeOut', delay: i * 100,
       });
     }
 
     // 전투 로그
     const logBg = this.add.graphics();
-    logBg.fillStyle(0x0a0a14, 0.85).fillRoundedRect(8, GH - 115, GW - 16, 108, 8);
-    logBg.lineStyle(1, 0x2a2a44, 0.5).strokeRoundedRect(8, GH - 115, GW - 16, 108, 8);
-    this.add.text(GW / 2, GH - 110, '── 전투 로그 ──', { fontSize: '9px', color: '#555566' }).setOrigin(0.5);
+    logBg.fillStyle(0x0a0a14, 0.85).fillRoundedRect(8, GH - 125, GW - 16, 118, 8);
+    logBg.lineStyle(1, 0x2a2a44, 0.5).strokeRoundedRect(8, GH - 125, GW - 16, 118, 8);
+    this.add.text(GW / 2, GH - 120, '── 전투 로그 ──', { fontSize: '12px', color: '#555566' }).setOrigin(0.5);
 
     const logTexts: Phaser.GameObjects.Text[] = [];
     for (let i = 0; i < 5; i++) {
-      logTexts.push(this.add.text(18, GH - 96 + i * 18, '', { fontSize: '10px', color: '#aaaaaa' }));
+      logTexts.push(this.add.text(18, GH - 104 + i * 20, '', { fontSize: '12px', color: '#aaaaaa' }));
     }
 
     this.time.delayedCall(600 + enemies.length * 100, () => {
@@ -380,7 +380,7 @@ export class DailyDungeonScene extends Phaser.Scene {
 
   private createDungeonUnitCard(u: DungeonUnit, x: number, y: number, w: number, isPlayer: boolean): Phaser.GameObjects.Container {
     const container = this.add.container(x, y);
-    const h = 42;
+    const h = 44;
 
     const card = this.add.graphics();
     card.fillStyle(isPlayer ? 0x1a2a4a : 0x4a1a1a, 0.85);
@@ -396,10 +396,10 @@ export class DailyDungeonScene extends Phaser.Scene {
     const icon = this.add.text(6, h / 2, clsIcons[u.data.unitClass ?? 'infantry'] ?? '⚔️', { fontSize: '14px' }).setOrigin(0, 0.5);
     container.add(icon);
 
-    const name = this.add.text(24, 5, u.data.name, { fontSize: '10px', color: '#ffffff', fontStyle: 'bold' });
+    const name = this.add.text(24, 5, u.data.name, { fontSize: '12px', color: '#ffffff', fontStyle: 'bold' });
     container.add(name);
 
-    const hpText = this.add.text(w - 5, 5, `${u.hp}`, { fontSize: '8px', color: '#aaaaaa' }).setOrigin(1, 0);
+    const hpText = this.add.text(w - 5, 5, `${u.hp}`, { fontSize: '10px', color: '#aaaaaa' }).setOrigin(1, 0);
     container.add(hpText);
 
     const hpBg = this.add.graphics();
@@ -424,7 +424,7 @@ export class DailyDungeonScene extends Phaser.Scene {
     for (const unit of this.battleUnits) {
       const c = this.unitContainers.get(unit.data.id);
       if (!c) continue;
-      const w = 125;
+      const w = 110;
       const hpBar = c.getAt(5) as Phaser.GameObjects.Graphics;
       hpBar.clear();
       if (unit.alive) {
@@ -519,7 +519,7 @@ export class DailyDungeonScene extends Phaser.Scene {
             // MISS 텍스트
             if (defContainer) {
               const missText = this.add.text(defContainer.x + 60, defContainer.y, 'MISS', {
-                fontSize: '12px', color: '#888888', fontStyle: 'bold',
+                fontSize: '14px', color: '#888888', fontStyle: 'bold',
               }).setOrigin(0.5).setDepth(100);
               this.tweens.add({ targets: missText, y: missText.y - 20, alpha: 0, duration: 600, onComplete: () => missText.destroy() });
             }
@@ -619,62 +619,62 @@ export class DailyDungeonScene extends Phaser.Scene {
     const resultColor = stars > 0 ? '#ffd700' : '#ff4444';
 
     this.add.text(GW / 2, GH * 0.12, resultText, {
-      fontSize: '32px', color: resultColor, fontStyle: 'bold',
+      fontSize: '34px', color: resultColor, fontStyle: 'bold',
     }).setOrigin(0.5);
 
     // 별 표시
     if (stars > 0) {
       const starText = '★'.repeat(stars) + '☆'.repeat(3 - stars);
       this.add.text(GW / 2, GH * 0.22, starText, {
-        fontSize: '28px', color: '#ffd700',
+        fontSize: '30px', color: '#ffd700',
       }).setOrigin(0.5);
     }
 
     // 보상
     let y = GH * 0.35;
     this.add.text(GW / 2, y, '── 보상 ──', {
-      fontSize: '14px', color: '#88aacc', fontStyle: 'bold',
+      fontSize: '16px', color: '#88aacc', fontStyle: 'bold',
     }).setOrigin(0.5);
-    y += 25;
+    y += 28;
 
     this.add.text(GW / 2, y, `💰 금화 +${reward.gold}`, {
-      fontSize: '14px', color: '#ffaa00',
+      fontSize: '16px', color: '#ffaa00',
     }).setOrigin(0.5);
-    y += 22;
+    y += 24;
 
     if (reward.equipment && reward.equipment.length > 0) {
       const names = reward.equipment.map(e => EQUIPMENT_DEFS[e]?.name ?? e).join(', ');
       this.add.text(GW / 2, y, `⚔️ ${names}`, {
-        fontSize: '12px', color: '#44ccff',
+        fontSize: '14px', color: '#44ccff',
       }).setOrigin(0.5);
-      y += 20;
+      y += 22;
     }
 
     if (reward.skills && reward.skills.length > 0) {
       const names = reward.skills.map(s => SKILL_DEFS[s]?.name ?? s).join(', ');
       this.add.text(GW / 2, y, `✨ ${names}`, {
-        fontSize: '12px', color: '#cc88ff',
+        fontSize: '14px', color: '#cc88ff',
       }).setOrigin(0.5);
-      y += 20;
+      y += 22;
     }
 
     if (reward.materials) {
       for (const [k, v] of Object.entries(reward.materials)) {
         this.add.text(GW / 2, y, `📦 ${k} x${v}`, {
-          fontSize: '12px', color: '#88cc88',
+          fontSize: '14px', color: '#88cc88',
         }).setOrigin(0.5);
-        y += 18;
+        y += 22;
       }
     }
 
     // 버튼
-    const retryBtn = this.add.text(GW / 2 - 70, GH - 40, '다시 도전', {
-      fontSize: '14px', color: '#ffffff', backgroundColor: '#3366aa', padding: { x: 14, y: 8 },
+    const retryBtn = this.add.text(GW / 2 - 70, GH - 45, '다시 도전', {
+      fontSize: '16px', color: '#ffffff', backgroundColor: '#3366aa', padding: { x: 16, y: 10 },
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     retryBtn.on('pointerdown', () => this.showDungeonList());
 
-    const lobbyBtn = this.add.text(GW / 2 + 70, GH - 40, '로비로', {
-      fontSize: '14px', color: '#ffffff', backgroundColor: '#2a2a4a', padding: { x: 14, y: 8 },
+    const lobbyBtn = this.add.text(GW / 2 + 70, GH - 45, '로비로', {
+      fontSize: '16px', color: '#ffffff', backgroundColor: '#2a2a4a', padding: { x: 16, y: 10 },
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     lobbyBtn.on('pointerdown', () => this.scene.start('LobbyScene', { campaignManager: this.campaignManager }));
   }

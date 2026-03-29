@@ -42,12 +42,12 @@ export class PvpLobbyScene extends Phaser.Scene {
   create(): void {
     this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GAME_W, GAME_H);
 
-    this.add.text(GAME_W / 2, 20, 'PvP 대전', {
-      fontSize: '24px', color: '#ff6644', fontStyle: 'bold',
+    this.add.text(GAME_W / 2, 22, 'PvP 대전', {
+      fontSize: '26px', color: '#ff6644', fontStyle: 'bold',
     }).setOrigin(0.5);
 
-    const backBtn = this.add.text(20, 20, '← 뒤로', {
-      fontSize: '14px', color: '#888888',
+    const backBtn = this.add.text(20, 16, '← 뒤로', {
+      fontSize: '15px', color: '#888888', backgroundColor: '#1a1a3a', padding: { x: 10, y: 8 },
     }).setInteractive({ useHandCursor: true });
     backBtn.on('pointerdown', () => this.scene.start('TitleScene'));
 
@@ -56,7 +56,7 @@ export class PvpLobbyScene extends Phaser.Scene {
 
   private async findMatch(): Promise<void> {
     const status = this.add.text(GAME_W / 2, GAME_H * 0.4, '상대를 찾는 중...', {
-      fontSize: '16px', color: '#aaaaaa',
+      fontSize: '18px', color: '#aaaaaa',
     }).setOrigin(0.5);
 
     try {
@@ -68,7 +68,7 @@ export class PvpLobbyScene extends Phaser.Scene {
       status.setColor('#ff6666');
 
       const retryBtn = this.add.text(GAME_W / 2, GAME_H * 0.55, '다시 시도', {
-        fontSize: '16px', color: '#ffffff', backgroundColor: '#4a4a6a', padding: { x: 20, y: 8 },
+        fontSize: '18px', color: '#ffffff', backgroundColor: '#4a4a6a', padding: { x: 24, y: 12 },
       }).setOrigin(0.5).setInteractive({ useHandCursor: true });
       retryBtn.on('pointerdown', () => this.scene.restart());
     }
@@ -78,30 +78,30 @@ export class PvpLobbyScene extends Phaser.Scene {
     if (!this.matchData) return;
 
     this.add.text(GAME_W / 2, 70, '대전 상대', {
-      fontSize: '14px', color: '#888888',
+      fontSize: '16px', color: '#888888',
     }).setOrigin(0.5);
 
     // 상대 정보
     this.add.text(GAME_W / 2, 100, this.matchData.opponentName, {
-      fontSize: '22px', color: '#ff4444', fontStyle: 'bold',
+      fontSize: '24px', color: '#ff4444', fontStyle: 'bold',
     }).setOrigin(0.5);
 
-    this.add.text(GAME_W / 2, 130, `ELO: ${this.matchData.opponentElo}`, {
-      fontSize: '14px', color: '#aaaaaa',
+    this.add.text(GAME_W / 2, 132, `ELO: ${this.matchData.opponentElo}`, {
+      fontSize: '16px', color: '#aaaaaa',
     }).setOrigin(0.5);
 
     // 상대 유닛 목록
     const units = this.matchData.opponentUnits as UnitData[];
     if (units.length > 0) {
       const unitInfo = units.map(u => `${u.name} Lv.${u.level ?? 1}`).join('  ');
-      this.add.text(GAME_W / 2, 160, unitInfo, {
-        fontSize: '13px', color: '#cc8888',
+      this.add.text(GAME_W / 2, 165, unitInfo, {
+        fontSize: '15px', color: '#cc8888',
       }).setOrigin(0.5);
     }
 
     // 전투 시작 버튼
     const startBtn = this.add.text(GAME_W / 2, GAME_H * 0.55, '전투 시작!', {
-      fontSize: '22px', color: '#ffffff', backgroundColor: '#cc3333', padding: { x: 30, y: 12 },
+      fontSize: '24px', color: '#ffffff', backgroundColor: '#cc3333', padding: { x: 34, y: 14 },
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     startBtn.on('pointerover', () => startBtn.setStyle({ backgroundColor: '#ee4444' }));
     startBtn.on('pointerout', () => startBtn.setStyle({ backgroundColor: '#cc3333' }));
@@ -109,7 +109,7 @@ export class PvpLobbyScene extends Phaser.Scene {
 
     // 다른 상대 찾기
     const rerollBtn = this.add.text(GAME_W / 2, GAME_H * 0.67, '다른 상대 찾기', {
-      fontSize: '14px', color: '#6688cc',
+      fontSize: '16px', color: '#6688cc', backgroundColor: '#1a1a3a', padding: { x: 14, y: 8 },
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     rerollBtn.on('pointerdown', () => this.scene.restart());
   }
