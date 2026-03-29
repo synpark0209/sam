@@ -287,20 +287,20 @@ export class DailyDungeonScene extends Phaser.Scene {
     }).setInteractive({ useHandCursor: true });
     backBtn.on('pointerdown', () => this.showDungeonList());
 
-    this.add.text(GW / 2, 54, `웨이브 ${difficulty.waves}  |  적 Lv.${difficulty.enemyLevel}  |  ⚡${difficulty.stamina}`, {
-      fontSize: '14px', color: '#aaaaaa',
+    this.add.text(GW / 2, 58, `웨이브 ${difficulty.waves}  |  적 Lv.${difficulty.enemyLevel}  |  ⚡${difficulty.stamina}`, {
+      fontSize: '15px', color: '#aaaaaa',
     }).setOrigin(0.5);
 
     // 장수 목록 (전체 선택 → 상위 5명 자동 출전)
-    this.add.text(GW / 2, 76, '보유 장수 중 상위 5명이 자동 출전합니다', {
+    this.add.text(GW / 2, 82, '보유 장수 중 상위 5명이 자동 출전합니다', {
       fontSize: '14px', color: '#888888',
     }).setOrigin(0.5);
 
     const units = this.campaignManager.getProgress().playerUnits;
     const sortedUnits = [...units].sort((a, b) => (b.level ?? 1) - (a.level ?? 1)).slice(0, 5);
 
-    const startY = 98;
-    const itemH = 48;
+    const startY = 110;
+    const itemH = 58;
     for (let i = 0; i < sortedUnits.length; i++) {
       const unit = sortedUnits[i];
       const y = startY + i * itemH;
@@ -310,13 +310,13 @@ export class DailyDungeonScene extends Phaser.Scene {
 
       const rowBg = this.add.graphics();
       rowBg.fillStyle(0x111122, 0.8);
-      rowBg.fillRoundedRect(12, y - 4, GW - 24, itemH - 4, 4);
+      rowBg.fillRoundedRect(12, y - 4, GW - 24, itemH - 6, 6);
 
-      this.add.text(20, y + 4, `[${grade}]`, { fontSize: '14px', color: gradeColor, fontStyle: 'bold' });
-      this.add.text(52, y + 2, `${unit.name}  ${cls} Lv.${unit.level ?? 1}`, {
-        fontSize: '15px', color: '#ffffff',
+      this.add.text(20, y + 8, `[${grade}]`, { fontSize: '16px', color: gradeColor, fontStyle: 'bold' });
+      this.add.text(56, y + 6, `${unit.name}  ${cls} Lv.${unit.level ?? 1}`, {
+        fontSize: '17px', color: '#ffffff',
       });
-      this.add.text(GW - 70, y + 4, `ATK:${unit.stats.attack}`, { fontSize: '13px', color: '#888888' });
+      this.add.text(GW - 30, y + 10, `ATK:${unit.stats.attack}`, { fontSize: '15px', color: '#888888' });
     }
 
     // 전투 시작 버튼 (full width, prominent)
@@ -751,7 +751,9 @@ export class DailyDungeonScene extends Phaser.Scene {
 
   private showResult(stars: number, reward: DungeonReward, isSweep: boolean): void {
     this.children.removeAll();
-    this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GW, GH);
+    const rbg = this.add.graphics();
+    rbg.fillGradientStyle(0x0c1220, 0x0c1220, 0x1a1a30, 0x1a1a30, 1);
+    rbg.fillRect(0, 0, GW, GH);
 
     const resultText = stars > 0 ? (isSweep ? '소탕 완료!' : '클리어!') : '패배...';
     const resultColor = stars > 0 ? '#ffd700' : '#ff4444';
