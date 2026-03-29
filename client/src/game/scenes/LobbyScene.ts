@@ -672,33 +672,56 @@ export class LobbyScene extends Phaser.Scene {
 
   private showGacha(): void {
     this.children.removeAll();
+
+    // Dark purple gradient background
     const bg = this.add.graphics();
     bg.fillGradientStyle(0x1a0a2e, 0x1a0a2e, 0x0c1220, 0x0c1220, 1);
     bg.fillRect(0, 0, GW, GH);
 
-    // 장식 파티클
-    for (let i = 0; i < 15; i++) {
+    // Gold particle effects
+    for (let i = 0; i < 25; i++) {
       const s = this.add.graphics();
-      s.fillStyle(0xffd700, Math.random() * 0.3 + 0.1);
-      s.fillCircle(Math.random() * GW, Math.random() * GH * 0.3, Math.random() * 2 + 0.5);
-      this.tweens.add({ targets: s, alpha: { from: 0.3, to: 0.05 }, duration: 1500 + Math.random() * 1500, yoyo: true, repeat: -1 });
+      const size = Math.random() * 3 + 1;
+      s.fillStyle(0xffd700, Math.random() * 0.4 + 0.1);
+      s.fillCircle(Math.random() * GW, Math.random() * GH * 0.5, size);
+      this.tweens.add({
+        targets: s,
+        alpha: { from: 0.4, to: 0.05 },
+        y: `-=${30 + Math.random() * 30}`,
+        duration: 2000 + Math.random() * 2000,
+        yoyo: true,
+        repeat: -1,
+      });
     }
 
-    this.add.text(GW / 2, 18, '🎰 장수 뽑기', {
-      fontSize: '20px', color: '#ffd700', fontStyle: 'bold',
-      stroke: '#000000', strokeThickness: 3,
-    }).setOrigin(0.5);
+    // Top gold accent line
+    const topLine = this.add.graphics();
+    topLine.fillGradientStyle(0xffd700, 0xffa500, 0xffa500, 0xffd700, 1);
+    topLine.fillRect(0, 0, GW, 3);
 
+    // Back button - touch-friendly
     const backBg = this.add.graphics();
-    backBg.fillStyle(0x1a1a3a, 1).fillRoundedRect(10, 8, 55, 24, 6);
-    const backBtn = this.add.text(37, 20, '← 홈', {
-      fontSize: '11px', color: '#88aacc',
+    backBg.fillStyle(0x1a1a3a, 0.9).fillRoundedRect(12, 12, 72, 36, 8);
+    backBg.lineStyle(1, 0x444466, 0.6).strokeRoundedRect(12, 12, 72, 36, 8);
+    const backBtn = this.add.text(48, 30, '← 홈', {
+      fontSize: '15px', color: '#99bbdd', fontStyle: 'bold',
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     backBtn.on('pointerdown', () => this.showMainMenu());
 
-    // 서버에서 재화 상태 로드
-    const loadingText = this.add.text(GW / 2, GH * 0.4, '로딩 중...', {
-      fontSize: '14px', color: '#666666',
+    // Title
+    this.add.text(GW / 2, 30, '장수 뽑기', {
+      fontSize: '28px', color: '#ffd700', fontStyle: 'bold',
+      stroke: '#000000', strokeThickness: 4,
+    }).setOrigin(0.5);
+
+    // Decorative divider under title
+    const divider = this.add.graphics();
+    divider.fillGradientStyle(0x1a0a2e, 0xffd700, 0xffd700, 0x1a0a2e, 1);
+    divider.fillRect(40, 52, GW - 80, 2);
+
+    // Loading state
+    const loadingText = this.add.text(GW / 2, GH * 0.45, '로딩 중...', {
+      fontSize: '18px', color: '#888888',
     }).setOrigin(0.5);
 
     getGachaStatus().then(status => {
@@ -706,57 +729,186 @@ export class LobbyScene extends Phaser.Scene {
       this.renderGachaUI(status.gems, status.gold, status.pity);
     }).catch(() => {
       loadingText.setText('서버 연결 실패');
+      loadingText.setColor('#ff6666');
     });
   }
 
   private renderGachaUI(gems: number, gold: number, pity: number): void {
-    // 재화 카드
-    const infoBg = this.add.graphics();
-    infoBg.fillStyle(0x141428, 0.9).fillRoundedRect(15, 45, GW - 30, 35, 6);
-    this.add.text(30, 55, `💎 ${gems}`, { fontSize: '13px', color: '#88ccff' });
-    this.add.text(GW / 2, 55, `💰 ${gold}`, { fontSize: '13px', color: '#ffd700' }).setOrigin(0.5, 0);
-    this.add.text(GW - 30, 55, `천장: ${90 - pity}`, { fontSize: '11px', color: '#888888' }).setOrigin(1, 0);
+    const pad = 16;
+    const cardW = GW - pad * 2;
 
-    this.add.text(GW / 2, 88, '프리미엄: UR 5% | SSR 20% | SR 75%', {
-      fontSize: '9px', color: '#555555',
+    // ── Currency bar ──
+    const currY = 66;
+    const currH = 60;
+    const currBg = this.add.graphics();
+    currBg.fillStyle(0x0e0e22, 0.95).fillRoundedRect(pad, currY, cardW, currH, 10);
+    currBg.lineStyle(1, 0x333355, 0.8).strokeRoundedRect(pad, currY, cardW, currH, 10);
+
+    // Gems
+    this.add.text(pad + 16, currY + 12, '💎 보석', { fontSize: '12px', color: '#6699cc' });
+    this.add.text(pad + 16, currY + 32, gems.toLocaleString(), {
+      fontSize: '18px', color: '#88ccff', fontStyle: 'bold',
+    });
+
+    // Gold
+    this.add.text(GW / 2 - 20, currY + 12, '💰 금화', { fontSize: '12px', color: '#cc9944' });
+    this.add.text(GW / 2 - 20, currY + 32, gold.toLocaleString(), {
+      fontSize: '18px', color: '#ffd700', fontStyle: 'bold',
+    });
+
+    // Pity counter
+    const pityLeft = 90 - pity;
+    this.add.text(GW - pad - 16, currY + 12, '천장까지', { fontSize: '12px', color: '#777777' }).setOrigin(1, 0);
+    this.add.text(GW - pad - 16, currY + 32, `${pityLeft}회`, {
+      fontSize: '18px', color: pityLeft <= 20 ? '#ff8844' : '#aaaaaa', fontStyle: 'bold',
+    }).setOrigin(1, 0);
+
+    // ── Premium Gacha Section ──
+    const premY = 148;
+
+    // Section header
+    const premHeaderBg = this.add.graphics();
+    premHeaderBg.fillGradientStyle(0x4a2a6a, 0x4a2a6a, 0x1a0a2e, 0x1a0a2e, 0.6);
+    premHeaderBg.fillRoundedRect(pad, premY, cardW, 32, { tl: 10, tr: 10, bl: 0, br: 0 });
+    this.add.text(pad + 14, premY + 8, '✦ 프리미엄 뽑기', {
+      fontSize: '16px', color: '#cc88ff', fontStyle: 'bold',
+    });
+    this.add.text(GW - pad - 14, premY + 10, 'UR 5% · SSR 20% · SR 75%', {
+      fontSize: '12px', color: '#8866aa',
+    }).setOrigin(1, 0);
+
+    // Premium pull buttons container
+    const premBtnY = premY + 36;
+    const btnH = 90;
+    const btnGap = 12;
+    const btnW = (cardW - btnGap) / 2;
+
+    // Premium 1-pull button
+    const prem1Bg = this.add.graphics();
+    prem1Bg.fillStyle(0x3d1f5c, 1).fillRoundedRect(pad, premBtnY, btnW, btnH, 10);
+    prem1Bg.lineStyle(2, 0x7744aa, 0.8).strokeRoundedRect(pad, premBtnY, btnW, btnH, 10);
+    const prem1Zone = this.add.zone(pad + btnW / 2, premBtnY + btnH / 2, btnW, btnH)
+      .setInteractive({ useHandCursor: true });
+    this.add.text(pad + btnW / 2, premBtnY + 24, '1회 뽑기', {
+      fontSize: '18px', color: '#ffffff', fontStyle: 'bold',
+    }).setOrigin(0.5);
+    this.add.text(pad + btnW / 2, premBtnY + 54, '💎 300', {
+      fontSize: '20px', color: '#88ccff', fontStyle: 'bold',
+    }).setOrigin(0.5);
+    prem1Zone.on('pointerdown', () => this.doServerGachaPull('premium', 1));
+    prem1Zone.on('pointerover', () => prem1Bg.clear()
+      .fillStyle(0x5a2f7c, 1).fillRoundedRect(pad, premBtnY, btnW, btnH, 10)
+      .lineStyle(2, 0x9966cc, 1).strokeRoundedRect(pad, premBtnY, btnW, btnH, 10));
+    prem1Zone.on('pointerout', () => prem1Bg.clear()
+      .fillStyle(0x3d1f5c, 1).fillRoundedRect(pad, premBtnY, btnW, btnH, 10)
+      .lineStyle(2, 0x7744aa, 0.8).strokeRoundedRect(pad, premBtnY, btnW, btnH, 10));
+
+    // Premium 10-pull button (highlighted)
+    const prem10X = pad + btnW + btnGap;
+    const prem10Bg = this.add.graphics();
+    prem10Bg.fillStyle(0x6a2a5a, 1).fillRoundedRect(prem10X, premBtnY, btnW, btnH, 10);
+    prem10Bg.lineStyle(2, 0xffd700, 0.8).strokeRoundedRect(prem10X, premBtnY, btnW, btnH, 10);
+    const prem10Zone = this.add.zone(prem10X + btnW / 2, premBtnY + btnH / 2, btnW, btnH)
+      .setInteractive({ useHandCursor: true });
+
+    // "추천!" badge
+    const badgeBg = this.add.graphics();
+    badgeBg.fillStyle(0xffaa00, 1).fillRoundedRect(prem10X + btnW - 52, premBtnY - 6, 48, 20, 6);
+    this.add.text(prem10X + btnW - 28, premBtnY + 4, '추천!', {
+      fontSize: '11px', color: '#000000', fontStyle: 'bold',
     }).setOrigin(0.5);
 
-    // 프리미엄 1회
-    const single = this.add.text(GW / 2 - 80, GH * 0.30, '1회 뽑기\n💎 300', {
-      fontSize: '16px', color: '#ffffff', backgroundColor: '#4a2a6a',
-      padding: { x: 16, y: 12 }, align: 'center',
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    single.on('pointerdown', () => this.doServerGachaPull('premium', 1));
-
-    // 프리미엄 10연차
-    const multi = this.add.text(GW / 2 + 80, GH * 0.30, '10연차\n💎 2,700', {
-      fontSize: '16px', color: '#ffffff', backgroundColor: '#6a2a4a',
-      padding: { x: 16, y: 12 }, align: 'center',
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    multi.on('pointerdown', () => this.doServerGachaPull('premium', 10));
-
-    // 일반 뽑기
-    this.add.text(GW / 2, GH * 0.44, '일반: R 60% | SR 30% | SSR 10%', {
-      fontSize: '10px', color: '#666666',
+    this.add.text(prem10X + btnW / 2, premBtnY + 24, '10연차', {
+      fontSize: '18px', color: '#ffffff', fontStyle: 'bold',
     }).setOrigin(0.5);
+    this.add.text(prem10X + btnW / 2, premBtnY + 54, '💎 2,700', {
+      fontSize: '20px', color: '#ffcc44', fontStyle: 'bold',
+    }).setOrigin(0.5);
+    prem10Zone.on('pointerdown', () => this.doServerGachaPull('premium', 10));
+    prem10Zone.on('pointerover', () => prem10Bg.clear()
+      .fillStyle(0x8a3a7a, 1).fillRoundedRect(prem10X, premBtnY, btnW, btnH, 10)
+      .lineStyle(2, 0xffee44, 1).strokeRoundedRect(prem10X, premBtnY, btnW, btnH, 10));
+    prem10Zone.on('pointerout', () => prem10Bg.clear()
+      .fillStyle(0x6a2a5a, 1).fillRoundedRect(prem10X, premBtnY, btnW, btnH, 10)
+      .lineStyle(2, 0xffd700, 0.8).strokeRoundedRect(prem10X, premBtnY, btnW, btnH, 10));
 
-    const normalSingle = this.add.text(GW / 2 - 80, GH * 0.52, '일반 1회\n💰 10,000', {
-      fontSize: '14px', color: '#ffffff', backgroundColor: '#2a4a2a',
-      padding: { x: 14, y: 10 }, align: 'center',
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    normalSingle.on('pointerdown', () => this.doServerGachaPull('normal', 1));
+    // ── Normal Gacha Section ──
+    const normY = premBtnY + btnH + 20;
 
-    const normalMulti = this.add.text(GW / 2 + 80, GH * 0.52, '일반 10회\n💰 100,000', {
-      fontSize: '14px', color: '#ffffff', backgroundColor: '#2a4a2a',
-      padding: { x: 14, y: 10 }, align: 'center',
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    normalMulti.on('pointerdown', () => this.doServerGachaPull('normal', 10));
+    // Section header
+    const normHeaderBg = this.add.graphics();
+    normHeaderBg.fillGradientStyle(0x2a4a2a, 0x2a4a2a, 0x0c1220, 0x0c1220, 0.6);
+    normHeaderBg.fillRoundedRect(pad, normY, cardW, 32, { tl: 10, tr: 10, bl: 0, br: 0 });
+    this.add.text(pad + 14, normY + 8, '일반 뽑기', {
+      fontSize: '16px', color: '#66cc66', fontStyle: 'bold',
+    });
+    this.add.text(GW - pad - 14, normY + 10, 'R 60% · SR 30% · SSR 10%', {
+      fontSize: '12px', color: '#558855',
+    }).setOrigin(1, 0);
 
-    // 장수 목록 보기 버튼
-    const poolBtn = this.add.text(GW / 2, GH * 0.62, '📋 확률/장수 목록 보기', {
-      fontSize: '12px', color: '#aaaaaa', backgroundColor: '#1a1a3a', padding: { x: 12, y: 6 },
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    poolBtn.on('pointerdown', () => this.showGachaPool());
+    // Normal pull buttons
+    const normBtnY = normY + 36;
+    const normBtnH = 80;
+
+    // Normal 1-pull
+    const norm1Bg = this.add.graphics();
+    norm1Bg.fillStyle(0x1e3a1e, 1).fillRoundedRect(pad, normBtnY, btnW, normBtnH, 10);
+    norm1Bg.lineStyle(2, 0x44884a, 0.8).strokeRoundedRect(pad, normBtnY, btnW, normBtnH, 10);
+    const norm1Zone = this.add.zone(pad + btnW / 2, normBtnY + normBtnH / 2, btnW, normBtnH)
+      .setInteractive({ useHandCursor: true });
+    this.add.text(pad + btnW / 2, normBtnY + 20, '1회 뽑기', {
+      fontSize: '16px', color: '#ccddcc', fontStyle: 'bold',
+    }).setOrigin(0.5);
+    this.add.text(pad + btnW / 2, normBtnY + 48, '💰 10,000', {
+      fontSize: '17px', color: '#ffd700', fontStyle: 'bold',
+    }).setOrigin(0.5);
+    norm1Zone.on('pointerdown', () => this.doServerGachaPull('normal', 1));
+    norm1Zone.on('pointerover', () => norm1Bg.clear()
+      .fillStyle(0x2e5a2e, 1).fillRoundedRect(pad, normBtnY, btnW, normBtnH, 10)
+      .lineStyle(2, 0x66aa6a, 1).strokeRoundedRect(pad, normBtnY, btnW, normBtnH, 10));
+    norm1Zone.on('pointerout', () => norm1Bg.clear()
+      .fillStyle(0x1e3a1e, 1).fillRoundedRect(pad, normBtnY, btnW, normBtnH, 10)
+      .lineStyle(2, 0x44884a, 0.8).strokeRoundedRect(pad, normBtnY, btnW, normBtnH, 10));
+
+    // Normal 10-pull
+    const norm10X = pad + btnW + btnGap;
+    const norm10Bg = this.add.graphics();
+    norm10Bg.fillStyle(0x1e3a1e, 1).fillRoundedRect(norm10X, normBtnY, btnW, normBtnH, 10);
+    norm10Bg.lineStyle(2, 0x44884a, 0.8).strokeRoundedRect(norm10X, normBtnY, btnW, normBtnH, 10);
+    const norm10Zone = this.add.zone(norm10X + btnW / 2, normBtnY + normBtnH / 2, btnW, normBtnH)
+      .setInteractive({ useHandCursor: true });
+    this.add.text(norm10X + btnW / 2, normBtnY + 20, '10연차', {
+      fontSize: '16px', color: '#ccddcc', fontStyle: 'bold',
+    }).setOrigin(0.5);
+    this.add.text(norm10X + btnW / 2, normBtnY + 48, '💰 100,000', {
+      fontSize: '17px', color: '#ffd700', fontStyle: 'bold',
+    }).setOrigin(0.5);
+    norm10Zone.on('pointerdown', () => this.doServerGachaPull('normal', 10));
+    norm10Zone.on('pointerover', () => norm10Bg.clear()
+      .fillStyle(0x2e5a2e, 1).fillRoundedRect(norm10X, normBtnY, btnW, normBtnH, 10)
+      .lineStyle(2, 0x66aa6a, 1).strokeRoundedRect(norm10X, normBtnY, btnW, normBtnH, 10));
+    norm10Zone.on('pointerout', () => norm10Bg.clear()
+      .fillStyle(0x1e3a1e, 1).fillRoundedRect(norm10X, normBtnY, btnW, normBtnH, 10)
+      .lineStyle(2, 0x44884a, 0.8).strokeRoundedRect(norm10X, normBtnY, btnW, normBtnH, 10));
+
+    // ── Pool info button (full width) ──
+    const poolBtnY = normBtnY + normBtnH + 20;
+    const poolBtnH = 44;
+    const poolBtnBg = this.add.graphics();
+    poolBtnBg.fillStyle(0x1a1a3a, 1).fillRoundedRect(pad, poolBtnY, cardW, poolBtnH, 10);
+    poolBtnBg.lineStyle(1, 0x444466, 0.6).strokeRoundedRect(pad, poolBtnY, cardW, poolBtnH, 10);
+    const poolBtnZone = this.add.zone(GW / 2, poolBtnY + poolBtnH / 2, cardW, poolBtnH)
+      .setInteractive({ useHandCursor: true });
+    this.add.text(GW / 2, poolBtnY + poolBtnH / 2, '확률 / 장수 목록 보기', {
+      fontSize: '16px', color: '#aaaacc',
+    }).setOrigin(0.5);
+    poolBtnZone.on('pointerdown', () => this.showGachaPool());
+    poolBtnZone.on('pointerover', () => poolBtnBg.clear()
+      .fillStyle(0x2a2a5a, 1).fillRoundedRect(pad, poolBtnY, cardW, poolBtnH, 10)
+      .lineStyle(1, 0x6666aa, 0.8).strokeRoundedRect(pad, poolBtnY, cardW, poolBtnH, 10));
+    poolBtnZone.on('pointerout', () => poolBtnBg.clear()
+      .fillStyle(0x1a1a3a, 1).fillRoundedRect(pad, poolBtnY, cardW, poolBtnH, 10)
+      .lineStyle(1, 0x444466, 0.6).strokeRoundedRect(pad, poolBtnY, cardW, poolBtnH, 10));
   }
 
   private showGachaPool(): void {

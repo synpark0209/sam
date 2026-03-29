@@ -78,87 +78,221 @@ export class PvPArenaScene extends Phaser.Scene {
 
   private showArenaHome(): void {
     this.children.removeAll();
-    this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GW, GH);
+    const g = this.add.graphics();
+    const pad = 20; // horizontal padding
+    const cardW = GW - pad * 2; // card width
 
-    this.add.text(GW / 2, 18, '⚔️ PvP 아레나', {
-      fontSize: '24px', color: '#ffd700', fontStyle: 'bold',
-    }).setOrigin(0.5);
+    // 1. Dark gradient background
+    const steps = 32;
+    for (let i = 0; i < steps; i++) {
+      const t = i / steps;
+      const r = Math.round(8 + t * 6);
+      const gb = Math.round(8 + t * 14);
+      const color = (r << 16) | (gb << 8) | (gb + 8);
+      g.fillStyle(color, 1);
+      g.fillRect(0, Math.round((GH / steps) * i), GW, Math.ceil(GH / steps) + 1);
+    }
 
-    const backBtn = this.add.text(20, 12, '← 뒤로', {
-      fontSize: '14px', color: '#aaaaaa', backgroundColor: '#1a1a3a', padding: { x: 10, y: 8 },
-    }).setInteractive({ useHandCursor: true });
+    // 2. Back button (top-left, touch-friendly 44px hit area)
+    const backBtn = this.add.text(15, 15, '< 뒤로', {
+      fontSize: '17px', color: '#cccccc', fontFamily: 'sans-serif',
+    }).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+    backBtn.setFixedSize(80, 44);
     backBtn.on('pointerdown', () => this.scene.start('LobbyScene', { campaignManager: this.campaignManager }));
 
-    // 티어 정보
+    // 3. Title with decorative line
+    this.add.text(GW / 2, 24, 'PvP 아레나', {
+      fontSize: '22px', color: '#ffd700', fontStyle: 'bold', fontFamily: 'sans-serif',
+    }).setOrigin(0.5, 0);
+    const lineY = 54;
+    g.fillStyle(0xffd700, 0.4);
+    g.fillRect(pad, lineY, cardW, 1);
+    g.fillStyle(0xffd700, 0.8);
+    g.fillRect(GW / 2 - 40, lineY, 80, 2);
+
+    // -- Data --
     const tier = getTier(this.playerElo);
     const { next, progress } = getNextTierProgress(this.playerElo);
-
-    this.add.text(GW / 2, 55, `${tier.icon} ${tier.name}`, {
-      fontSize: '30px', color: tier.color, fontStyle: 'bold',
-    }).setOrigin(0.5);
-
-    this.add.text(GW / 2, 88, `ELO: ${this.playerElo}`, {
-      fontSize: '18px', color: '#ffffff',
-    }).setOrigin(0.5);
-
-    // 다음 티어 진행도
-    if (next) {
-      this.add.text(GW / 2, 110, `다음 티어 (${next.name}): ${next.minElo}`, {
-        fontSize: '13px', color: '#888888',
-      }).setOrigin(0.5);
-      const barW = 200;
-      const barX = GW / 2 - barW / 2;
-      this.add.graphics().fillStyle(0x333344, 1).fillRoundedRect(barX, 128, barW, 10, 5);
-      this.add.graphics().fillStyle(Phaser.Display.Color.HexStringToColor(tier.color).color, 1)
-        .fillRoundedRect(barX, 128, barW * progress, 10, 5);
-    }
-
-    // 전적
-    this.add.text(GW / 2, 150, `전적: ${this.pvpWins}승 ${this.pvpLosses}패`, {
-      fontSize: '15px', color: '#aaaaaa',
-    }).setOrigin(0.5);
-
-    // 티켓
     const remainTickets = DAILY_PVP_TICKETS - this.ticketsUsed;
-    this.add.text(GW / 2, 175, `🎫 남은 티켓: ${remainTickets} / ${DAILY_PVP_TICKETS}`, {
-      fontSize: '15px', color: remainTickets > 0 ? '#44ff44' : '#ff4444',
-    }).setOrigin(0.5);
+    const tierColor = Phaser.Display.Color.HexStringToColor(tier.color).color;
 
-    // 대전 시작
+    // 4. Large tier card (centered)
+    const tierCardY = 68;
+    const tierCardH = 120;
+    g.fillStyle(0x1a1a2e, 0.9);
+    g.fillRoundedRect(pad, tierCardY, cardW, tierCardH, 14);
+    // subtle border
+    g.lineStyle(1, tierColor, 0.5);
+    g.strokeRoundedRect(pad, tierCardY, cardW, tierCardH, 14);
+    // inner glow at top
+    g.fillStyle(tierColor, 0.07);
+    g.fillRoundedRect(pad, tierCardY, cardW, 50, { tl: 14, tr: 14, bl: 0, br: 0 });
+
+    // Big tier icon
+    this.add.text(GW / 2, tierCardY + 22, tier.icon, {
+      fontSize: '42px',
+    }).setOrigin(0.5, 0);
+
+    // Tier name
+    this.add.text(GW / 2, tierCardY + 72, tier.name, {
+      fontSize: '24px', color: tier.color, fontStyle: 'bold', fontFamily: 'sans-serif',
+    }).setOrigin(0.5, 0);
+
+    // ELO display
+    this.add.text(GW / 2, tierCardY + 100, `ELO  ${this.playerElo}`, {
+      fontSize: '16px', color: '#bbbbcc', fontFamily: 'sans-serif',
+    }).setOrigin(0.5, 0);
+
+    // 5. Progress bar to next tier (full width card)
+    const progY = tierCardY + tierCardH + 10;
+    if (next) {
+      g.fillStyle(0x1a1a2e, 0.8);
+      g.fillRoundedRect(pad, progY, cardW, 36, 10);
+
+      this.add.text(pad + 12, progY + 9, `다음: ${next.name}`, {
+        fontSize: '13px', color: '#888899', fontFamily: 'sans-serif',
+      });
+
+      const barX = pad + 120;
+      const barW = cardW - 130 - 44;
+      const barH = 12;
+      const barY = progY + 12;
+      g.fillStyle(0x222244, 1);
+      g.fillRoundedRect(barX, barY, barW, barH, 6);
+      if (progress > 0) {
+        g.fillStyle(tierColor, 1);
+        g.fillRoundedRect(barX, barY, Math.max(barW * progress, 12), barH, 6);
+      }
+
+      this.add.text(barX + barW + 8, progY + 9, `${Math.round(progress * 100)}%`, {
+        fontSize: '13px', color: tier.color, fontFamily: 'sans-serif',
+      });
+    }
+
+    // 6. Stats row card: wins/losses + tickets
+    const statsY = progY + (next ? 48 : 6);
+    const statsH = 62;
+    g.fillStyle(0x1a1a2e, 0.8);
+    g.fillRoundedRect(pad, statsY, cardW, statsH, 12);
+
+    // divider in middle
+    g.fillStyle(0x333355, 0.6);
+    g.fillRect(GW / 2, statsY + 12, 1, statsH - 24);
+
+    // wins/losses (left half)
+    const leftCx = pad + cardW / 4;
+    this.add.text(leftCx, statsY + 14, '전적', {
+      fontSize: '12px', color: '#777799', fontFamily: 'sans-serif',
+    }).setOrigin(0.5, 0);
+    this.add.text(leftCx, statsY + 32, `${this.pvpWins}승  ${this.pvpLosses}패`, {
+      fontSize: '18px', color: '#ffffff', fontStyle: 'bold', fontFamily: 'sans-serif',
+    }).setOrigin(0.5, 0);
+
+    // tickets (right half)
+    const rightCx = pad + (cardW * 3) / 4;
+    this.add.text(rightCx, statsY + 14, '남은 티켓', {
+      fontSize: '12px', color: '#777799', fontFamily: 'sans-serif',
+    }).setOrigin(0.5, 0);
+    this.add.text(rightCx, statsY + 32, `${remainTickets} / ${DAILY_PVP_TICKETS}`, {
+      fontSize: '18px', color: remainTickets > 0 ? '#44ff88' : '#ff4444', fontStyle: 'bold', fontFamily: 'sans-serif',
+    }).setOrigin(0.5, 0);
+
+    // 7. Big "대전 시작" button
+    const btnY = statsY + statsH + 16;
+    const btnH = 56;
     if (remainTickets > 0) {
-      const startBtn = this.add.text(GW / 2, 220, '⚔️ 대전 시작', {
-        fontSize: '22px', color: '#ffffff', backgroundColor: '#aa3333',
-        padding: { x: 34, y: 14 },
-      }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-      startBtn.on('pointerdown', () => this.showDeployPhase());
+      // button background: red-gold gradient effect
+      g.fillStyle(0xaa2222, 1);
+      g.fillRoundedRect(pad, btnY, cardW, btnH, 14);
+      // lighter top half for gradient feel
+      g.fillStyle(0xcc3333, 1);
+      g.fillRoundedRect(pad, btnY, cardW, btnH / 2, { tl: 14, tr: 14, bl: 0, br: 0 });
+      // gold border
+      g.lineStyle(2, 0xffd700, 0.8);
+      g.strokeRoundedRect(pad, btnY, cardW, btnH, 14);
+
+      const startLabel = this.add.text(GW / 2, btnY + btnH / 2, '대전 시작', {
+        fontSize: '24px', color: '#ffffff', fontStyle: 'bold', fontFamily: 'sans-serif',
+      }).setOrigin(0.5);
+
+      // invisible hit area over the button
+      const hitZone = this.add.zone(GW / 2, btnY + btnH / 2, cardW, btnH)
+        .setInteractive({ useHandCursor: true });
+      hitZone.on('pointerdown', () => this.showDeployPhase());
+      hitZone.on('pointerover', () => startLabel.setColor('#ffe066'));
+      hitZone.on('pointerout', () => startLabel.setColor('#ffffff'));
     } else {
-      this.add.text(GW / 2, 220, '오늘의 티켓을 모두 사용했습니다', {
-        fontSize: '16px', color: '#ff4444',
+      g.fillStyle(0x332222, 0.8);
+      g.fillRoundedRect(pad, btnY, cardW, btnH, 14);
+      this.add.text(GW / 2, btnY + btnH / 2, '오늘의 티켓을 모두 사용했습니다', {
+        fontSize: '16px', color: '#ff6666', fontFamily: 'sans-serif',
       }).setOrigin(0.5);
     }
 
-    // 시즌 보상 정보
-    this.add.text(GW / 2, 270, '── 시즌 보상 ──', {
-      fontSize: '16px', color: '#ffd700', fontStyle: 'bold',
+    // 8. Season rewards card section
+    const rewardCardY = btnY + btnH + 20;
+    const rewardTitleH = 36;
+    const allTiers = [
+      { name: '브론즈', icon: '🥉', elo: '~999', reward: '금화 200 + 보석 50', color: '#cd7f32' },
+      { name: '실버', icon: '🥈', elo: '1000+', reward: '금화 500 + 보석 100 + 스킬', color: '#c0c0c0' },
+      { name: '골드', icon: '🥇', elo: '1200+', reward: '금화 1000 + 보석 200 + 장비', color: '#ffd700' },
+      { name: '다이아', icon: '💎', elo: '1400+', reward: '금화 2000 + 보석 500', color: '#00bfff' },
+      { name: '마스터', icon: '👑', elo: '1600+', reward: '금화 5000 + 보석 1000 + 적토마', color: '#ff4500' },
+    ];
+    const rowH = 44;
+    const rewardListH = allTiers.length * rowH;
+    const rewardCardH = rewardTitleH + rewardListH + 10;
+
+    // card background
+    g.fillStyle(0x12122a, 0.9);
+    g.fillRoundedRect(pad, rewardCardY, cardW, rewardCardH, 14);
+    g.lineStyle(1, 0x333366, 0.5);
+    g.strokeRoundedRect(pad, rewardCardY, cardW, rewardCardH, 14);
+
+    // title bar
+    g.fillStyle(0x1e1e40, 1);
+    g.fillRoundedRect(pad, rewardCardY, cardW, rewardTitleH, { tl: 14, tr: 14, bl: 0, br: 0 });
+    this.add.text(GW / 2, rewardCardY + rewardTitleH / 2, '시즌 보상', {
+      fontSize: '15px', color: '#ffd700', fontStyle: 'bold', fontFamily: 'sans-serif',
     }).setOrigin(0.5);
 
-    const tierY = 298;
-    const allTiers = [
-      { name: '🥉 브론즈', elo: '~999', reward: '금화 200 + 보석 50', color: '#cd7f32' },
-      { name: '🥈 실버', elo: '1000+', reward: '금화 500 + 보석 100 + 스킬', color: '#c0c0c0' },
-      { name: '🥇 골드', elo: '1200+', reward: '금화 1000 + 보석 200 + 장비', color: '#ffd700' },
-      { name: '💎 다이아', elo: '1400+', reward: '금화 2000 + 보석 500', color: '#00bfff' },
-      { name: '👑 마스터', elo: '1600+', reward: '금화 5000 + 보석 1000 + 적토마', color: '#ff4500' },
-    ];
+    // reward rows
+    const listStartY = rewardCardY + rewardTitleH + 4;
     for (let i = 0; i < allTiers.length; i++) {
       const t = allTiers[i];
-      const y = tierY + i * 34;
-      const isCurrent = tier.name === t.name.split(' ')[1];
-      this.add.text(20, y, `${t.name} (${t.elo})`, {
-        fontSize: '13px', color: isCurrent ? t.color : '#666666', fontStyle: isCurrent ? 'bold' : 'normal',
+      const y = listStartY + i * rowH;
+      const isCurrent = tier.name === t.name;
+
+      // highlight current tier row
+      if (isCurrent) {
+        g.fillStyle(Phaser.Display.Color.HexStringToColor(t.color).color, 0.1);
+        g.fillRect(pad + 4, y, cardW - 8, rowH - 2);
+      }
+
+      // row separator (except last)
+      if (i < allTiers.length - 1) {
+        g.fillStyle(0x333355, 0.3);
+        g.fillRect(pad + 12, y + rowH - 1, cardW - 24, 1);
+      }
+
+      // icon + tier name
+      this.add.text(pad + 14, y + 6, `${t.icon} ${t.name}`, {
+        fontSize: '15px',
+        color: isCurrent ? t.color : '#777788',
+        fontStyle: isCurrent ? 'bold' : 'normal',
+        fontFamily: 'sans-serif',
       });
-      this.add.text(GW - 20, y, t.reward, {
-        fontSize: '12px', color: isCurrent ? '#ffffff' : '#555555',
+
+      // ELO requirement
+      this.add.text(pad + 14, y + 25, t.elo, {
+        fontSize: '11px', color: isCurrent ? '#999999' : '#555566', fontFamily: 'sans-serif',
+      });
+
+      // reward text (right-aligned)
+      this.add.text(GW - pad - 14, y + 13, t.reward, {
+        fontSize: '12px',
+        color: isCurrent ? '#ffffff' : '#555566',
+        fontFamily: 'sans-serif',
       }).setOrigin(1, 0);
     }
   }
