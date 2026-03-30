@@ -20,6 +20,9 @@ export class GameSave {
   @Column({ default: 1 })
   maxLevel: number;
 
+  @Column({ default: 0 })
+  gold: number;
+
   @Column({ default: 1000 })
   gems: number;
 

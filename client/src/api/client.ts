@@ -188,10 +188,22 @@ export async function getGachaStatus(): Promise<GachaStatus> {
   return apiRequest<GachaStatus>('/gacha/status');
 }
 
-// ── Shop API ──
+// ── 재화 API (서버 권위적) ──
+
+export async function addGold(amount: number, reason: string): Promise<{ gold: number }> {
+  return apiRequest('/save/add-gold', { method: 'POST', body: JSON.stringify({ amount, reason }) });
+}
+
+export async function spendGold(amount: number, reason: string): Promise<{ gold: number }> {
+  return apiRequest('/save/spend-gold', { method: 'POST', body: JSON.stringify({ amount, reason }) });
+}
 
 export async function spendGems(amount: number, reason: string): Promise<{ gems: number }> {
   return apiRequest('/save/spend-gems', { method: 'POST', body: JSON.stringify({ amount, reason }) });
+}
+
+export async function getCurrencies(): Promise<{ gold: number; gems: number }> {
+  return apiRequest('/save/currencies');
 }
 
 export function isLoggedIn(): boolean {
