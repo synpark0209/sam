@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '@shared/constants.ts';
 import type { CampaignManager } from '../systems/CampaignManager.ts';
-import type { CampaignProgress } from '@shared/types/campaign.ts';
 import type { AudioManager } from '../systems/AudioManager.ts';
 import type { UnitData } from '@shared/types/index.ts';
 import { UnitClass } from '@shared/types/index.ts';
@@ -17,7 +16,7 @@ import { getNextAwakening, performAwakening, AWAKENING_TIERS } from '@shared/dat
 import { PROMOTION_PATHS } from '@shared/data/promotionDefs.ts';
 import { getShopItems, getDailyPurchases } from '@shared/data/shopDefs.ts';
 import type { ShopItem } from '@shared/data/shopDefs.ts';
-import { spendGems, addGold, spendGold } from '../../api/client.ts';
+import { shopBuy, addGold } from '../../api/client.ts';
 
 const GW = GAME_WIDTH;
 const GH = GAME_HEIGHT;
@@ -1750,67 +1749,23 @@ export class LobbyScene extends Phaser.Scene {
   private purchaseShopItem(item: ShopItem, category: 'general' | 'premium' | 'daily'): void {
     const progress = this.campaignManager.getProgress();
 
-    if (item.currency === 'gold') {
-      if (progress.gold < item.price) return;
-      progress.gold -= item.price; // optimistic UI update
-      spendGold(item.price, `shop:${item.id}`).catch(() => {}); // server sync
-      this.applyShopReward(item, progress);
-      if (category === 'daily' && item.dailyLimit) {
-        const counts = getDailyPurchases(progress);
-        counts[item.id] = (counts[item.id] ?? 0) + 1;
-      }
+    // Quick client-side pre-check (server is authoritative)
+    if (item.currency === 'gold' && progress.gold < item.price) return;
+
+    shopBuy(item.id).then(({ gold, gems: _gems }) => {
+      // Update gold from server response
+      progress.gold = gold;
+      // Reload save to get updated campaignProgress (rewards applied server-side)
       this.campaignManager.save();
       this.showShop(category);
-    } else {
-      // gems - call server
-      spendGems(item.price, `shop:${item.id}`).then(({ gems: _remaining }) => {
-        this.applyShopReward(item, progress);
-        if (category === 'daily' && item.dailyLimit) {
-          const counts = getDailyPurchases(progress);
-          counts[item.id] = (counts[item.id] ?? 0) + 1;
-        }
-        this.campaignManager.save();
-        this.showShop(category);
-      }).catch(() => {
-        // Show error briefly
-        const errText = this.add.text(GW / 2, GH - 40, '보석이 부족합니다', {
-          fontSize: '14px', color: '#ff4444', backgroundColor: '#1a1a2e',
-          padding: { x: 12, y: 6 },
-        }).setOrigin(0.5).setDepth(999);
-        this.time.delayedCall(1500, () => errText.destroy());
-      });
-    }
-  }
-
-  private applyShopReward(item: ShopItem, progress: CampaignProgress): void {
-    const reward = item.reward;
-    switch (reward.type) {
-      case 'material':
-        if (!progress.materialBag) progress.materialBag = {};
-        progress.materialBag[reward.itemId!] = (progress.materialBag[reward.itemId!] ?? 0) + (reward.amount ?? 1);
-        break;
-      case 'equipment':
-        if (!progress.equipmentBag) progress.equipmentBag = [];
-        progress.equipmentBag.push(reward.itemId!);
-        break;
-      case 'skill':
-        if (!progress.skillBag) progress.skillBag = [];
-        progress.skillBag.push(reward.itemId!);
-        break;
-      case 'stamina': {
-        const current = progress.stamina ?? 120;
-        progress.stamina = Math.min(current + (reward.amount ?? 0), 120);
-        break;
-      }
-      case 'fragment':
-        if (!progress.heroFragments) progress.heroFragments = {};
-        progress.heroFragments[reward.itemId!] = (progress.heroFragments[reward.itemId!] ?? 0) + (reward.amount ?? 1);
-        break;
-      case 'gold':
-        progress.gold += reward.amount ?? 0; // optimistic UI update
-        if ((reward.amount ?? 0) > 0) addGold(reward.amount!, `shop_reward:${item.id}`).catch(() => {}); // server sync
-        break;
-    }
+    }).catch((err: Error) => {
+      const msg = err.message || '구매에 실패했습니다';
+      const errText = this.add.text(GW / 2, GH - 40, msg, {
+        fontSize: '14px', color: '#ff4444', backgroundColor: '#1a1a2e',
+        padding: { x: 12, y: 6 },
+      }).setOrigin(0.5).setDepth(999);
+      this.time.delayedCall(1500, () => errText.destroy());
+    });
   }
 
   // ── 액션 ──

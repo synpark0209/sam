@@ -71,6 +71,17 @@ export class SaveController {
     return this.saveService.getCurrencies(req.user.userId);
   }
 
+  // ── 상점 구매 ──
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('shop-buy')
+  async shopBuy(
+    @Request() req: { user: { userId: number } },
+    @Body() body: { itemId: string },
+  ) {
+    return this.saveService.shopBuy(req.user.userId, body.itemId);
+  }
+
   @Get('ranking')
   async getRanking() {
     return this.saveService.getRanking();

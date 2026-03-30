@@ -188,6 +188,12 @@ export async function getGachaStatus(): Promise<GachaStatus> {
   return apiRequest<GachaStatus>('/gacha/status');
 }
 
+// ── 상점 API ──
+
+export async function shopBuy(itemId: string): Promise<{ success: boolean; gold: number; gems: number }> {
+  return apiRequest('/save/shop-buy', { method: 'POST', body: JSON.stringify({ itemId }) });
+}
+
 // ── 재화 API (서버 권위적) ──
 
 export async function addGold(amount: number, reason: string): Promise<{ gold: number }> {
