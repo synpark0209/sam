@@ -506,6 +506,18 @@ export class BattleScene extends Phaser.Scene {
     this.endTurnButton.on('pointerover', () => this.endTurnButton.setStyle({ backgroundColor: '#6a6a8a' }));
     this.endTurnButton.on('pointerout', () => this.endTurnButton.setStyle({ backgroundColor: '#4a4a6a' }));
 
+    // 포기 버튼
+    const retreatBtn = this.add.text(16, uiY + 50, '🏳️ 포기', {
+      fontSize: '14px', color: '#ff8888', backgroundColor: '#2a1a1a',
+      padding: { x: 10, y: 6 },
+    }).setInteractive({ useHandCursor: true }).setDepth(201);
+    retreatBtn.on('pointerdown', () => {
+      this._menuClickConsumed = true;
+      this.showRetreatConfirm();
+    });
+    this.uiObjects.push(retreatBtn);
+    this.cameras.main.ignore(retreatBtn);
+
     // 음소거 토글 버튼
     const muteBtn = this.add.text(gw - 35, uiY + 22, this.getAudio()?.isMuted() ? '🔇' : '🔊', {
       fontSize: '24px',
@@ -1754,6 +1766,79 @@ export class BattleScene extends Phaser.Scene {
         });
       });
     }
+  }
+
+  // ── 포기 확인 ──
+
+  private showRetreatConfirm(): void {
+    const gw = this.scale.width;
+    const gh = this.scale.height;
+
+    const overlay = this.add.graphics().setDepth(300);
+    overlay.fillStyle(0x000000, 0.7);
+    overlay.fillRect(0, 0, gw, gh);
+    overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, gw, gh), Phaser.Geom.Rectangle.Contains);
+    overlay.setScrollFactor(0);
+
+    const objects: Phaser.GameObjects.GameObject[] = [overlay];
+
+    const panelW = 280;
+    const panelH = 160;
+    const px = (gw - panelW) / 2;
+    const py = (gh - panelH) / 2;
+
+    const panel = this.add.graphics().setDepth(301).setScrollFactor(0);
+    panel.fillStyle(0x1a1a2e, 1);
+    panel.fillRoundedRect(px, py, panelW, panelH, 12);
+    panel.lineStyle(2, 0xff4444, 0.6);
+    panel.strokeRoundedRect(px, py, panelW, panelH, 12);
+    objects.push(panel);
+
+    const title = this.add.text(gw / 2, py + 30, '전투를 포기하시겠습니까?', {
+      fontSize: '16px', color: '#ffffff', fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(302).setScrollFactor(0);
+    objects.push(title);
+
+    const desc = this.add.text(gw / 2, py + 58, '진행 상황이 저장되지 않습니다.', {
+      fontSize: '13px', color: '#aaaaaa',
+    }).setOrigin(0.5).setDepth(302).setScrollFactor(0);
+    objects.push(desc);
+
+    const cleanup = () => objects.forEach(o => o.destroy());
+
+    // 포기 버튼
+    const confirmBg = this.add.graphics().setDepth(301).setScrollFactor(0);
+    confirmBg.fillStyle(0xaa3333, 1);
+    confirmBg.fillRoundedRect(px + 15, py + 85, panelW / 2 - 25, 44, 8);
+    objects.push(confirmBg);
+
+    const confirmBtn = this.add.text(px + 15 + (panelW / 2 - 25) / 2, py + 107, '포기', {
+      fontSize: '16px', color: '#ffffff', fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(302).setScrollFactor(0)
+      .setInteractive({ useHandCursor: true });
+    confirmBtn.on('pointerdown', () => {
+      cleanup();
+      this.getAudio()?.stopBgm();
+      if (this.campaignMode && this.campaignManager) {
+        this.scene.start('WorldMapScene', { campaignManager: this.campaignManager });
+      } else {
+        this.scene.start('LobbyScene', { campaignManager: this.campaignManager });
+      }
+    });
+    objects.push(confirmBtn);
+
+    // 취소 버튼
+    const cancelBg = this.add.graphics().setDepth(301).setScrollFactor(0);
+    cancelBg.fillStyle(0x4a4a6a, 1);
+    cancelBg.fillRoundedRect(px + panelW / 2 + 10, py + 85, panelW / 2 - 25, 44, 8);
+    objects.push(cancelBg);
+
+    const cancelBtn = this.add.text(px + panelW / 2 + 10 + (panelW / 2 - 25) / 2, py + 107, '계속 전투', {
+      fontSize: '16px', color: '#ffffff', fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(302).setScrollFactor(0)
+      .setInteractive({ useHandCursor: true });
+    cancelBtn.on('pointerdown', cleanup);
+    objects.push(cancelBtn);
   }
 
   // ── 유틸리티 ──
