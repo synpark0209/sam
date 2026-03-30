@@ -54,4 +54,5 @@ export interface CampaignProgress {
   dailyMissions?: DailyMissionState;
   loginBonus?: LoginBonusState;
   heroFragments?: Record<string, number>;  // 장수 조각 { heroBaseId: count }
+  shopDailyPurchases?: { date: string; counts: Record<string, number> };
 }

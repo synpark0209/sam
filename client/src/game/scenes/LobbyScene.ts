@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '@shared/constants.ts';
 import type { CampaignManager } from '../systems/CampaignManager.ts';
+import type { CampaignProgress } from '@shared/types/campaign.ts';
 import type { AudioManager } from '../systems/AudioManager.ts';
 import type { UnitData } from '@shared/types/index.ts';
 import { UnitClass } from '@shared/types/index.ts';
@@ -14,6 +15,9 @@ import { EQUIPMENT_DEFS } from '@shared/data/equipmentDefs.ts';
 import { DAILY_MISSIONS, ALL_COMPLETE_BONUS, areAllMissionsComplete, LOGIN_BONUS_TABLE } from '@shared/data/dailyMissionDefs.ts';
 import { getNextAwakening, performAwakening, AWAKENING_TIERS } from '@shared/data/awakeningDefs.ts';
 import { PROMOTION_PATHS } from '@shared/data/promotionDefs.ts';
+import { getShopItems, getDailyPurchases } from '@shared/data/shopDefs.ts';
+import type { ShopItem } from '@shared/data/shopDefs.ts';
+import { spendGems } from '../../api/client.ts';
 
 const GW = GAME_WIDTH;
 const GH = GAME_HEIGHT;
@@ -137,8 +141,34 @@ export class LobbyScene extends Phaser.Scene {
       hitArea.on('pointerout', () => btnBg.setAlpha(1));
     }
 
-    // ── 하단 메뉴 (소형 버튼 4개) ──
-    const subY = gridStartY + 2 * (btnH + gap) + 20;
+    // ── 상점 버튼 (풀폭 3열) ──
+    const shopY = gridStartY + 2 * (btnH + gap);
+    const shopBtnW = GW - 40;
+    const shopBtnH = 52;
+    {
+      const shopBg = this.add.graphics();
+      shopBg.fillStyle(0x3a2a1a, 1);
+      shopBg.fillRoundedRect(20, shopY, shopBtnW, shopBtnH, 8);
+      shopBg.lineStyle(1.5, 0xcc8844, 0.8);
+      shopBg.strokeRoundedRect(20, shopY, shopBtnW, shopBtnH, 8);
+
+      this.add.text(20 + 14, shopY + shopBtnH / 2, '🏪', {
+        fontSize: '24px',
+      }).setOrigin(0, 0.5);
+
+      this.add.text(20 + 50, shopY + shopBtnH / 2, '상점', {
+        fontSize: '18px', color: '#ffffff', fontStyle: 'bold',
+      }).setOrigin(0, 0.5);
+
+      const shopHit = this.add.rectangle(20 + shopBtnW / 2, shopY + shopBtnH / 2, shopBtnW, shopBtnH, 0x000000, 0)
+        .setInteractive({ useHandCursor: true });
+      shopHit.on('pointerdown', () => this.showShop());
+      shopHit.on('pointerover', () => shopBg.setAlpha(0.8));
+      shopHit.on('pointerout', () => shopBg.setAlpha(1));
+    }
+
+    // ── 하단 메뉴 (소형 버튼 5개) ──
+    const subY = gridStartY + 2 * (btnH + gap) + shopBtnH + 16;
     const subBtnW = (GW - 66) / 5;
     const subBtnH = 64;
 
@@ -1508,6 +1538,272 @@ export class LobbyScene extends Phaser.Scene {
       fontSize: '14px', color: '#ffffff', backgroundColor: '#2a2a4a', padding: { x: 14, y: 8 },
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     doneBtn.on('pointerdown', () => this.showMainMenu());
+  }
+
+  // ── 상점 ──
+
+  private showShop(tab: 'general' | 'premium' | 'daily' = 'general'): void {
+    this.children.removeAll();
+    const progress = this.campaignManager.getProgress();
+
+    // 배경 그라데이션
+    const bg = this.add.graphics();
+    bg.fillGradientStyle(0x0c1220, 0x0c1220, 0x1a1a30, 0x1a1a30, 1);
+    bg.fillRect(0, 0, GW, GH);
+
+    // 상단 장식선
+    const topLine = this.add.graphics();
+    topLine.fillGradientStyle(0xffd700, 0xffa500, 0xffa500, 0xffd700, 1);
+    topLine.fillRect(0, 0, GW, 3);
+
+    // 뒤로 버튼
+    const backBtn = this.add.text(16, 14, '← 뒤로', {
+      fontSize: '15px', color: '#88aacc', backgroundColor: '#1a1a3a', padding: { x: 12, y: 8 },
+    }).setInteractive({ useHandCursor: true });
+    backBtn.on('pointerdown', () => this.showMainMenu());
+
+    // 타이틀
+    this.add.text(GW / 2, 24, '🏪 상점', {
+      fontSize: '24px', color: '#ffd700', fontStyle: 'bold',
+      stroke: '#000000', strokeThickness: 4,
+    }).setOrigin(0.5);
+
+    // 재화 표시
+    const currY = 50;
+    this.add.text(GW / 2 - 60, currY, `💰 ${progress.gold.toLocaleString()}`, {
+      fontSize: '14px', color: '#ffd700',
+    }).setOrigin(1, 0);
+    this.add.text(GW / 2 + 60, currY, `⚡ ${(progress.stamina ?? 120)}`, {
+      fontSize: '14px', color: '#44ff44',
+    }).setOrigin(0, 0);
+
+    // ── 탭 ──
+    const tabY = 72;
+    const tabW = (GW - 32) / 3;
+    const tabH = 38;
+    const tabs: { label: string; key: 'general' | 'premium' | 'daily' }[] = [
+      { label: '일반', key: 'general' },
+      { label: '프리미엄', key: 'premium' },
+      { label: '일일 한정', key: 'daily' },
+    ];
+    for (let i = 0; i < tabs.length; i++) {
+      const t = tabs[i];
+      const tx = 16 + i * tabW;
+      const isActive = tab === t.key;
+
+      const tabBg = this.add.graphics();
+      tabBg.fillStyle(isActive ? 0x1a1a3a : 0x0e0e1e, 1);
+      tabBg.fillRect(tx, tabY, tabW, tabH);
+      if (isActive) {
+        tabBg.fillStyle(0xffd700, 1);
+        tabBg.fillRect(tx, tabY + tabH - 3, tabW, 3);
+      }
+
+      this.add.text(tx + tabW / 2, tabY + tabH / 2 - 2, t.label, {
+        fontSize: '14px', color: isActive ? '#ffd700' : '#666666', fontStyle: isActive ? 'bold' : 'normal',
+      }).setOrigin(0.5);
+
+      const hit = this.add.rectangle(tx + tabW / 2, tabY + tabH / 2, tabW, tabH, 0x000000, 0)
+        .setInteractive({ useHandCursor: true });
+      hit.on('pointerdown', () => this.showShop(t.key));
+    }
+
+    // ── 탭 콘텐츠 ──
+    this.renderShopItems(tab);
+  }
+
+  private renderShopItems(category: 'general' | 'premium' | 'daily'): void {
+    const progress = this.campaignManager.getProgress();
+    const items = getShopItems(category);
+    const dailyCounts = getDailyPurchases(progress);
+
+    const contentY = 118;
+    const cardW = GW - 32;
+    const cardH = 72;
+    const cardGap = 6;
+
+    // 스크롤 가능한 영역 계산
+    const visibleH = GH - contentY - 10;
+    const totalH = items.length * (cardH + cardGap);
+
+    // 스크롤이 필요한 경우 컨테이너 사용
+    const container = this.add.container(0, 0);
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const y = contentY + i * (cardH + cardGap);
+
+      const canAfford = item.currency === 'gold'
+        ? progress.gold >= item.price
+        : true; // gems checked server-side
+
+      let soldOut = false;
+      let remaining = 0;
+      if (category === 'daily' && item.dailyLimit) {
+        const bought = dailyCounts[item.id] ?? 0;
+        remaining = item.dailyLimit - bought;
+        soldOut = remaining <= 0;
+      }
+
+      // 카드 배경
+      const card = this.add.graphics();
+      card.fillStyle(soldOut ? 0x111122 : 0x141428, 1);
+      card.fillRoundedRect(16, y, cardW, cardH, 8);
+      card.lineStyle(1, soldOut ? 0x222233 : 0x2a2a44, 0.6);
+      card.strokeRoundedRect(16, y, cardW, cardH, 8);
+      container.add(card);
+
+      // 아이콘
+      const icon = this.add.text(30, y + 12, item.icon, { fontSize: '24px' });
+      container.add(icon);
+
+      // 이름
+      const name = this.add.text(62, y + 10, item.name, {
+        fontSize: '16px', color: soldOut ? '#555555' : '#ffffff', fontStyle: 'bold',
+      });
+      container.add(name);
+
+      // 설명
+      const desc = this.add.text(62, y + 30, item.description, {
+        fontSize: '11px', color: soldOut ? '#444444' : '#888888',
+      });
+      container.add(desc);
+
+      // 가격
+      const currIcon = item.currency === 'gold' ? '💰' : '💎';
+      const priceColor = item.currency === 'gold'
+        ? (canAfford ? '#ffd700' : '#aa4444')
+        : '#88ccff';
+      const price = this.add.text(62, y + 50, `${currIcon} ${item.price.toLocaleString()}`, {
+        fontSize: '12px', color: soldOut ? '#444444' : priceColor,
+      });
+      container.add(price);
+
+      // 일일 한정 남은 횟수
+      if (category === 'daily' && item.dailyLimit) {
+        const limitText = this.add.text(160, y + 50, `${remaining}/${item.dailyLimit}`, {
+          fontSize: '12px', color: soldOut ? '#444444' : '#aaaaaa',
+        });
+        container.add(limitText);
+      }
+
+      // 구매 버튼
+      if (!soldOut) {
+        const buyBtnX = GW - 70;
+        const buyBtnY = y + 24;
+        const buyBtnW = 56;
+        const buyBtnH = 28;
+
+        const buyBg = this.add.graphics();
+        buyBg.fillStyle(canAfford ? 0x228833 : 0x444444, 1);
+        buyBg.fillRoundedRect(buyBtnX, buyBtnY, buyBtnW, buyBtnH, 5);
+        container.add(buyBg);
+
+        const buyText = this.add.text(buyBtnX + buyBtnW / 2, buyBtnY + buyBtnH / 2, '구매', {
+          fontSize: '13px', color: canAfford ? '#ffffff' : '#888888', fontStyle: 'bold',
+        }).setOrigin(0.5);
+        container.add(buyText);
+
+        if (canAfford) {
+          const buyHit = this.add.rectangle(buyBtnX + buyBtnW / 2, buyBtnY + buyBtnH / 2, buyBtnW, buyBtnH, 0x000000, 0)
+            .setInteractive({ useHandCursor: true });
+          buyHit.on('pointerdown', () => this.purchaseShopItem(item, category));
+          container.add(buyHit);
+        }
+      } else {
+        const soldText = this.add.text(GW - 50, y + 36, '품절', {
+          fontSize: '12px', color: '#555555',
+        }).setOrigin(0.5);
+        container.add(soldText);
+      }
+    }
+
+    // 스크롤 지원 (드래그)
+    if (totalH > visibleH) {
+      const maskShape = this.make.graphics({});
+      maskShape.fillRect(0, contentY, GW, visibleH);
+      container.setMask(new Phaser.Display.Masks.GeometryMask(this, maskShape));
+
+      let dragStartY = 0;
+      let containerStartY = 0;
+      const minY = -(totalH - visibleH);
+
+      const dragZone = this.add.rectangle(GW / 2, contentY + visibleH / 2, GW, visibleH, 0x000000, 0)
+        .setInteractive({ useHandCursor: false, draggable: true });
+
+      dragZone.on('dragstart', (_p: Phaser.Input.Pointer, _dx: number, dy: number) => {
+        dragStartY = dy;
+        containerStartY = container.y;
+      });
+      dragZone.on('drag', (_p: Phaser.Input.Pointer, _dx: number, dy: number) => {
+        const newY = containerStartY + (dy - dragStartY);
+        container.y = Phaser.Math.Clamp(newY, minY, 0);
+      });
+    }
+  }
+
+  private purchaseShopItem(item: ShopItem, category: 'general' | 'premium' | 'daily'): void {
+    const progress = this.campaignManager.getProgress();
+
+    if (item.currency === 'gold') {
+      if (progress.gold < item.price) return;
+      progress.gold -= item.price;
+      this.applyShopReward(item, progress);
+      if (category === 'daily' && item.dailyLimit) {
+        const counts = getDailyPurchases(progress);
+        counts[item.id] = (counts[item.id] ?? 0) + 1;
+      }
+      this.campaignManager.save();
+      this.showShop(category);
+    } else {
+      // gems - call server
+      spendGems(item.price, `shop:${item.id}`).then(({ gems: _remaining }) => {
+        this.applyShopReward(item, progress);
+        if (category === 'daily' && item.dailyLimit) {
+          const counts = getDailyPurchases(progress);
+          counts[item.id] = (counts[item.id] ?? 0) + 1;
+        }
+        this.campaignManager.save();
+        this.showShop(category);
+      }).catch(() => {
+        // Show error briefly
+        const errText = this.add.text(GW / 2, GH - 40, '보석이 부족합니다', {
+          fontSize: '14px', color: '#ff4444', backgroundColor: '#1a1a2e',
+          padding: { x: 12, y: 6 },
+        }).setOrigin(0.5).setDepth(999);
+        this.time.delayedCall(1500, () => errText.destroy());
+      });
+    }
+  }
+
+  private applyShopReward(item: ShopItem, progress: CampaignProgress): void {
+    const reward = item.reward;
+    switch (reward.type) {
+      case 'material':
+        if (!progress.materialBag) progress.materialBag = {};
+        progress.materialBag[reward.itemId!] = (progress.materialBag[reward.itemId!] ?? 0) + (reward.amount ?? 1);
+        break;
+      case 'equipment':
+        if (!progress.equipmentBag) progress.equipmentBag = [];
+        progress.equipmentBag.push(reward.itemId!);
+        break;
+      case 'skill':
+        if (!progress.skillBag) progress.skillBag = [];
+        progress.skillBag.push(reward.itemId!);
+        break;
+      case 'stamina': {
+        const current = progress.stamina ?? 120;
+        progress.stamina = Math.min(current + (reward.amount ?? 0), 120);
+        break;
+      }
+      case 'fragment':
+        if (!progress.heroFragments) progress.heroFragments = {};
+        progress.heroFragments[reward.itemId!] = (progress.heroFragments[reward.itemId!] ?? 0) + (reward.amount ?? 1);
+        break;
+      case 'gold':
+        progress.gold += reward.amount ?? 0;
+        break;
+    }
   }
 
   // ── 액션 ──

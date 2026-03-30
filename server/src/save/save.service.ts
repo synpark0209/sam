@@ -45,6 +45,15 @@ export class SaveService {
     return this.saveRepo.save(save);
   }
 
+  async spendGems(userId: number, amount: number, _reason: string): Promise<number> {
+    const save = await this.saveRepo.findOne({ where: { userId } });
+    if (!save) throw new Error('Save not found');
+    if (save.gems < amount) throw new Error('Not enough gems');
+    save.gems -= amount;
+    await this.saveRepo.save(save);
+    return save.gems;
+  }
+
   async getRanking(limit = 20): Promise<Array<{ username: string; maxLevel: number; currentChapterId: string; currentStageIdx: number }>> {
     const results = await this.saveRepo
       .createQueryBuilder('save')

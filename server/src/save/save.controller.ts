@@ -23,6 +23,16 @@ export class SaveController {
     return { success: true };
   }
 
+  @UseGuards(AuthGuard('jwt'))
+  @Post('spend-gems')
+  async spendGems(
+    @Request() req: { user: { userId: number } },
+    @Body() body: { amount: number; reason: string },
+  ) {
+    const remaining = await this.saveService.spendGems(req.user.userId, body.amount, body.reason);
+    return { gems: remaining };
+  }
+
   @Get('ranking')
   async getRanking() {
     return this.saveService.getRanking();

@@ -188,6 +188,12 @@ export async function getGachaStatus(): Promise<GachaStatus> {
   return apiRequest<GachaStatus>('/gacha/status');
 }
 
+// ── Shop API ──
+
+export async function spendGems(amount: number, reason: string): Promise<{ gems: number }> {
+  return apiRequest('/save/spend-gems', { method: 'POST', body: JSON.stringify({ amount, reason }) });
+}
+
 export function isLoggedIn(): boolean {
   return !!getAuthToken();
 }
