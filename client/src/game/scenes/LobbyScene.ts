@@ -16,7 +16,7 @@ import { getNextAwakening, AWAKENING_TIERS } from '@shared/data/awakeningDefs.ts
 import { PROMOTION_PATHS } from '@shared/data/promotionDefs.ts';
 import { getShopItems, getDailyPurchases } from '@shared/data/shopDefs.ts';
 import type { ShopItem } from '@shared/data/shopDefs.ts';
-import { shopBuy, addGold } from '../../api/client.ts';
+import { shopBuy, missionClaim, loginClaim } from '../../api/client.ts';
 
 const GW = GAME_WIDTH;
 const GH = GAME_HEIGHT;
@@ -342,7 +342,9 @@ export class LobbyScene extends Phaser.Scene {
         claimHit.on('pointerdown', () => {
           mp.claimed = true;
           progress.gold += def.reward.gold; // optimistic UI update
-          addGold(def.reward.gold, `mission:${def.id}`).catch(() => {}); // server sync
+          missionClaim(def.id).then((res) => {
+            progress.gold = res.gold; // 서버 권위적 값으로 동기화
+          }).catch(() => {}); // 서버 실패 시 optimistic 유지
           this.campaignManager.save();
           this.showDailyMissions('missions');
         });
@@ -383,8 +385,9 @@ export class LobbyScene extends Phaser.Scene {
       bonusHit.on('pointerdown', () => {
         missionState.allClaimedBonusTaken = true;
         progress.gold += ALL_COMPLETE_BONUS.gold; // optimistic UI update
-        addGold(ALL_COMPLETE_BONUS.gold, 'mission:all_complete_bonus').catch(() => {}); // server sync
-        // 보석은 서버에서 지급
+        missionClaim(undefined, 'all_bonus').then((res) => {
+          progress.gold = res.gold; // 서버 권위적 값으로 동기화
+        }).catch(() => {}); // 서버 실패 시 optimistic 유지
         this.campaignManager.save();
         this.showDailyMissions('missions');
       });
@@ -461,11 +464,10 @@ export class LobbyScene extends Phaser.Scene {
           loginState.claimedDays.push(def.day);
           if (def.gold > 0) {
             progress.gold += def.gold; // optimistic UI update
-            addGold(def.gold, `login_bonus:day${def.day}`).catch(() => {}); // server sync
           }
-          if (def.gems > 0) {
-            // 💎 보석은 서버에서 지급됩니다
-          }
+          loginClaim(def.day).then((res) => {
+            progress.gold = res.gold; // 서버 권위적 값으로 동기화 (금화+보석 모두 서버 처리)
+          }).catch(() => {}); // 서버 실패 시 optimistic 유지
           this.campaignManager.save();
           this.showDailyMissions('login');
         });

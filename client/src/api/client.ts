@@ -210,6 +210,60 @@ export async function addGold(amount: number, reason: string): Promise<{ gold: n
   return apiRequest('/save/add-gold', { method: 'POST', body: JSON.stringify({ amount, reason }) });
 }
 
+// ── 던전 완료 API (서버 권위적) ──
+
+export interface DungeonCompleteResult {
+  success: boolean;
+  gold: number;
+  reward: {
+    gold: number;
+    equipment?: string[];
+    skills?: string[];
+    materials?: Record<string, number>;
+  };
+}
+
+export async function dungeonComplete(
+  dungeonId: string,
+  difficulty: string,
+  stars: number,
+): Promise<DungeonCompleteResult> {
+  return apiRequest('/save/dungeon-complete', {
+    method: 'POST',
+    body: JSON.stringify({ dungeonId, difficulty, stars }),
+  });
+}
+
+// ── 캠페인 전투 완료 API (서버 권위적) ──
+
+export async function battleComplete(stageId: string): Promise<{ success: boolean; gold: number }> {
+  return apiRequest('/save/battle-complete', {
+    method: 'POST',
+    body: JSON.stringify({ stageId }),
+  });
+}
+
+// ── 일일 임무 보상 수령 API (서버 권위적) ──
+
+export async function missionClaim(
+  missionId?: string,
+  type?: string,
+): Promise<{ success: boolean; gold: number; gems: number }> {
+  return apiRequest('/save/mission-claim', {
+    method: 'POST',
+    body: JSON.stringify({ missionId, type }),
+  });
+}
+
+// ── 출석 보너스 수령 API (서버 권위적) ──
+
+export async function loginClaim(day: number): Promise<{ success: boolean; gold: number; gems: number }> {
+  return apiRequest('/save/login-claim', {
+    method: 'POST',
+    body: JSON.stringify({ day }),
+  });
+}
+
 export async function spendGold(amount: number, reason: string): Promise<{ gold: number }> {
   return apiRequest('/save/spend-gold', { method: 'POST', body: JSON.stringify({ amount, reason }) });
 }

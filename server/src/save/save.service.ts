@@ -8,6 +8,11 @@ import { canPromote, PROMOTION_PATHS } from '../../../shared/data/promotionDefs.
 import { getClassSkillId } from '../../../shared/data/classSkillDefs.js';
 import { getNextAwakening, getHeroBaseId, AWAKENING_TIERS } from '../../../shared/data/awakeningDefs.js';
 import type { UnitData } from '../../../shared/types/unit.js';
+import { DUNGEONS, generateReward, DUNGEON_DAILY_LIMIT } from '../../../shared/data/dungeonDefs.js';
+import type { DungeonReward } from '../../../shared/data/dungeonDefs.js';
+import { ALL_CHAPTERS } from '../../../shared/data/campaign/chapters.js';
+import { DAILY_MISSIONS, ALL_COMPLETE_BONUS, areAllMissionsComplete, LOGIN_BONUS_TABLE } from '../../../shared/data/dailyMissionDefs.js';
+import type { DailyMissionId, DailyMissionState, LoginBonusState } from '../../../shared/types/dailyMission.js';
 
 /** 클라이언트가 덮어쓸 수 없는 서버 관리 필드 */
 const SERVER_MANAGED_FIELDS = ['gold', 'gems', 'stamina'];
@@ -293,6 +298,234 @@ export class SaveService {
     await this.saveRepo.save(save);
 
     return { success: true, awakeningLevel: unit.awakeningLevel };
+  }
+
+  // ── 던전 완료 (서버 권위적) ──
+
+  async dungeonComplete(
+    userId: number,
+    dungeonId: string,
+    difficulty: string,
+    stars: number,
+  ): Promise<{ success: boolean; gold: number; reward: DungeonReward }> {
+    const dungeon = DUNGEONS.find(d => d.id === dungeonId);
+    if (!dungeon) throw new BadRequestException('Invalid dungeon id');
+
+    const diff = dungeon.difficulties.find(d => d.level === difficulty);
+    if (!diff) throw new BadRequestException('Invalid difficulty');
+
+    if (stars < 0 || stars > 3) throw new BadRequestException('Invalid stars');
+
+    const save = await this.saveRepo.findOne({ where: { userId } });
+    if (!save) throw new BadRequestException('Save not found');
+
+    const progress = save.campaignProgress as Record<string, unknown>;
+
+    // 스태미나 확인 및 차감
+    const currentStamina = (progress.stamina as number) ?? 120;
+    if (currentStamina < diff.stamina) throw new BadRequestException('Not enough stamina');
+    progress.stamina = currentStamina - diff.stamina;
+
+    // 일일 클리어 제한 확인
+    const today = new Date().toISOString().split('T')[0];
+    if ((progress.lastDungeonReset as string) !== today) {
+      progress.dungeonClears = {};
+      progress.lastDungeonReset = today;
+    }
+    const key = `${dungeonId}_${difficulty}`;
+    const dungeonClears = (progress.dungeonClears ?? {}) as Record<string, number>;
+    if ((dungeonClears[key] ?? 0) >= DUNGEON_DAILY_LIMIT) {
+      throw new BadRequestException('Daily dungeon limit reached');
+    }
+
+    // 서버에서 보상 생성
+    const reward = generateReward(dungeonId, diff);
+
+    // 패배 시 보상 감소
+    if (stars === 0) {
+      reward.gold = Math.floor(reward.gold * 0.3);
+      reward.equipment = undefined;
+      reward.skills = undefined;
+    }
+
+    // 금화 지급
+    save.gold += reward.gold;
+    progress.gold = save.gold;
+
+    // 장비 지급
+    if (reward.equipment) {
+      const bag = (progress.equipmentBag ?? []) as string[];
+      bag.push(...reward.equipment);
+      progress.equipmentBag = bag;
+    }
+
+    // 스킬 지급
+    if (reward.skills) {
+      const bag = (progress.skillBag ?? []) as string[];
+      bag.push(...reward.skills);
+      progress.skillBag = bag;
+    }
+
+    // 재료 지급
+    if (reward.materials) {
+      const matBag = (progress.materialBag ?? {}) as Record<string, number>;
+      for (const [k, v] of Object.entries(reward.materials)) {
+        matBag[k] = (matBag[k] ?? 0) + v;
+      }
+      progress.materialBag = matBag;
+    }
+
+    // 클리어 횟수 및 별점 업데이트
+    dungeonClears[key] = (dungeonClears[key] ?? 0) + 1;
+    progress.dungeonClears = dungeonClears;
+
+    if (stars > 0) {
+      const dungeonStars = (progress.dungeonStars ?? {}) as Record<string, number>;
+      if ((dungeonStars[key] ?? 0) < stars) dungeonStars[key] = stars;
+      progress.dungeonStars = dungeonStars;
+    }
+
+    save.campaignProgress = progress;
+    await this.saveRepo.save(save);
+
+    return { success: true, gold: save.gold, reward };
+  }
+
+  // ── 캠페인 전투 완료 (서버 권위적) ──
+
+  async battleComplete(
+    userId: number,
+    stageId: string,
+  ): Promise<{ success: boolean; gold: number }> {
+    // 스테이지 보상 조회
+    let stageGold = 0;
+    for (const chapter of ALL_CHAPTERS) {
+      const stage = chapter.stages.find(s => s.id === stageId);
+      if (stage) {
+        stageGold = stage.rewards.gold ?? 0;
+        break;
+      }
+    }
+    if (stageGold <= 0) throw new BadRequestException('Invalid stage or no gold reward');
+
+    const save = await this.saveRepo.findOne({ where: { userId } });
+    if (!save) throw new BadRequestException('Save not found');
+
+    save.gold += stageGold;
+    const progress = save.campaignProgress as Record<string, unknown>;
+    progress.gold = save.gold;
+    save.campaignProgress = progress;
+    await this.saveRepo.save(save);
+
+    return { success: true, gold: save.gold };
+  }
+
+  // ── 일일 임무 보상 수령 (서버 권위적) ──
+
+  async missionClaim(
+    userId: number,
+    missionId?: string,
+    type?: string,
+  ): Promise<{ success: boolean; gold: number; gems: number }> {
+    const save = await this.saveRepo.findOne({ where: { userId } });
+    if (!save) throw new BadRequestException('Save not found');
+
+    const progress = save.campaignProgress as Record<string, unknown>;
+    const today = new Date().toISOString().split('T')[0];
+    let missionState = progress.dailyMissions as DailyMissionState | undefined;
+
+    if (!missionState || missionState.date !== today) {
+      throw new BadRequestException('No daily missions for today');
+    }
+
+    if (type === 'all_bonus') {
+      // 전체 완료 보너스
+      if (missionState.allClaimedBonusTaken) {
+        throw new BadRequestException('All complete bonus already claimed');
+      }
+      if (!areAllMissionsComplete(missionState)) {
+        throw new BadRequestException('Not all missions complete');
+      }
+      // 모든 개별 임무가 수령됐는지 확인
+      const allClaimed = DAILY_MISSIONS.every(def => missionState!.missions[def.id]?.claimed);
+      if (!allClaimed) {
+        throw new BadRequestException('Not all individual missions claimed');
+      }
+
+      missionState.allClaimedBonusTaken = true;
+      save.gold += ALL_COMPLETE_BONUS.gold;
+      save.gems += ALL_COMPLETE_BONUS.gems;
+      progress.gold = save.gold;
+      progress.dailyMissions = missionState;
+      save.campaignProgress = progress;
+      await this.saveRepo.save(save);
+
+      return { success: true, gold: save.gold, gems: save.gems };
+    }
+
+    // 개별 임무 수령
+    if (!missionId) throw new BadRequestException('missionId required');
+    const def = DAILY_MISSIONS.find(m => m.id === missionId);
+    if (!def) throw new BadRequestException('Invalid mission id');
+
+    const mp = missionState.missions[missionId as DailyMissionId];
+    if (!mp) throw new BadRequestException('Mission not found in state');
+    if (mp.claimed) throw new BadRequestException('Already claimed');
+    if (mp.current < def.target) throw new BadRequestException('Mission not complete');
+
+    mp.claimed = true;
+    save.gold += def.reward.gold;
+    progress.gold = save.gold;
+    progress.dailyMissions = missionState;
+    save.campaignProgress = progress;
+    await this.saveRepo.save(save);
+
+    return { success: true, gold: save.gold, gems: save.gems };
+  }
+
+  // ── 출석 보너스 수령 (서버 권위적) ──
+
+  async loginClaim(
+    userId: number,
+    day: number,
+  ): Promise<{ success: boolean; gold: number; gems: number }> {
+    const save = await this.saveRepo.findOne({ where: { userId } });
+    if (!save) throw new BadRequestException('Save not found');
+
+    const progress = save.campaignProgress as Record<string, unknown>;
+    let loginState = progress.loginBonus as LoginBonusState | undefined;
+
+    if (!loginState) throw new BadRequestException('Login bonus state not initialized');
+
+    // day 유효성 확인
+    const bonusDef = LOGIN_BONUS_TABLE.find(b => b.day === day);
+    if (!bonusDef) throw new BadRequestException('Invalid day');
+
+    // 현재 연속 출석일과 일치하는지 확인
+    if (day !== loginState.consecutiveDays) {
+      throw new BadRequestException('Day does not match current consecutive days');
+    }
+
+    // 이미 수령했는지 확인
+    if (loginState.claimedDays.includes(day)) {
+      throw new BadRequestException('Already claimed this day');
+    }
+
+    // 보상 지급
+    loginState.claimedDays.push(day);
+    if (bonusDef.gold > 0) {
+      save.gold += bonusDef.gold;
+      progress.gold = save.gold;
+    }
+    if (bonusDef.gems > 0) {
+      save.gems += bonusDef.gems;
+    }
+
+    progress.loginBonus = loginState;
+    save.campaignProgress = progress;
+    await this.saveRepo.save(save);
+
+    return { success: true, gold: save.gold, gems: save.gems };
   }
 
   async getRanking(limit = 20): Promise<Array<{ username: string; maxLevel: number; currentChapterId: string; currentStageIdx: number }>> {

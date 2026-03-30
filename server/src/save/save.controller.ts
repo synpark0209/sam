@@ -104,6 +104,55 @@ export class SaveController {
     return this.saveService.awakenUnit(req.user.userId, body.unitId);
   }
 
+  // ── 던전 완료 ──
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('dungeon-complete')
+  async dungeonComplete(
+    @Request() req: { user: { userId: number } },
+    @Body() body: { dungeonId: string; difficulty: string; stars: number },
+  ) {
+    return this.saveService.dungeonComplete(
+      req.user.userId,
+      body.dungeonId,
+      body.difficulty,
+      body.stars,
+    );
+  }
+
+  // ── 캠페인 전투 완료 ──
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('battle-complete')
+  async battleComplete(
+    @Request() req: { user: { userId: number } },
+    @Body() body: { stageId: string },
+  ) {
+    return this.saveService.battleComplete(req.user.userId, body.stageId);
+  }
+
+  // ── 일일 임무 보상 수령 ──
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('mission-claim')
+  async missionClaim(
+    @Request() req: { user: { userId: number } },
+    @Body() body: { missionId?: string; type?: string },
+  ) {
+    return this.saveService.missionClaim(req.user.userId, body.missionId, body.type);
+  }
+
+  // ── 출석 보너스 수령 ──
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('login-claim')
+  async loginClaim(
+    @Request() req: { user: { userId: number } },
+    @Body() body: { day: number },
+  ) {
+    return this.saveService.loginClaim(req.user.userId, body.day);
+  }
+
   @Get('ranking')
   async getRanking() {
     return this.saveService.getRanking();

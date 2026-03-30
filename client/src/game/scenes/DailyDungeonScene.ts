@@ -12,7 +12,7 @@ import {
   getTodayDungeons, generateReward, MAX_STAMINA, STAMINA_REGEN_MINUTES, DUNGEON_DAILY_LIMIT,
 } from '@shared/data/dungeonDefs.ts';
 import type { DungeonDef, DungeonDifficulty, DungeonReward } from '@shared/data/dungeonDefs.ts';
-import { addGold } from '../../api/client.ts';
+import { dungeonComplete } from '../../api/client.ts';
 
 const GW = GAME_WIDTH;
 const GH = GAME_HEIGHT;
@@ -359,21 +359,12 @@ export class DailyDungeonScene extends Phaser.Scene {
 
   private executeSweep(): void {
     if (!this.selectedDungeon || !this.selectedDifficulty) return;
-    const progress = this.campaignManager.getProgress();
-    const diff = this.selectedDifficulty;
-
-    progress.stamina = (progress.stamina ?? 0) - diff.stamina;
-    const key = `${this.selectedDungeon.id}_${diff.level}`;
-    if (!progress.dungeonClears) progress.dungeonClears = {};
-    progress.dungeonClears[key] = (progress.dungeonClears[key] ?? 0) + 1;
 
     this.campaignManager.incrementMission('battle_3');
     this.campaignManager.incrementMission('dungeon_1');
 
-    const reward = generateReward(this.selectedDungeon.id, diff);
-    this.applyReward(reward);
-    this.campaignManager.save();
-    this.showResult(3, reward, true);
+    // 서버가 스태미나 차감, 보상 생성, 클리어 기록을 모두 처리
+    this.completeDungeonOnServer(3, true);
   }
 
   // ── 전투 시작 ──
@@ -695,14 +686,8 @@ export class DailyDungeonScene extends Phaser.Scene {
 
   private onWaveEnd(waveNum: number, cleared: boolean): void {
     if (!cleared) {
-      // 패배
-      const reward = generateReward(this.selectedDungeon!.id, this.selectedDifficulty!);
-      reward.gold = Math.floor(reward.gold * 0.3); // 패배 시 30% 보상
-      reward.equipment = undefined;
-      reward.skills = undefined;
-      this.applyReward(reward);
-      this.campaignManager.save();
-      this.showResult(0, reward, false);
+      // 패배 - 서버에서 보상 생성 (stars=0)
+      this.completeDungeonOnServer(0, false);
       return;
     }
 
@@ -716,29 +701,68 @@ export class DailyDungeonScene extends Phaser.Scene {
       const stars = survivors.length === this.battleUnits.filter(u => u.side === 'player').length ? 3
         : survivors.length >= 2 ? 2 : 1;
 
-      const key = `${this.selectedDungeon!.id}_${diff.level}`;
-      const progress = this.campaignManager.getProgress();
-      if (!progress.dungeonClears) progress.dungeonClears = {};
-      progress.dungeonClears[key] = (progress.dungeonClears[key] ?? 0) + 1;
-      if (!progress.dungeonStars) progress.dungeonStars = {};
-      if ((progress.dungeonStars[key] ?? 0) < stars) progress.dungeonStars[key] = stars;
-
       this.campaignManager.incrementMission('battle_3');
       this.campaignManager.incrementMission('dungeon_1');
 
-      const reward = generateReward(this.selectedDungeon!.id, diff);
-      this.applyReward(reward);
-      this.campaignManager.save();
-      this.showResult(stars, reward, false);
+      this.completeDungeonOnServer(stars, false);
     }
   }
 
-  // ── 보상 적용 ──
+  // ── 서버 던전 완료 처리 ──
 
-  private applyReward(reward: DungeonReward): void {
+  private completeDungeonOnServer(stars: number, isSweep: boolean): void {
+    const dungeonId = this.selectedDungeon!.id;
+    const diff = this.selectedDifficulty!;
+
+    // 서버 호출 → 서버가 보상 생성, 스태미나 차감, 클리어 기록
+    dungeonComplete(dungeonId, diff.level, stars)
+      .then((result) => {
+        // 서버 응답으로 로컬 진행 상태 동기화
+        const progress = this.campaignManager.getProgress();
+        progress.gold = result.gold;
+
+        const key = `${dungeonId}_${diff.level}`;
+        if (!progress.dungeonClears) progress.dungeonClears = {};
+        progress.dungeonClears[key] = (progress.dungeonClears[key] ?? 0) + 1;
+        if (stars > 0) {
+          if (!progress.dungeonStars) progress.dungeonStars = {};
+          if ((progress.dungeonStars[key] ?? 0) < stars) progress.dungeonStars[key] = stars;
+        }
+
+        // 서버가 생성한 보상을 로컬에 반영
+        this.applyRewardLocal(result.reward);
+        this.campaignManager.save();
+        this.showResult(stars, result.reward, isSweep);
+      })
+      .catch(() => {
+        // 서버 실패 시 로컬 폴백
+        const reward = generateReward(dungeonId, diff);
+        if (stars === 0) {
+          reward.gold = Math.floor(reward.gold * 0.3);
+          reward.equipment = undefined;
+          reward.skills = undefined;
+        }
+        this.applyRewardLocal(reward);
+
+        const key = `${dungeonId}_${diff.level}`;
+        const progress = this.campaignManager.getProgress();
+        if (!progress.dungeonClears) progress.dungeonClears = {};
+        progress.dungeonClears[key] = (progress.dungeonClears[key] ?? 0) + 1;
+        if (stars > 0) {
+          if (!progress.dungeonStars) progress.dungeonStars = {};
+          if ((progress.dungeonStars[key] ?? 0) < stars) progress.dungeonStars[key] = stars;
+        }
+
+        progress.gold += reward.gold;
+        this.campaignManager.save();
+        this.showResult(stars, reward, isSweep);
+      });
+  }
+
+  // ── 보상 적용 (금화 제외 - 서버가 관리) ──
+
+  private applyRewardLocal(reward: DungeonReward): void {
     const progress = this.campaignManager.getProgress();
-    progress.gold += reward.gold; // optimistic UI update
-    if (reward.gold > 0) addGold(reward.gold, `dungeon:${this.selectedDungeon?.id ?? 'unknown'}`).catch(() => {}); // server sync
     if (reward.equipment) {
       if (!progress.equipmentBag) progress.equipmentBag = [];
       progress.equipmentBag.push(...reward.equipment);
