@@ -4,6 +4,8 @@ import type { CampaignProgress, Stage, BattleConfig } from '@shared/types/campai
 import type { DailyMissionId, DailyMissionState, LoginBonusState } from '@shared/types/dailyMission.ts';
 import { ALL_CHAPTERS } from '@shared/data/campaign/chapters.ts';
 import { createDailyMissionState, DAILY_MISSIONS } from '@shared/data/dailyMissionDefs.ts';
+import { canPromote } from '@shared/data/promotionDefs.ts';
+import { getClassSkillId } from '@shared/data/classSkillDefs.ts';
 import { saveToServer, loadServerSave } from '../../api/client.ts';
 
 function createDefaultPlayerUnits(): UnitData[] {
@@ -65,7 +67,7 @@ export class CampaignManager {
       inventory: [],
       equipmentBag: ['bronze_sword', 'leather_armor', 'war_drum'],
       skillBag: ['encourage', 'fortify', 'heal'],
-      materialBag: {},
+      materialBag: { promotion_seal_1: 2 },  // 초기 하급 인수 2개 지급
       stamina: 120,
       lastStaminaUpdate: Date.now(),
       dungeonClears: {},
@@ -190,6 +192,47 @@ export class CampaignManager {
 
   setHasSave(value: boolean): void {
     this._hasSave = value;
+  }
+
+  // ── 수동 승급 ──
+
+  tryPromote(unit: UnitData): { success: boolean; error?: string; promotionName?: string } {
+    if (!unit.unitClass) return { success: false, error: '병종 없음' };
+    const promotion = canPromote(unit.unitClass, unit.level ?? 1, unit.promotionLevel ?? 0);
+    if (!promotion) return { success: false, error: '승급 조건 미충족 (레벨 부족 또는 최대 승급)' };
+
+    const materials = this.progress.materialBag ?? {};
+    const hasItem = (materials[promotion.requiredItem] ?? 0) >= 1;
+    if (!hasItem) return { success: false, error: `${promotion.requiredItemName} 부족` };
+
+    // 인수 소비
+    materials[promotion.requiredItem] = (materials[promotion.requiredItem] ?? 0) - 1;
+    this.progress.materialBag = materials;
+
+    // 승급 적용
+    unit.promotionLevel = (unit.promotionLevel ?? 0) + 1;
+    unit.promotionClass = promotion.toClassName;
+    unit.stats.maxHp += promotion.statBonus.maxHp;
+    unit.stats.hp += promotion.statBonus.maxHp;
+    unit.stats.attack += promotion.statBonus.attack;
+    unit.stats.defense += promotion.statBonus.defense;
+    unit.stats.speed += promotion.statBonus.speed;
+    unit.maxMp = (unit.maxMp ?? 0) + promotion.statBonus.maxMp;
+    unit.mp = (unit.mp ?? 0) + promotion.statBonus.maxMp;
+
+    // 해금 스킬 자동 장착
+    if (promotion.unlocksSkill) {
+      if (!unit.equippedSkills) unit.equippedSkills = [];
+      if (unit.equippedSkills.length < 3 && !unit.equippedSkills.includes(promotion.unlocksSkill)) {
+        unit.equippedSkills.push(promotion.unlocksSkill);
+      }
+    }
+
+    // 병종 기본 스킬 진화
+    unit.classSkillId = getClassSkillId(unit.unitClass, unit.promotionLevel);
+
+    this.save();
+    return { success: true, promotionName: promotion.toClassName };
   }
 
   // ── 일일 임무 ──

@@ -44,35 +44,9 @@ export class ExperienceSystem {
         unit.mp = (unit.mp ?? 0) + statGains.maxMp;
       }
 
-      // 승급 체크
-      let promoted = false;
-      let promotionName: string | undefined;
-      if (unit.unitClass) {
-        const promotion = canPromote(unit.unitClass, unit.level, unit.promotionLevel ?? 0);
-        if (promotion) {
-          unit.promotionLevel = (unit.promotionLevel ?? 0) + 1;
-          unit.promotionClass = promotion.toClassName;
-          // 승급 스탯 보너스
-          unit.stats.maxHp += promotion.statBonus.maxHp;
-          unit.stats.hp += promotion.statBonus.maxHp;
-          unit.stats.attack += promotion.statBonus.attack;
-          unit.stats.defense += promotion.statBonus.defense;
-          unit.stats.speed += promotion.statBonus.speed;
-          unit.maxMp = (unit.maxMp ?? 0) + promotion.statBonus.maxMp;
-          unit.mp = (unit.mp ?? 0) + promotion.statBonus.maxMp;
-          // 승급 시 해금 스킬 자동 장착
-          if (promotion.unlocksSkill) {
-            if (!unit.equippedSkills) unit.equippedSkills = [];
-            if (unit.equippedSkills.length < 3 && !unit.equippedSkills.includes(promotion.unlocksSkill)) {
-              unit.equippedSkills.push(promotion.unlocksSkill);
-            }
-          }
-          // 병종 기본 스킬 자동 진화
-          unit.classSkillId = getClassSkillId(unit.unitClass, unit.promotionLevel);
-          promoted = true;
-          promotionName = promotion.toClassName;
-        }
-      }
+      // 승급은 수동으로만 가능 (인수 아이템 필요)
+      const promoted = false;
+      const promotionName: string | undefined = undefined;
 
       // Lv.20: 고유 스킬 해금
       if (unit.level >= 20 && unit.uniqueSkill && !unit.uniqueSkillUnlocked) {

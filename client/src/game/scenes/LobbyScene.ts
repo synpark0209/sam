@@ -13,6 +13,7 @@ import { SKILL_DEFS } from '@shared/data/skillDefs.ts';
 import { EQUIPMENT_DEFS } from '@shared/data/equipmentDefs.ts';
 import { DAILY_MISSIONS, ALL_COMPLETE_BONUS, areAllMissionsComplete, LOGIN_BONUS_TABLE } from '@shared/data/dailyMissionDefs.ts';
 import { getNextAwakening, performAwakening, AWAKENING_TIERS } from '@shared/data/awakeningDefs.ts';
+import { PROMOTION_PATHS } from '@shared/data/promotionDefs.ts';
 
 const GW = GAME_WIDTH;
 const GH = GAME_HEIGHT;
@@ -705,8 +706,94 @@ export class LobbyScene extends Phaser.Scene {
       }
     }
 
+    // 승급 섹션
+    const promoY = equipY + 22 + slots.length * 24 + 15;
+    const promoLevel = unit.promotionLevel ?? 0;
+    const paths = unit.unitClass ? PROMOTION_PATHS[unit.unitClass] : undefined;
+    const maxPromo = paths?.length ?? 0;
+    const nextPromoDef = paths && promoLevel < maxPromo ? paths[promoLevel] : null;
+    const levelMet = nextPromoDef ? (unit.level ?? 1) >= nextPromoDef.requiredLevel : false;
+    const materials = this.campaignManager.getProgress().materialBag ?? {};
+    const itemCount = nextPromoDef ? (materials[nextPromoDef.requiredItem] ?? 0) : 0;
+    const itemMet = itemCount >= 1;
+    const promoReady = nextPromoDef !== null && levelMet && itemMet;
+
+    const promoBgCard = this.add.graphics();
+    promoBgCard.fillStyle(0x141428, 1).fillRoundedRect(15, promoY, GW - 30, 20, 4);
+    this.add.text(25, promoY + 4, '⬆️ 승급', {
+      fontSize: '11px', color: '#ffd700', fontStyle: 'bold',
+    });
+
+    const currentClassName = unit.promotionClass ?? (unit.unitClass ? UNIT_CLASS_DEFS[unit.unitClass]?.name : '') ?? '';
+    const promoLabel = promoLevel >= maxPromo
+      ? `${promoLevel}차 승급 (최대)`
+      : `${promoLevel}차 승급`;
+    this.add.text(30, promoY + 24, `${currentClassName} — ${promoLabel}`, {
+      fontSize: '12px', color: '#cccccc',
+    });
+
+    let promoContentH = 44; // base height for header + current class line
+
+    if (nextPromoDef) {
+      // 다음 승급 정보
+      const bonusStr = Object.entries(nextPromoDef.statBonus)
+        .filter(([, v]) => v > 0)
+        .map(([k, v]) => {
+          const labels: Record<string, string> = { maxHp: 'HP', attack: '공', defense: '방', speed: '속', maxMp: 'MP' };
+          return `${labels[k] ?? k}+${v}`;
+        }).join(' ');
+      this.add.text(30, promoY + 42, `다음: ${nextPromoDef.toClassName}  ${bonusStr}`, {
+        fontSize: '11px', color: '#aaaaaa',
+      });
+
+      // 필요 레벨
+      this.add.text(30, promoY + 58, `필요 레벨: Lv.${nextPromoDef.requiredLevel}`, {
+        fontSize: '11px', color: levelMet ? '#44ff44' : '#ff4444',
+      });
+
+      // 필요 아이템
+      this.add.text(30, promoY + 74, `${nextPromoDef.requiredItemName}: ${itemCount}/1`, {
+        fontSize: '11px', color: itemMet ? '#44ff44' : '#ff4444',
+      });
+
+      // 승급 버튼
+      const promoBtnY = promoY + 92;
+      const promoBtnBg = this.add.graphics();
+      if (promoReady) {
+        promoBtnBg.fillGradientStyle(0xffd700, 0xffa500, 0xcc6600, 0xffd700, 1);
+        promoBtnBg.fillRoundedRect(15, promoBtnY, GW - 30, 44, 8);
+      } else {
+        promoBtnBg.fillStyle(0x333344, 1).fillRoundedRect(15, promoBtnY, GW - 30, 44, 8);
+      }
+      this.add.text(GW / 2, promoBtnY + 22, '승급', {
+        fontSize: '16px', color: promoReady ? '#ffffff' : '#666666', fontStyle: 'bold',
+        stroke: '#000000', strokeThickness: 2,
+      }).setOrigin(0.5);
+
+      if (promoReady) {
+        promoBtnBg.setInteractive(
+          new Phaser.Geom.Rectangle(15, promoBtnY, GW - 30, 44),
+          Phaser.Geom.Rectangle.Contains,
+        );
+        promoBtnBg.on('pointerdown', () => {
+          const result = this.campaignManager.tryPromote(unit);
+          if (result.success) {
+            this.showHeroDetail(unit);
+          }
+        });
+      }
+
+      promoContentH = 92 + 44 + 8; // through button
+    } else {
+      // 최대 승급 달성
+      this.add.text(30, promoY + 42, '최대 승급 달성', {
+        fontSize: '12px', color: '#ffd700', fontStyle: 'bold',
+      });
+      promoContentH = 62;
+    }
+
     // 각성(한계돌파) 섹션
-    const awakenY = equipY + 22 + slots.length * 24 + 15;
+    const awakenY = promoY + promoContentH + 10;
     const awakenLevel = unit.awakeningLevel ?? 0;
 
     const awakenBgCard = this.add.graphics();
