@@ -167,7 +167,7 @@ export const CHAPTER_3: Chapter = {
           { speaker: '여포', text: '진궁 선생, 잘 부탁하오.', speakerSide: 'left' },
         ],
       },
-      rewards: { gold: 400, recruit: 'p3' },
+      rewards: { gold: 400 },
     },
     {
       id: 'ch3_s3', name: '장막 합류', description: '장막 태수에게 합류하기 위해 도적을 소탕하라',
