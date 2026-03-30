@@ -1,8 +1,6 @@
 import type { UnitData } from '@shared/types/index.ts';
 import type { LevelUpResult } from '@shared/types/experience.ts';
 import { UNIT_CLASS_DEFS } from '@shared/data/unitClassDefs.ts';
-import { canPromote } from '@shared/data/promotionDefs.ts';
-import { getClassSkillId } from '@shared/data/classSkillDefs.ts';
 
 export class ExperienceSystem {
   readonly EXP_PER_LEVEL = 100;
