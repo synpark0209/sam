@@ -4,6 +4,10 @@ import { Repository } from 'typeorm';
 import { GameSave } from './save.entity';
 import { SHOP_ITEMS } from '../../../shared/data/shopDefs.js';
 import type { ShopItem } from '../../../shared/data/shopDefs.js';
+import { canPromote, PROMOTION_PATHS } from '../../../shared/data/promotionDefs.js';
+import { getClassSkillId } from '../../../shared/data/classSkillDefs.js';
+import { getNextAwakening, getHeroBaseId, AWAKENING_TIERS } from '../../../shared/data/awakeningDefs.js';
+import type { UnitData } from '../../../shared/types/unit.js';
 
 /** 클라이언트가 덮어쓸 수 없는 서버 관리 필드 */
 const SERVER_MANAGED_FIELDS = ['gold', 'gems', 'stamina'];
@@ -206,6 +210,89 @@ export class SaveService {
     await this.saveRepo.save(save);
 
     return { success: true, gold: save.gold, gems: save.gems };
+  }
+
+  // ── 승급 (서버 권위적) ──
+
+  async promoteUnit(userId: number, unitId: string): Promise<{ success: boolean; promotionName?: string }> {
+    const save = await this.saveRepo.findOne({ where: { userId } });
+    if (!save) throw new BadRequestException('Save not found');
+
+    const progress = save.campaignProgress as Record<string, unknown>;
+    const playerUnits = (progress.playerUnits ?? []) as UnitData[];
+    const unit = playerUnits.find(u => u.id === unitId);
+    if (!unit) throw new BadRequestException('Unit not found');
+    if (!unit.unitClass) throw new BadRequestException('Unit has no class');
+
+    const promotion = canPromote(unit.unitClass, unit.level ?? 1, unit.promotionLevel ?? 0);
+    if (!promotion) throw new BadRequestException('승급 조건 미충족 (레벨 부족 또는 최대 승급)');
+
+    const materials = (progress.materialBag ?? {}) as Record<string, number>;
+    if ((materials[promotion.requiredItem] ?? 0) < 1) {
+      throw new BadRequestException(`${promotion.requiredItemName} 부족`);
+    }
+
+    // 인수 소비
+    materials[promotion.requiredItem] = (materials[promotion.requiredItem] ?? 0) - 1;
+    progress.materialBag = materials;
+
+    // 승급 적용
+    unit.promotionLevel = (unit.promotionLevel ?? 0) + 1;
+    unit.promotionClass = promotion.toClassName;
+    unit.stats.maxHp += promotion.statBonus.maxHp;
+    unit.stats.hp += promotion.statBonus.maxHp;
+    unit.stats.attack += promotion.statBonus.attack;
+    unit.stats.defense += promotion.statBonus.defense;
+    unit.stats.speed += promotion.statBonus.speed;
+    unit.maxMp = (unit.maxMp ?? 0) + promotion.statBonus.maxMp;
+    unit.mp = (unit.mp ?? 0) + promotion.statBonus.maxMp;
+
+    // 해금 스킬 자동 장착
+    if (promotion.unlocksSkill) {
+      if (!unit.equippedSkills) unit.equippedSkills = [];
+      if (unit.equippedSkills.length < 3 && !unit.equippedSkills.includes(promotion.unlocksSkill)) {
+        unit.equippedSkills.push(promotion.unlocksSkill);
+      }
+    }
+
+    // 병종 기본 스킬 진화
+    unit.classSkillId = getClassSkillId(unit.unitClass, unit.promotionLevel);
+
+    save.campaignProgress = progress;
+    await this.saveRepo.save(save);
+
+    return { success: true, promotionName: promotion.toClassName };
+  }
+
+  // ── 각성 (서버 권위적) ──
+
+  async awakenUnit(userId: number, unitId: string): Promise<{ success: boolean; awakeningLevel?: number }> {
+    const save = await this.saveRepo.findOne({ where: { userId } });
+    if (!save) throw new BadRequestException('Save not found');
+
+    const progress = save.campaignProgress as Record<string, unknown>;
+    const playerUnits = (progress.playerUnits ?? []) as UnitData[];
+    const unit = playerUnits.find(u => u.id === unitId);
+    if (!unit) throw new BadRequestException('Unit not found');
+
+    const heroFragments = (progress.heroFragments ?? {}) as Record<string, number>;
+    const awakeningInfo = getNextAwakening(unit, heroFragments);
+
+    if (!awakeningInfo.nextTier) throw new BadRequestException('최대 각성 단계입니다');
+    if (!awakeningInfo.canDo) throw new BadRequestException('조각이 부족합니다');
+
+    // 조각 소비
+    const baseId = getHeroBaseId(unit);
+    heroFragments[baseId] -= awakeningInfo.nextTier.fragmentCost;
+    progress.heroFragments = heroFragments;
+
+    // 각성 레벨 증가
+    unit.awakeningLevel = (unit.awakeningLevel ?? 0) + 1;
+
+    save.campaignProgress = progress;
+    await this.saveRepo.save(save);
+
+    return { success: true, awakeningLevel: unit.awakeningLevel };
   }
 
   async getRanking(limit = 20): Promise<Array<{ username: string; maxLevel: number; currentChapterId: string; currentStageIdx: number }>> {

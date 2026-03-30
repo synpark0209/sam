@@ -82,6 +82,28 @@ export class SaveController {
     return this.saveService.shopBuy(req.user.userId, body.itemId);
   }
 
+  // ── 승급 ──
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('promote')
+  async promote(
+    @Request() req: { user: { userId: number } },
+    @Body() body: { unitId: string },
+  ) {
+    return this.saveService.promoteUnit(req.user.userId, body.unitId);
+  }
+
+  // ── 각성 ──
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('awaken')
+  async awaken(
+    @Request() req: { user: { userId: number } },
+    @Body() body: { unitId: string },
+  ) {
+    return this.saveService.awakenUnit(req.user.userId, body.unitId);
+  }
+
   @Get('ranking')
   async getRanking() {
     return this.saveService.getRanking();

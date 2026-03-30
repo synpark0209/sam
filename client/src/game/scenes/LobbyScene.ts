@@ -4,7 +4,7 @@ import type { CampaignManager } from '../systems/CampaignManager.ts';
 import type { AudioManager } from '../systems/AudioManager.ts';
 import type { UnitData } from '@shared/types/index.ts';
 import { UnitClass } from '@shared/types/index.ts';
-import { logout as doLogout, gachaPull, getGachaStatus } from '../../api/client.ts';
+import { logout as doLogout, gachaPull, getGachaStatus, promoteUnit, awakenUnit } from '../../api/client.ts';
 import type { GachaPullResult } from '../../api/client.ts';
 import { getGradeColor, GACHA_HERO_POOL } from '@shared/data/gachaDefs.ts';
 import type { HeroGrade } from '@shared/data/gachaDefs.ts';
@@ -12,7 +12,7 @@ import { UNIT_CLASS_DEFS } from '@shared/data/unitClassDefs.ts';
 import { SKILL_DEFS } from '@shared/data/skillDefs.ts';
 import { EQUIPMENT_DEFS } from '@shared/data/equipmentDefs.ts';
 import { DAILY_MISSIONS, ALL_COMPLETE_BONUS, areAllMissionsComplete, LOGIN_BONUS_TABLE } from '@shared/data/dailyMissionDefs.ts';
-import { getNextAwakening, performAwakening, AWAKENING_TIERS } from '@shared/data/awakeningDefs.ts';
+import { getNextAwakening, AWAKENING_TIERS } from '@shared/data/awakeningDefs.ts';
 import { PROMOTION_PATHS } from '@shared/data/promotionDefs.ts';
 import { getShopItems, getDailyPurchases } from '@shared/data/shopDefs.ts';
 import type { ShopItem } from '@shared/data/shopDefs.ts';
@@ -809,10 +809,18 @@ export class LobbyScene extends Phaser.Scene {
           new Phaser.Geom.Rectangle(15, promoBtnY, GW - 30, 44),
           Phaser.Geom.Rectangle.Contains,
         );
-        promoBtnBg.on('pointerdown', () => {
-          const result = this.campaignManager.tryPromote(unit);
-          if (result.success) {
-            this.showHeroDetail(unit);
+        promoBtnBg.on('pointerdown', async () => {
+          try {
+            const result = await promoteUnit(unit.id);
+            if (result.success) {
+              // 서버에서 최신 세이브 로드 후 UI 갱신
+              await this.campaignManager.loadFromServer();
+              const updated = this.campaignManager.getProgress().playerUnits?.find(u => u.id === unit.id);
+              if (updated) this.showHeroDetail(updated);
+              else this.showHeroDetail(unit);
+            }
+          } catch (e: unknown) {
+            console.error('승급 실패:', e);
           }
         });
       }
@@ -899,14 +907,18 @@ export class LobbyScene extends Phaser.Scene {
           new Phaser.Geom.Rectangle(15, btnY, GW - 30, 48),
           Phaser.Geom.Rectangle.Contains,
         );
-        btnBg.on('pointerdown', () => {
-          const heroFragments = this.campaignManager.getProgress().heroFragments ?? {};
-          const result = performAwakening(unit, heroFragments);
-          if (result.success) {
-            const prog = this.campaignManager.getProgress();
-            prog.heroFragments = heroFragments;
-            this.campaignManager.save();
-            this.showHeroDetail(unit);
+        btnBg.on('pointerdown', async () => {
+          try {
+            const result = await awakenUnit(unit.id);
+            if (result.success) {
+              // 서버에서 최신 세이브 로드 후 UI 갱신
+              await this.campaignManager.loadFromServer();
+              const updated = this.campaignManager.getProgress().playerUnits?.find(u => u.id === unit.id);
+              if (updated) this.showHeroDetail(updated);
+              else this.showHeroDetail(unit);
+            }
+          } catch (e: unknown) {
+            console.error('각성 실패:', e);
           }
         });
       }

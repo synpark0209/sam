@@ -194,6 +194,16 @@ export async function shopBuy(itemId: string): Promise<{ success: boolean; gold:
   return apiRequest('/save/shop-buy', { method: 'POST', body: JSON.stringify({ itemId }) });
 }
 
+// ── 승급/각성 API (서버 권위적) ──
+
+export async function promoteUnit(unitId: string): Promise<{ success: boolean; promotionName?: string }> {
+  return apiRequest('/save/promote', { method: 'POST', body: JSON.stringify({ unitId }) });
+}
+
+export async function awakenUnit(unitId: string): Promise<{ success: boolean; awakeningLevel?: number }> {
+  return apiRequest('/save/awaken', { method: 'POST', body: JSON.stringify({ unitId }) });
+}
+
 // ── 재화 API (서버 권위적) ──
 
 export async function addGold(amount: number, reason: string): Promise<{ gold: number }> {
