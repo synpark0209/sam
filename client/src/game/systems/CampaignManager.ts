@@ -6,7 +6,7 @@ import { ALL_CHAPTERS } from '@shared/data/campaign/chapters.ts';
 import { createDailyMissionState, DAILY_MISSIONS } from '@shared/data/dailyMissionDefs.ts';
 import { canPromote } from '@shared/data/promotionDefs.ts';
 import { getClassSkillId } from '@shared/data/classSkillDefs.ts';
-import { saveToServer, loadServerSave } from '../../api/client.ts';
+import { saveToServer, loadServerSave, addGold } from '../../api/client.ts';
 
 function createDefaultPlayerUnits(): UnitData[] {
   return [
@@ -144,7 +144,8 @@ export class CampaignManager {
       }
     }
 
-    this.progress.gold += stage.rewards.gold ?? 0;
+    this.progress.gold += stage.rewards.gold ?? 0; // optimistic UI update
+    if ((stage.rewards.gold ?? 0) > 0) addGold(stage.rewards.gold!, `campaign:${stage.id}`).catch(() => {}); // server sync
     if (stage.rewards.items) {
       this.progress.inventory.push(...stage.rewards.items);
     }

@@ -11,7 +11,7 @@ import type { AudioManager } from '../systems/AudioManager.ts';
 import { getGradeColor } from '@shared/data/gachaDefs.ts';
 import type { HeroGrade } from '@shared/data/gachaDefs.ts';
 import { getTier, calculateEloChange, getNextTierProgress, DAILY_PVP_TICKETS } from '@shared/data/pvpDefs.ts';
-import { pvpRecordResult } from '../../api/client.ts';
+import { pvpRecordResult, addGold } from '../../api/client.ts';
 import { preloadUnitImages, hasUnitImage } from '../systems/UnitSpriteManager.ts';
 
 const GW = GAME_WIDTH;
@@ -1098,7 +1098,8 @@ export class PvPArenaScene extends Phaser.Scene {
     if (won) {
       const gold = 300 + Math.floor(Math.random() * 300);
       const progress = this.campaignManager.getProgress();
-      progress.gold += gold;
+      progress.gold += gold; // optimistic UI update
+      addGold(gold, 'pvp:victory_reward').catch(() => {}); // server sync
       this.campaignManager.save();
 
       this.add.text(GW / 2, GH * 0.38, `💰 금화 +${gold}`, {

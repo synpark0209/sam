@@ -12,6 +12,7 @@ import {
   getTodayDungeons, generateReward, MAX_STAMINA, STAMINA_REGEN_MINUTES, DUNGEON_DAILY_LIMIT,
 } from '@shared/data/dungeonDefs.ts';
 import type { DungeonDef, DungeonDifficulty, DungeonReward } from '@shared/data/dungeonDefs.ts';
+import { addGold } from '../../api/client.ts';
 
 const GW = GAME_WIDTH;
 const GH = GAME_HEIGHT;
@@ -736,7 +737,8 @@ export class DailyDungeonScene extends Phaser.Scene {
 
   private applyReward(reward: DungeonReward): void {
     const progress = this.campaignManager.getProgress();
-    progress.gold += reward.gold;
+    progress.gold += reward.gold; // optimistic UI update
+    if (reward.gold > 0) addGold(reward.gold, `dungeon:${this.selectedDungeon?.id ?? 'unknown'}`).catch(() => {}); // server sync
     if (reward.equipment) {
       if (!progress.equipmentBag) progress.equipmentBag = [];
       progress.equipmentBag.push(...reward.equipment);

@@ -17,7 +17,7 @@ import { getNextAwakening, performAwakening, AWAKENING_TIERS } from '@shared/dat
 import { PROMOTION_PATHS } from '@shared/data/promotionDefs.ts';
 import { getShopItems, getDailyPurchases } from '@shared/data/shopDefs.ts';
 import type { ShopItem } from '@shared/data/shopDefs.ts';
-import { spendGems } from '../../api/client.ts';
+import { spendGems, addGold, spendGold } from '../../api/client.ts';
 
 const GW = GAME_WIDTH;
 const GH = GAME_HEIGHT;
@@ -342,7 +342,8 @@ export class LobbyScene extends Phaser.Scene {
           .setInteractive({ useHandCursor: true });
         claimHit.on('pointerdown', () => {
           mp.claimed = true;
-          progress.gold += def.reward.gold;
+          progress.gold += def.reward.gold; // optimistic UI update
+          addGold(def.reward.gold, `mission:${def.id}`).catch(() => {}); // server sync
           this.campaignManager.save();
           this.showDailyMissions('missions');
         });
@@ -382,7 +383,8 @@ export class LobbyScene extends Phaser.Scene {
         .setInteractive({ useHandCursor: true });
       bonusHit.on('pointerdown', () => {
         missionState.allClaimedBonusTaken = true;
-        progress.gold += ALL_COMPLETE_BONUS.gold;
+        progress.gold += ALL_COMPLETE_BONUS.gold; // optimistic UI update
+        addGold(ALL_COMPLETE_BONUS.gold, 'mission:all_complete_bonus').catch(() => {}); // server sync
         // 보석은 서버에서 지급
         this.campaignManager.save();
         this.showDailyMissions('missions');
@@ -458,7 +460,10 @@ export class LobbyScene extends Phaser.Scene {
           .setInteractive({ useHandCursor: true });
         claimHit.on('pointerdown', () => {
           loginState.claimedDays.push(def.day);
-          if (def.gold > 0) progress.gold += def.gold;
+          if (def.gold > 0) {
+            progress.gold += def.gold; // optimistic UI update
+            addGold(def.gold, `login_bonus:day${def.day}`).catch(() => {}); // server sync
+          }
           if (def.gems > 0) {
             // 💎 보석은 서버에서 지급됩니다
           }
@@ -1747,7 +1752,8 @@ export class LobbyScene extends Phaser.Scene {
 
     if (item.currency === 'gold') {
       if (progress.gold < item.price) return;
-      progress.gold -= item.price;
+      progress.gold -= item.price; // optimistic UI update
+      spendGold(item.price, `shop:${item.id}`).catch(() => {}); // server sync
       this.applyShopReward(item, progress);
       if (category === 'daily' && item.dailyLimit) {
         const counts = getDailyPurchases(progress);
@@ -1801,7 +1807,8 @@ export class LobbyScene extends Phaser.Scene {
         progress.heroFragments[reward.itemId!] = (progress.heroFragments[reward.itemId!] ?? 0) + (reward.amount ?? 1);
         break;
       case 'gold':
-        progress.gold += reward.amount ?? 0;
+        progress.gold += reward.amount ?? 0; // optimistic UI update
+        if ((reward.amount ?? 0) > 0) addGold(reward.amount!, `shop_reward:${item.id}`).catch(() => {}); // server sync
         break;
     }
   }
