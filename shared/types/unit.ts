@@ -59,4 +59,5 @@ export interface UnitData {
   equipment?: EquipmentSlots;
   statusEffects?: ActiveStatusEffect[];
   skillCooldowns?: Record<string, number>;
+  awakeningLevel?: number;              // 각성 단계 (0~5)
 }

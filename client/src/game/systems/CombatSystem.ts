@@ -2,6 +2,7 @@ import type { TileData, UnitData, UnitStats } from '@shared/types/index.ts';
 import { UnitClass } from '@shared/types/index.ts';
 import { EQUIPMENT_DEFS } from '@shared/data/equipmentDefs.ts';
 import { UNIT_CLASS_DEFS } from '@shared/data/unitClassDefs.ts';
+import { getAwakeningStatMultiplier } from '@shared/data/awakeningDefs.ts';
 
 export interface CombatResult {
   attackerId: string;
@@ -72,6 +73,14 @@ export class CombatSystem {
         if (def.statModifiers.defense) base.defense += def.statModifiers.defense;
         if (def.statModifiers.speed) base.speed += def.statModifiers.speed;
       }
+    }
+
+    // 각성 보너스 적용
+    const awakeningMult = getAwakeningStatMultiplier(unit.awakeningLevel ?? 0);
+    if (awakeningMult > 1) {
+      base.maxHp = Math.floor(base.maxHp * awakeningMult);
+      base.attack = Math.floor(base.attack * awakeningMult);
+      base.defense = Math.floor(base.defense * awakeningMult);
     }
 
     base.attack = Math.max(0, base.attack);

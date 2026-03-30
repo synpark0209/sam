@@ -171,7 +171,12 @@ export class GachaService {
       const existing = playerUnits.find(u => u.name === hero.name);
       if (existing) {
         const frag = FRAGMENT_MAP[hero.grade];
-        gold += frag * 10;
+        // 조각 저장 (각성 시스템용)
+        if (!progress.heroFragments) progress.heroFragments = {};
+        const baseId = hero.id;
+        progress.heroFragments[baseId] = (progress.heroFragments[baseId] ?? 0) + frag;
+        // 추가로 금화도 소량 지급
+        gold += frag * 5;
         progress.gold = gold;
         results.push({ hero, isNew: false, fragments: frag });
       } else {

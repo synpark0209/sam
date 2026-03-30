@@ -53,4 +53,5 @@ export interface CampaignProgress {
   lastDungeonReset: string;           // 마지막 일일 리셋 날짜 (YYYY-MM-DD)
   dailyMissions?: DailyMissionState;
   loginBonus?: LoginBonusState;
+  heroFragments?: Record<string, number>;  // 장수 조각 { heroBaseId: count }
 }

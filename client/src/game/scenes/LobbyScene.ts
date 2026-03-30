@@ -12,6 +12,7 @@ import { UNIT_CLASS_DEFS } from '@shared/data/unitClassDefs.ts';
 import { SKILL_DEFS } from '@shared/data/skillDefs.ts';
 import { EQUIPMENT_DEFS } from '@shared/data/equipmentDefs.ts';
 import { DAILY_MISSIONS, ALL_COMPLETE_BONUS, areAllMissionsComplete, LOGIN_BONUS_TABLE } from '@shared/data/dailyMissionDefs.ts';
+import { getNextAwakening, performAwakening, AWAKENING_TIERS } from '@shared/data/awakeningDefs.ts';
 
 const GW = GAME_WIDTH;
 const GH = GAME_HEIGHT;
@@ -651,7 +652,9 @@ export class LobbyScene extends Phaser.Scene {
     }
 
     // 빈 장착 슬롯 표시
-    const maxSlots = (unit.level ?? 1) >= 10 ? 2 : 1;
+    const baseSlots = (unit.level ?? 1) >= 10 ? 2 : 1;
+    const awakeningSlots = (unit.awakeningLevel ?? 0) >= 1 ? 1 : 0;
+    const maxSlots = Math.min(4, baseSlots + awakeningSlots);
     for (let s = equipped.length; s < maxSlots; s++) {
       this.add.text(30, skillY + 22 + skillRow * 32, `◇ 빈 슬롯 ${s === 1 ? '(Lv.10)' : ''}`, {
         fontSize: '12px', color: '#444444',
@@ -700,6 +703,98 @@ export class LobbyScene extends Phaser.Scene {
           }
         });
       }
+    }
+
+    // 각성(한계돌파) 섹션
+    const awakenY = equipY + 22 + slots.length * 24 + 15;
+    const awakenLevel = unit.awakeningLevel ?? 0;
+
+    const awakenBgCard = this.add.graphics();
+    awakenBgCard.fillStyle(0x141428, 1).fillRoundedRect(15, awakenY, GW - 30, 20, 4);
+    this.add.text(25, awakenY + 4, '⭐ 한계돌파', {
+      fontSize: '11px', color: '#ffd700', fontStyle: 'bold',
+    });
+
+    // 각성 별 표시
+    const starsStr = '★'.repeat(awakenLevel) + '☆'.repeat(5 - awakenLevel);
+    const starChars = starsStr.split('');
+    for (let si = 0; si < starChars.length; si++) {
+      const isFilled = si < awakenLevel;
+      this.add.text(30 + si * 28, awakenY + 24, starChars[si], {
+        fontSize: '20px', color: isFilled ? '#ffd700' : '#555555',
+      });
+    }
+
+    // 조각 정보 및 프로그레스 바
+    const fragments = this.campaignManager.getProgress().heroFragments ?? {};
+    const awakeningInfo = getNextAwakening(unit, fragments);
+    const fragY = awakenY + 50;
+
+    if (awakeningInfo.nextTier) {
+      this.add.text(30, fragY, `조각: ${awakeningInfo.currentFragments}/${awakeningInfo.cost}`, {
+        fontSize: '12px', color: '#cccccc',
+      });
+
+      // 프로그레스 바
+      const barW = GW - 80;
+      const barX = 30;
+      const barY = fragY + 18;
+      const fillRatio = Math.min(1, awakeningInfo.currentFragments / awakeningInfo.cost);
+      this.add.graphics().fillStyle(0x222233, 1).fillRoundedRect(barX, barY, barW, 8, 4);
+      if (fillRatio > 0) {
+        this.add.graphics().fillStyle(awakeningInfo.canDo ? 0xffd700 : 0x886600, 1)
+          .fillRoundedRect(barX, barY, barW * fillRatio, 8, 4);
+      }
+
+      // 현재 보너스 & 다음 티어 설명
+      const descY = barY + 14;
+      if (awakenLevel > 0) {
+        const currentTier = AWAKENING_TIERS[awakenLevel - 1];
+        this.add.text(30, descY, `현재: +${currentTier.statBonusPct}% 스탯`, {
+          fontSize: '10px', color: '#88cc88',
+        });
+      }
+      this.add.text(30, awakenLevel > 0 ? fragY + 46 : fragY + 32, `다음: ${awakeningInfo.nextTier.description}`, {
+        fontSize: '10px', color: '#aaaaaa',
+      });
+
+      // 한계돌파 버튼
+      const btnY = awakenLevel > 0 ? fragY + 64 : fragY + 50;
+      const btnBg = this.add.graphics();
+      if (awakeningInfo.canDo) {
+        btnBg.fillStyle(0xcc2200, 1).fillRoundedRect(15, btnY, GW - 30, 48, 8);
+        btnBg.fillGradientStyle(0xffd700, 0xffa500, 0xcc6600, 0xffd700, 0.3);
+        btnBg.fillRoundedRect(15, btnY, GW - 30, 48, 8);
+      } else {
+        btnBg.fillStyle(0x333344, 1).fillRoundedRect(15, btnY, GW - 30, 48, 8);
+      }
+      this.add.text(GW / 2, btnY + 24, '한계돌파', {
+        fontSize: '16px', color: awakeningInfo.canDo ? '#ffffff' : '#666666', fontStyle: 'bold',
+        stroke: '#000000', strokeThickness: 2,
+      }).setOrigin(0.5);
+
+      if (awakeningInfo.canDo) {
+        btnBg.setInteractive(
+          new Phaser.Geom.Rectangle(15, btnY, GW - 30, 48),
+          Phaser.Geom.Rectangle.Contains,
+        );
+        btnBg.on('pointerdown', () => {
+          const heroFragments = this.campaignManager.getProgress().heroFragments ?? {};
+          const result = performAwakening(unit, heroFragments);
+          if (result.success) {
+            const prog = this.campaignManager.getProgress();
+            prog.heroFragments = heroFragments;
+            this.campaignManager.save();
+            this.showHeroDetail(unit);
+          }
+        });
+      }
+    } else {
+      // 최대 각성 상태
+      const maxTier = AWAKENING_TIERS[4];
+      this.add.text(30, fragY, `최대 각성 달성! +${maxTier.statBonusPct}% 스탯`, {
+        fontSize: '12px', color: '#ffd700', fontStyle: 'bold',
+      });
     }
   }
 
