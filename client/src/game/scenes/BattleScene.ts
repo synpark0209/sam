@@ -797,8 +797,10 @@ export class BattleScene extends Phaser.Scene {
 
     if (unit.faction === 'player' && !unit.hasActed && unit.isAlive) {
       this.selectUnit(unit);
-    } else if (unit.faction === 'enemy' && unit.isAlive) {
-      this.showEnemyPreview(unit);
+    } else if (unit.isAlive) {
+      // 행동 완료된 아군 또는 적군: 정보만 표시
+      this.showUnitInfoPanel(unit);
+      if (unit.faction === 'enemy') this.showEnemyPreview(unit);
     }
   }
 
