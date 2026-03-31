@@ -52,11 +52,11 @@ const stage1Battle: BattleConfig = {
   ]),
   enemyUnits: [
     enemy('e6_1', '기령', UnitClass.CAVALRY, 10, 4, 12, { maxHp: 260, hp: 260, attack: 68 }),
-    enemy('e6_2', '원술 기병', UnitClass.CAVALRY, 9, 2, 10),
-    enemy('e6_3', '원술 기병', UnitClass.CAVALRY, 9, 6, 10),
-    enemy('e6_4', '원술 기병', UnitClass.CAVALRY, 10, 5, 10),
-    enemy('e6_5', '원술 궁병', UnitClass.ARCHER, 11, 3, 10),
-    enemy('e6_6', '원술 궁병', UnitClass.ARCHER, 11, 7, 10),
+    enemy('e6_2', '원술군 기병', UnitClass.CAVALRY, 9, 2, 10),
+    enemy('e6_3', '원술군 기병', UnitClass.CAVALRY, 9, 6, 10),
+    enemy('e6_4', '원술군 기병', UnitClass.CAVALRY, 10, 5, 10),
+    enemy('e6_5', '원술군 궁병', UnitClass.ARCHER, 11, 3, 10),
+    enemy('e6_6', '원술군 궁병', UnitClass.ARCHER, 11, 7, 10),
   ],
   playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 3 }, { x: 1, y: 5 }, { x: 2, y: 4 }],
 };
@@ -78,11 +78,11 @@ const stage2Battle: BattleConfig = {
   ]),
   enemyUnits: [
     enemy('e6_7', '원술', UnitClass.STRATEGIST, 10, 4, 13, { maxHp: 180, hp: 180, spirit: 55 }),
-    enemy('e6_8', '원술 호위병', UnitClass.INFANTRY, 9, 3, 11),
-    enemy('e6_9', '원술 호위병', UnitClass.INFANTRY, 9, 5, 11),
-    enemy('e6_10', '원술 호위기병', UnitClass.CAVALRY, 10, 2, 11),
-    enemy('e6_11', '원술 호위기병', UnitClass.CAVALRY, 10, 6, 11),
-    enemy('e6_12', '원술 친위병', UnitClass.INFANTRY, 11, 4, 11),
+    enemy('e6_8', '양봉', UnitClass.INFANTRY, 9, 3, 12, { maxHp: 220, hp: 220, attack: 50 }),
+    enemy('e6_9', '한섬', UnitClass.CAVALRY, 9, 5, 12, { maxHp: 230, hp: 230, attack: 52 }),
+    enemy('e6_10', '원술군 호위기병', UnitClass.CAVALRY, 10, 2, 11),
+    enemy('e6_11', '원술군 호위기병', UnitClass.CAVALRY, 10, 6, 11),
+    enemy('e6_12', '원술군 친위병', UnitClass.INFANTRY, 11, 4, 11),
   ],
   playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 3 }, { x: 1, y: 5 }, { x: 2, y: 4 }],
 };

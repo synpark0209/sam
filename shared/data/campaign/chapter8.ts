@@ -60,7 +60,7 @@ const stage1Battle: BattleConfig = {
     { x: 5, y: 4, type: TileType.FOREST }, { x: 5, y: 5, type: TileType.FOREST },
   ]),
   enemyUnits: [
-    enemy('e8_1', '조조 선봉대장', UnitClass.CAVALRY, 1, 4, 14, { maxHp: 300, hp: 300, attack: 75 }),
+    enemy('e8_1', '하후연', UnitClass.CAVALRY, 1, 4, 15, { maxHp: 300, hp: 300, attack: 75 }),
     enemy('e8_2', '조조군 보병', UnitClass.INFANTRY, 2, 2, 13),
     enemy('e8_3', '조조군 보병', UnitClass.INFANTRY, 2, 7, 13),
     enemy('e8_4', '조조군 기병', UnitClass.CAVALRY, 1, 2, 13),
@@ -97,12 +97,12 @@ const stage2Battle: BattleConfig = {
     { x: 7, y: 3, type: TileType.FOREST }, { x: 8, y: 5, type: TileType.FOREST },
   ]),
   enemyUnits: [
-    enemy('e8_7', '조조 공병대장', UnitClass.INFANTRY, 1, 4, 15, { maxHp: 320, hp: 320, attack: 72, defense: 48 }),
-    enemy('e8_8', '조조 공병', UnitClass.INFANTRY, 2, 3, 13),
-    enemy('e8_9', '조조 공병', UnitClass.INFANTRY, 2, 5, 13),
-    enemy('e8_10', '조조 공병', UnitClass.INFANTRY, 1, 6, 14),
-    enemy('e8_11', '조조 궁병', UnitClass.ARCHER, 0, 3, 13),
-    enemy('e8_12', '조조 궁병', UnitClass.ARCHER, 0, 6, 14),
+    enemy('e8_7', '순유', UnitClass.STRATEGIST, 1, 4, 15, { maxHp: 200, hp: 200, attack: 35, spirit: 60 }),
+    enemy('e8_8', '조조군 공병', UnitClass.INFANTRY, 2, 3, 13),
+    enemy('e8_9', '조조군 공병', UnitClass.INFANTRY, 2, 5, 13),
+    enemy('e8_10', '조조군 공병', UnitClass.INFANTRY, 1, 6, 14),
+    enemy('e8_11', '조조군 궁병', UnitClass.ARCHER, 0, 3, 13),
+    enemy('e8_12', '조조군 궁병', UnitClass.ARCHER, 0, 6, 14),
   ],
   playerStartPositions: [{ x: 8, y: 4 }, { x: 8, y: 3 }, { x: 8, y: 5 }, { x: 9, y: 4 }],
 };

@@ -247,6 +247,16 @@ export class BattleScene extends Phaser.Scene {
       this.time.timeScale = this.gameSpeed;
       this.tweens.timeScale = this.gameSpeed;
     });
+
+    // 포기 버튼 (AUTO/속도 버튼과 같은 방식)
+    const retreatBtn = this.add.text(140 / zoom, 10 / zoom, '🏳️ 포기', {
+      fontSize: `${Math.round(14 / zoom)}px`, color: '#ff8888',
+      backgroundColor: '#1a0000cc', padding: { x: Math.round(8 / zoom), y: Math.round(6 / zoom) },
+    }).setInteractive({ useHandCursor: true }).setDepth(500).setScrollFactor(0);
+    retreatBtn.on('pointerdown', () => {
+      this._menuClickConsumed = true;
+      this.showRetreatConfirm();
+    });
   }
 
   /** 유닛 스프라이트를 대상 방향으로 회전 */
@@ -505,18 +515,6 @@ export class BattleScene extends Phaser.Scene {
     this.endTurnButton.on('pointerdown', () => { this._menuClickConsumed = true; this.onEndTurnClicked(); });
     this.endTurnButton.on('pointerover', () => this.endTurnButton.setStyle({ backgroundColor: '#6a6a8a' }));
     this.endTurnButton.on('pointerout', () => this.endTurnButton.setStyle({ backgroundColor: '#4a4a6a' }));
-
-    // 포기 버튼
-    const retreatBtn = this.add.text(16, uiY + 50, '🏳️ 포기', {
-      fontSize: '14px', color: '#ff8888', backgroundColor: '#2a1a1a',
-      padding: { x: 10, y: 6 },
-    }).setInteractive({ useHandCursor: true }).setDepth(201);
-    retreatBtn.on('pointerdown', () => {
-      this._menuClickConsumed = true;
-      this.showRetreatConfirm();
-    });
-    this.uiObjects.push(retreatBtn);
-    this.cameras.main.ignore(retreatBtn);
 
     // 음소거 토글 버튼
     const muteBtn = this.add.text(gw - 35, uiY + 22, this.getAudio()?.isMuted() ? '🔇' : '🔊', {

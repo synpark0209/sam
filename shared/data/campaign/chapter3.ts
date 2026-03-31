@@ -61,10 +61,10 @@ const stage1Battle: BattleConfig = {
   ]),
   enemyUnits: [
     enemy('e5_1', '장연', UnitClass.CAVALRY, 9, 4, 8, { maxHp: 220, hp: 220, attack: 50 }),
-    enemy('e5_2', '흑산적', UnitClass.BANDIT, 8, 3, 7),
-    enemy('e5_3', '흑산적', UnitClass.BANDIT, 8, 6, 7),
-    enemy('e5_4', '흑산적', UnitClass.BANDIT, 9, 2, 6),
-    enemy('e5_5', '흑산적', UnitClass.BANDIT, 9, 7, 6),
+    enemy('e5_2', '흑산적 졸병', UnitClass.BANDIT, 8, 3, 7),
+    enemy('e5_3', '흑산적 도적', UnitClass.BANDIT, 8, 6, 7),
+    enemy('e5_4', '흑산적 졸병', UnitClass.BANDIT, 9, 2, 6),
+    enemy('e5_5', '흑산적 도적', UnitClass.BANDIT, 9, 7, 6),
   ],
   playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 3 }, { x: 1, y: 5 }, { x: 2, y: 4 }],
 };
@@ -88,11 +88,11 @@ const stage2Battle: BattleConfig = {
     { x: 3, y: 5, type: TileType.FOREST }, { x: 6, y: 5, type: TileType.FOREST },
   ]),
   enemyUnits: [
-    enemy('e6_1', '원소 매복병', UnitClass.INFANTRY, 1, 3, 7),
-    enemy('e6_2', '원소 매복병', UnitClass.INFANTRY, 8, 3, 7),
-    enemy('e6_3', '원소 궁수', UnitClass.ARCHER, 1, 6, 7),
-    enemy('e6_4', '원소 궁수', UnitClass.ARCHER, 8, 6, 7),
-    enemy('e6_5', '원소 매복병', UnitClass.INFANTRY, 4, 1, 7),
+    enemy('e6_1', '안량', UnitClass.CAVALRY, 1, 3, 8, { maxHp: 200, hp: 200, attack: 45 }),
+    enemy('e6_2', '원소군 매복병', UnitClass.INFANTRY, 8, 3, 7),
+    enemy('e6_3', '원소군 궁병', UnitClass.ARCHER, 1, 6, 7),
+    enemy('e6_4', '원소군 궁병', UnitClass.ARCHER, 8, 6, 7),
+    enemy('e6_5', '원소군 매복병', UnitClass.INFANTRY, 4, 1, 7),
   ],
   playerStartPositions: [{ x: 4, y: 4 }, { x: 5, y: 4 }, { x: 4, y: 5 }, { x: 5, y: 5 }],
 };

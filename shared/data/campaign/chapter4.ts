@@ -59,7 +59,7 @@ const stage1Battle: BattleConfig = {
     { x: 8, y: 4, type: TileType.FOREST }, { x: 8, y: 5, type: TileType.FOREST },
   ]),
   enemyUnits: [
-    enemy('e8_1', '연주 수비대장', UnitClass.INFANTRY, 8, 3, 9, { maxHp: 230, hp: 230, attack: 52 }),
+    enemy('e8_1', '순욱', UnitClass.STRATEGIST, 8, 3, 9, { maxHp: 150, hp: 150, attack: 30, spirit: 50 }),
     enemy('e8_2', '연주 수비병', UnitClass.INFANTRY, 7, 4, 8),
     enemy('e8_3', '연주 수비병', UnitClass.INFANTRY, 7, 5, 8),
     enemy('e8_4', '연주 궁수', UnitClass.ARCHER, 9, 3, 8),

@@ -82,10 +82,10 @@ const stage2Battle: BattleConfig = {
   ]),
   enemyUnits: [
     enemy('e11_1', '기령', UnitClass.CAVALRY, 9, 4, 11, { maxHp: 260, hp: 260, attack: 58 }),
-    enemy('e11_2', '원술 선봉', UnitClass.CAVALRY, 8, 3, 10),
-    enemy('e11_3', '원술 선봉', UnitClass.CAVALRY, 8, 6, 10),
-    enemy('e11_4', '원술 보병', UnitClass.INFANTRY, 7, 4, 9),
-    enemy('e11_5', '원술 보병', UnitClass.INFANTRY, 7, 5, 9),
+    enemy('e11_2', '원술군 선봉기병', UnitClass.CAVALRY, 8, 3, 10),
+    enemy('e11_3', '원술군 선봉기병', UnitClass.CAVALRY, 8, 6, 10),
+    enemy('e11_4', '원술군 보병', UnitClass.INFANTRY, 7, 4, 9),
+    enemy('e11_5', '원술군 보병', UnitClass.INFANTRY, 7, 5, 9),
   ],
   playerStartPositions: [{ x: 1, y: 3 }, { x: 1, y: 6 }, { x: 2, y: 4 }, { x: 2, y: 5 }],
 };
