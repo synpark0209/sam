@@ -58,6 +58,24 @@ export class CombatSystem {
           case 'defense_down':
             base.defense -= effect.magnitude;
             break;
+          case 'speed_up':
+            base.speed += effect.magnitude;
+            break;
+          case 'speed_down':
+            base.speed -= effect.magnitude;
+            break;
+          case 'morale_up':
+            base.morale += effect.magnitude;
+            break;
+          case 'move_up':
+            base.moveRange += effect.magnitude;
+            break;
+          case 'move_down':
+            base.moveRange = Math.max(1, base.moveRange - effect.magnitude);
+            break;
+          case 'range_up':
+            base.attackRange += effect.magnitude;
+            break;
         }
       }
     }

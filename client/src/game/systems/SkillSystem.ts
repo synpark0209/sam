@@ -1,5 +1,5 @@
 import type { Position, UnitData, Faction } from '@shared/types/index.ts';
-import type { SkillDef, SkillResult, SkillEffect } from '@shared/types/skill.ts';
+import type { SkillDef, SkillResult, SkillEffectResult } from '@shared/types/skill.ts';
 import { SkillTargetType, SkillEffectType } from '@shared/types/skill.ts';
 import { SKILL_DEFS } from '@shared/data/skillDefs.ts';
 import { getClassSkillId } from '@shared/data/classSkillDefs.ts';
@@ -93,7 +93,7 @@ export class SkillSystem {
     if (!caster.skillCooldowns) caster.skillCooldowns = {};
     if (skill.cooldown > 0) caster.skillCooldowns[skill.id] = skill.cooldown;
 
-    const effects: SkillEffect[] = [];
+    const effects: SkillEffectResult[] = [];
     const isAlly = skill.targetType === SkillTargetType.SINGLE_ALLY ||
                    skill.targetType === SkillTargetType.AREA_ALLY ||
                    skill.targetType === SkillTargetType.SELF;
@@ -111,55 +111,116 @@ export class SkillSystem {
     }
 
     // 효과 적용
-    for (const target of targets) {
-      const effect: SkillEffect = { unitId: target.id };
-
-      switch (skill.effectType) {
-        case SkillEffectType.DAMAGE: {
-          const atkStat = caster.stats.attack;
-          const defStat = target.stats.defense;
-          const damage = Math.max(1, Math.floor(skill.power + (atkStat - defStat) * 0.3));
-          target.stats.hp = Math.max(0, target.stats.hp - damage);
-          effect.damageDealt = damage;
-          if (target.stats.hp <= 0) {
-            target.isAlive = false;
-            effect.unitDied = true;
-          }
-          break;
-        }
-
-        case SkillEffectType.HEAL: {
-          const healing = Math.min(skill.power, target.stats.maxHp - target.stats.hp);
-          target.stats.hp += healing;
-          effect.healingDone = healing;
-          break;
-        }
-
-        case SkillEffectType.BUFF:
-        case SkillEffectType.DEBUFF:
-        case SkillEffectType.STATUS: {
-          if (skill.statusEffect && skill.statusDuration) {
-            if (!target.statusEffects) target.statusEffects = [];
-            // 같은 효과가 이미 있으면 갱신
-            const existing = target.statusEffects.find(e => e.effect === skill.statusEffect);
-            if (existing) {
-              existing.remainingTurns = skill.statusDuration;
-              existing.magnitude = skill.statusMagnitude ?? 0;
-            } else {
-              target.statusEffects.push({
-                effect: skill.statusEffect,
-                remainingTurns: skill.statusDuration,
-                magnitude: skill.statusMagnitude ?? 0,
-                sourceUnitId: caster.id,
-              });
+    if (skill.effects && skill.effects.length > 0) {
+      // 복합 효과 처리
+      for (const target of targets) {
+        const effectResult: SkillEffectResult = { unitId: target.id };
+        for (const sub of skill.effects) {
+          switch (sub.type) {
+            case 'damage': {
+              const scaling = sub.scaling === 'spirit' ? (caster.stats.spirit ?? 0) : caster.stats.attack;
+              const dmg = Math.max(1, Math.floor(scaling * (sub.power ?? 0) / 100) - target.stats.defense);
+              target.stats.hp = Math.max(0, target.stats.hp - dmg);
+              effectResult.damageDealt = (effectResult.damageDealt ?? 0) + dmg;
+              if (target.stats.hp <= 0) { target.isAlive = false; effectResult.unitDied = true; }
+              break;
             }
-            effect.statusApplied = skill.statusEffect;
+            case 'heal': {
+              const heal = Math.floor(caster.stats.spirit * (sub.power ?? 0) / 100);
+              const actual = Math.min(heal, target.stats.maxHp - target.stats.hp);
+              target.stats.hp += actual;
+              effectResult.healingDone = (effectResult.healingDone ?? 0) + actual;
+              break;
+            }
+            case 'buff': {
+              // 버프: SELF/AREA_ALLY인 경우 대상(아군/자신)에 적용, AREA_ENEMY인 경우 시전자에 적용
+              const buffTarget = isAlly ? target : caster;
+              if (sub.statusEffect) {
+                if (!buffTarget.statusEffects) buffTarget.statusEffects = [];
+                buffTarget.statusEffects.push({
+                  effect: sub.statusEffect,
+                  remainingTurns: sub.statusDuration ?? 2,
+                  magnitude: sub.statusMagnitude ?? 0,
+                  sourceUnitId: caster.id,
+                });
+                effectResult.statusApplied = effectResult.statusApplied
+                  ? effectResult.statusApplied + ', ' + sub.statusEffect
+                  : sub.statusEffect;
+              }
+              break;
+            }
+            case 'debuff':
+            case 'status': {
+              if (sub.statusEffect) {
+                if (!target.statusEffects) target.statusEffects = [];
+                target.statusEffects.push({
+                  effect: sub.statusEffect,
+                  remainingTurns: sub.statusDuration ?? 2,
+                  magnitude: sub.statusMagnitude ?? 0,
+                  sourceUnitId: caster.id,
+                });
+                effectResult.statusApplied = effectResult.statusApplied
+                  ? effectResult.statusApplied + ', ' + sub.statusEffect
+                  : sub.statusEffect;
+              }
+              break;
+            }
           }
-          break;
         }
+        effects.push(effectResult);
       }
+    } else {
+      // 레거시: 단일 효과 처리
+      for (const target of targets) {
+        const effect: SkillEffectResult = { unitId: target.id };
 
-      effects.push(effect);
+        switch (skill.effectType) {
+          case SkillEffectType.DAMAGE: {
+            const atkStat = caster.stats.attack;
+            const defStat = target.stats.defense;
+            const damage = Math.max(1, Math.floor(skill.power + (atkStat - defStat) * 0.3));
+            target.stats.hp = Math.max(0, target.stats.hp - damage);
+            effect.damageDealt = damage;
+            if (target.stats.hp <= 0) {
+              target.isAlive = false;
+              effect.unitDied = true;
+            }
+            break;
+          }
+
+          case SkillEffectType.HEAL: {
+            const healing = Math.min(skill.power, target.stats.maxHp - target.stats.hp);
+            target.stats.hp += healing;
+            effect.healingDone = healing;
+            break;
+          }
+
+          case SkillEffectType.BUFF:
+          case SkillEffectType.DEBUFF:
+          case SkillEffectType.STATUS: {
+            if (skill.statusEffect && skill.statusDuration) {
+              if (!target.statusEffects) target.statusEffects = [];
+              // 같은 효과가 이미 있으면 갱신
+              const existing = target.statusEffects.find(e => e.effect === skill.statusEffect);
+              if (existing) {
+                existing.remainingTurns = skill.statusDuration;
+                existing.magnitude = skill.statusMagnitude ?? 0;
+              } else {
+                target.statusEffects.push({
+                  effect: skill.statusEffect,
+                  remainingTurns: skill.statusDuration,
+                  magnitude: skill.statusMagnitude ?? 0,
+                  sourceUnitId: caster.id,
+                });
+              }
+              effect.statusApplied = skill.statusEffect;
+            }
+            break;
+          }
+        }
+
+        effects.push(effect);
+      }
     }
 
     caster.hasActed = true;

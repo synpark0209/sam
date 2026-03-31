@@ -54,7 +54,10 @@ export const SKILL_DEFS: Record<string, SkillDef> = {
     targetType: SkillTargetType.SINGLE_ALLY,
     effectType: SkillEffectType.BUFF, power: 0,
     statusEffect: 'attack_up', statusDuration: 3, statusMagnitude: 8,
-    cooldown: 0,
+    cooldown: 0, grade: 'normal',
+    effects: [
+      { type: 'buff', statusEffect: 'attack_up', statusDuration: 3, statusMagnitude: 8 },
+    ],
   },
   fortify: {
     id: 'fortify', name: '방어강화', description: '아군의 방어력을 높인다',
@@ -62,7 +65,7 @@ export const SKILL_DEFS: Record<string, SkillDef> = {
     targetType: SkillTargetType.SINGLE_ALLY,
     effectType: SkillEffectType.BUFF, power: 0,
     statusEffect: 'defense_up', statusDuration: 3, statusMagnitude: 8,
-    cooldown: 0,
+    cooldown: 0, grade: 'normal',
   },
   arrow_rain: {
     id: 'arrow_rain', name: '화살비', description: '넓은 범위에 화살을 퍼붓는다',
@@ -282,6 +285,86 @@ export const SKILL_DEFS: Record<string, SkillDef> = {
     targetType: SkillTargetType.SINGLE_ENEMY,
     effectType: SkillEffectType.DAMAGE, power: 55,
     cooldown: 2,
+  },
+
+  // ═══════════════════════════════════════
+  // 장착 스킬 (복합 효과)
+  // ═══════════════════════════════════════
+
+  // 물리 공격 계열
+  sweep_attack: {
+    id: 'sweep_attack', name: '횡소천군', description: '적 2체에 물리 120% + 자신 사기 +20',
+    mpCost: 12, range: 1, aoeRadius: 1, targetType: SkillTargetType.AREA_ENEMY, effectType: SkillEffectType.DAMAGE, power: 48, cooldown: 2, grade: 'rare',
+    effects: [
+      { type: 'damage', scaling: 'attack', power: 48 },
+      { type: 'buff', statusEffect: 'morale_up', statusDuration: 2, statusMagnitude: 20 },
+    ],
+  },
+  tiger_strike: {
+    id: 'tiger_strike', name: '맹호출림', description: '단일 적에게 물리 150%',
+    mpCost: 10, range: 1, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 60, cooldown: 2, grade: 'advanced',
+    effects: [
+      { type: 'damage', scaling: 'attack', power: 60 },
+    ],
+  },
+  breakthrough: {
+    id: 'breakthrough', name: '돌파진격', description: '물리 130% + 방어 감소 15',
+    mpCost: 10, range: 1, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 52, cooldown: 2, grade: 'advanced',
+    effects: [
+      { type: 'damage', scaling: 'attack', power: 52 },
+      { type: 'debuff', statusEffect: 'defense_down', statusDuration: 2, statusMagnitude: 15 },
+    ],
+  },
+
+  // 술법 공격 계열
+  lightning: {
+    id: 'lightning', name: '낙뢰', description: '범위 술법 100% + 기절 1턴',
+    mpCost: 14, range: 3, aoeRadius: 1, targetType: SkillTargetType.AREA_ENEMY, effectType: SkillEffectType.DAMAGE, power: 40, cooldown: 3, grade: 'advanced',
+    effects: [
+      { type: 'damage', scaling: 'spirit', power: 40 },
+      { type: 'status', statusEffect: 'stun', statusDuration: 1, statusMagnitude: 0 },
+    ],
+  },
+  freeze_field: {
+    id: 'freeze_field', name: '빙결진', description: '범위 술법 80% + 이동력 감소',
+    mpCost: 12, range: 3, aoeRadius: 1, targetType: SkillTargetType.AREA_ENEMY, effectType: SkillEffectType.DAMAGE, power: 32, cooldown: 2, grade: 'rare',
+    effects: [
+      { type: 'damage', scaling: 'spirit', power: 32 },
+      { type: 'debuff', statusEffect: 'move_down', statusDuration: 2, statusMagnitude: 2 },
+    ],
+  },
+  poison_fog: {
+    id: 'poison_fog', name: '독안개', description: '범위 독 (매턴 데미지)',
+    mpCost: 8, range: 3, aoeRadius: 1, targetType: SkillTargetType.AREA_ENEMY, effectType: SkillEffectType.STATUS, power: 0, cooldown: 1, grade: 'normal',
+    effects: [
+      { type: 'damage', scaling: 'spirit', power: 15 },
+      { type: 'debuff', statusEffect: 'poison', statusDuration: 3, statusMagnitude: 10 },
+    ],
+  },
+
+  // 지원 계열
+  resolve: {
+    id: 'resolve', name: '결의', description: '자신 공/방 +25 (3턴)',
+    mpCost: 8, range: 0, aoeRadius: 0, targetType: SkillTargetType.SELF, effectType: SkillEffectType.BUFF, power: 0, cooldown: 3, grade: 'advanced',
+    effects: [
+      { type: 'buff', statusEffect: 'attack_up', statusDuration: 3, statusMagnitude: 25 },
+      { type: 'buff', statusEffect: 'defense_up', statusDuration: 3, statusMagnitude: 25 },
+    ],
+  },
+  first_aid: {
+    id: 'first_aid', name: '응급치료', description: '아군 HP 50% 회복',
+    mpCost: 8, range: 2, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ALLY, effectType: SkillEffectType.HEAL, power: 50, cooldown: 1, grade: 'normal',
+    effects: [
+      { type: 'heal', power: 50 },
+    ],
+  },
+  march_inspire: {
+    id: 'march_inspire', name: '진군고무', description: '범위 아군 이동력 +2 + 공격 +10',
+    mpCost: 12, range: 0, aoeRadius: 2, targetType: SkillTargetType.AREA_ALLY, effectType: SkillEffectType.BUFF, power: 0, cooldown: 3, grade: 'rare',
+    effects: [
+      { type: 'buff', statusEffect: 'move_up', statusDuration: 1, statusMagnitude: 2 },
+      { type: 'buff', statusEffect: 'attack_up', statusDuration: 2, statusMagnitude: 10 },
+    ],
   },
 };
 
