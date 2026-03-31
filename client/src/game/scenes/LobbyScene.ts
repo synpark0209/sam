@@ -4,7 +4,7 @@ import type { CampaignManager } from '../systems/CampaignManager.ts';
 import type { AudioManager } from '../systems/AudioManager.ts';
 import type { UnitData } from '@shared/types/index.ts';
 import { UnitClass } from '@shared/types/index.ts';
-import { logout as doLogout, gachaPull, getGachaStatus, promoteUnit, awakenUnit } from '../../api/client.ts';
+import { logout as doLogout, gachaPull, getGachaStatus, promoteUnit, awakenUnit, enhanceSkill } from '../../api/client.ts';
 import type { GachaPullResult } from '../../api/client.ts';
 import { getGradeColor, GACHA_HERO_POOL } from '@shared/data/gachaDefs.ts';
 import type { HeroGrade } from '@shared/data/gachaDefs.ts';
@@ -15,6 +15,7 @@ import { DAILY_MISSIONS, ALL_COMPLETE_BONUS, areAllMissionsComplete, LOGIN_BONUS
 import { getNextAwakening, AWAKENING_TIERS } from '@shared/data/awakeningDefs.ts';
 import { PROMOTION_PATHS } from '@shared/data/promotionDefs.ts';
 import { getShopItems, getDailyPurchases } from '@shared/data/shopDefs.ts';
+import { getSkillPowerMultiplier, getSkillMpCost, getSkillCooldown, getEnhanceTier, MAX_SKILL_LEVEL } from '@shared/data/skillEnhanceDefs.ts';
 import type { ShopItem } from '@shared/data/shopDefs.ts';
 import { shopBuy, missionClaim, loginClaim } from '../../api/client.ts';
 
@@ -647,16 +648,81 @@ export class LobbyScene extends Phaser.Scene {
     });
 
     let skillRow = 0;
+    const skillMaterials = this.campaignManager.getProgress().materialBag ?? {};
+    const skillGold = this.campaignManager.getProgress().gold ?? 0;
+
+    // 스킬 강화 버튼 헬퍼
+    const addEnhanceButton = (skillId: string, yPos: number) => {
+      const level = unit.equippedSkillLevels?.[skillId] ?? 1;
+      const skillDef = SKILL_DEFS[skillId];
+      if (!skillDef) return;
+
+      // 레벨 표시
+      const lvColor = level >= MAX_SKILL_LEVEL ? '#ffd700' : '#88ccff';
+      this.add.text(GW - 120, yPos, `Lv.${level}`, {
+        fontSize: '11px', color: lvColor, fontStyle: 'bold',
+      });
+
+      // 강화 효과 미리보기
+      const pwr = Math.round((getSkillPowerMultiplier(level) - 1) * 100);
+      const mpReduction = skillDef.mpCost - getSkillMpCost(skillDef.mpCost, level);
+      const cdReduction = skillDef.cooldown - getSkillCooldown(skillDef.cooldown, level);
+      const previewParts: string[] = [];
+      if (pwr > 0) previewParts.push(`+${pwr}%`);
+      if (mpReduction > 0) previewParts.push(`MP-${mpReduction}`);
+      if (cdReduction > 0) previewParts.push(`CD-${cdReduction}`);
+      if (previewParts.length > 0) {
+        this.add.text(30, yPos + 14, previewParts.join(' '), {
+          fontSize: '9px', color: '#66aa88',
+        });
+      }
+
+      // 강화 버튼
+      if (level < MAX_SKILL_LEVEL) {
+        const tier = getEnhanceTier(level);
+        if (tier) {
+          const hasItem = (skillMaterials[tier.requiredItem] ?? 0) >= 1;
+          const hasGold = skillGold >= tier.goldCost;
+          const canEnhance = hasItem && hasGold;
+          const btnColor = canEnhance ? '#44cc88' : '#555555';
+          const btnBgColor = canEnhance ? '#1a3a2a' : '#1a1a2a';
+          const enhBtn = this.add.text(GW - 70, yPos, '강화', {
+            fontSize: '10px', color: btnColor, backgroundColor: btnBgColor,
+            padding: { x: 8, y: 3 },
+          }).setInteractive({ useHandCursor: canEnhance });
+
+          if (canEnhance) {
+            enhBtn.on('pointerdown', async () => {
+              try {
+                const result = await enhanceSkill(unit.id, skillId);
+                if (result.success) {
+                  await this.campaignManager.loadFromServer();
+                  const updated = this.campaignManager.getProgress().playerUnits?.find(u => u.id === unit.id);
+                  if (updated) this.showHeroDetail(updated);
+                  else this.showHeroDetail(unit);
+                }
+              } catch (e: unknown) {
+                console.error('스킬 강화 실패:', e);
+              }
+            });
+          }
+        }
+      }
+    };
+
     // 고유 스킬
     if (unit.uniqueSkill) {
       const skill = SKILL_DEFS[unit.uniqueSkill];
       if (skill) {
+        const uniqueLevel = unit.equippedSkillLevels?.[unit.uniqueSkill] ?? 1;
+        const uniqueMp = getSkillMpCost(skill.mpCost, uniqueLevel);
         this.add.text(30, skillY + 22 + skillRow * 38, `★ ${skill.name}`, {
           fontSize: '13px', color: '#ffaa44', fontStyle: 'bold',
         });
-        this.add.text(30, skillY + 38 + skillRow * 38, `${skill.description}  (MP${skill.mpCost})`, {
-          fontSize: '10px', color: '#999999', wordWrap: { width: GW - 60 },
+        this.add.text(30, skillY + 38 + skillRow * 38, `${skill.description}  (MP${uniqueMp})`, {
+          fontSize: '10px', color: '#999999', wordWrap: { width: GW - 130 },
         });
+        addEnhanceButton(unit.uniqueSkill, skillY + 22 + skillRow * 38);
         skillRow++;
       }
     }
@@ -666,12 +732,15 @@ export class LobbyScene extends Phaser.Scene {
     for (let si = 0; si < equipped.length; si++) {
       const skill = SKILL_DEFS[equipped[si]];
       if (!skill) continue;
-      this.add.text(30, skillY + 22 + skillRow * 32, `◆ ${skill.name} (MP${skill.mpCost})`, {
+      const eqLevel = unit.equippedSkillLevels?.[equipped[si]] ?? 1;
+      const eqMp = getSkillMpCost(skill.mpCost, eqLevel);
+      this.add.text(30, skillY + 22 + skillRow * 32, `◆ ${skill.name} (MP${eqMp})`, {
         fontSize: '12px', color: '#88ccff',
       });
-      // 해제 버튼
-      const removeSkillBtn = this.add.text(GW - 60, skillY + 22 + skillRow * 32, '해제', {
-        fontSize: '10px', color: '#ff6666', backgroundColor: '#2a1a1a', padding: { x: 6, y: 2 },
+      addEnhanceButton(equipped[si], skillY + 22 + skillRow * 32);
+      // 해제 버튼 (moved left to make room for enhance)
+      const removeSkillBtn = this.add.text(GW - 120, skillY + 34 + skillRow * 32, '해제', {
+        fontSize: '9px', color: '#ff6666', backgroundColor: '#2a1a1a', padding: { x: 4, y: 1 },
       }).setInteractive({ useHandCursor: true });
       const skillIdx = si;
       removeSkillBtn.on('pointerdown', () => {

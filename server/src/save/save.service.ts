@@ -7,6 +7,7 @@ import type { ShopItem } from '../../../shared/data/shopDefs.js';
 import { canPromote, PROMOTION_PATHS } from '../../../shared/data/promotionDefs.js';
 import { getClassSkillId } from '../../../shared/data/classSkillDefs.js';
 import { getNextAwakening, getHeroBaseId, AWAKENING_TIERS } from '../../../shared/data/awakeningDefs.js';
+import { getEnhanceTier, MAX_SKILL_LEVEL } from '../../../shared/data/skillEnhanceDefs.js';
 import type { UnitData } from '../../../shared/types/unit.js';
 import { DUNGEONS, generateReward, DUNGEON_DAILY_LIMIT } from '../../../shared/data/dungeonDefs.js';
 import type { DungeonReward } from '../../../shared/data/dungeonDefs.js';
@@ -526,6 +527,68 @@ export class SaveService {
     await this.saveRepo.save(save);
 
     return { success: true, gold: save.gold, gems: save.gems };
+  }
+
+  // ── 스킬 강화 (서버 권위적) ──
+
+  async enhanceSkill(
+    userId: number,
+    unitId: string,
+    skillId: string,
+  ): Promise<{ success: boolean; newLevel: number; gold: number }> {
+    const save = await this.saveRepo.findOne({ where: { userId } });
+    if (!save) throw new BadRequestException('Save not found');
+
+    const progress = save.campaignProgress as Record<string, unknown>;
+    const playerUnits = (progress.playerUnits ?? []) as UnitData[];
+    const unit = playerUnits.find(u => u.id === unitId);
+    if (!unit) throw new BadRequestException('Unit not found');
+
+    // Verify the unit actually has this skill
+    const allSkillIds: string[] = [];
+    if (unit.classSkillId) allSkillIds.push(unit.classSkillId);
+    if (unit.uniqueSkill && unit.uniqueSkillUnlocked) allSkillIds.push(unit.uniqueSkill);
+    if (unit.equippedSkills) allSkillIds.push(...unit.equippedSkills);
+    if (unit.skills) allSkillIds.push(...unit.skills);
+    if (!allSkillIds.includes(skillId)) {
+      throw new BadRequestException('Unit does not have this skill');
+    }
+
+    // Get current level
+    if (!unit.equippedSkillLevels) unit.equippedSkillLevels = {};
+    const currentLevel = unit.equippedSkillLevels[skillId] ?? 1;
+    if (currentLevel >= MAX_SKILL_LEVEL) {
+      throw new BadRequestException('Skill is already at max level');
+    }
+
+    // Get required tier
+    const tier = getEnhanceTier(currentLevel);
+    if (!tier) throw new BadRequestException('No enhancement tier found');
+
+    // Check materials
+    const materials = (progress.materialBag ?? {}) as Record<string, number>;
+    if ((materials[tier.requiredItem] ?? 0) < 1) {
+      throw new BadRequestException(`${tier.requiredItemName} 부족`);
+    }
+
+    // Check gold
+    if (save.gold < tier.goldCost) {
+      throw new BadRequestException('금화 부족');
+    }
+
+    // Deduct material and gold
+    materials[tier.requiredItem] = (materials[tier.requiredItem] ?? 0) - 1;
+    progress.materialBag = materials;
+    save.gold -= tier.goldCost;
+    progress.gold = save.gold;
+
+    // Increment skill level
+    unit.equippedSkillLevels[skillId] = currentLevel + 1;
+
+    save.campaignProgress = progress;
+    await this.saveRepo.save(save);
+
+    return { success: true, newLevel: currentLevel + 1, gold: save.gold };
   }
 
   async getRanking(limit = 20): Promise<Array<{ username: string; maxLevel: number; currentChapterId: string; currentStageIdx: number }>> {

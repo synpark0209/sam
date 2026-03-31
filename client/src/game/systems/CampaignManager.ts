@@ -67,7 +67,7 @@ export class CampaignManager {
       inventory: [],
       equipmentBag: ['bronze_sword', 'leather_armor', 'war_drum'],
       skillBag: ['encourage', 'fortify', 'heal'],
-      materialBag: { promotion_seal_1: 2 },  // 초기 하급 인수 2개 지급
+      materialBag: { promotion_seal_1: 2, skill_book_basic: 5 },  // 초기 하급 인수 2개 + 초급 스킬서 5개 지급
       stamina: 120,
       lastStaminaUpdate: Date.now(),
       dungeonClears: {},

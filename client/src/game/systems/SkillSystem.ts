@@ -3,6 +3,7 @@ import type { SkillDef, SkillResult, SkillEffectResult } from '@shared/types/ski
 import { SkillTargetType, SkillEffectType } from '@shared/types/skill.ts';
 import { SKILL_DEFS } from '@shared/data/skillDefs.ts';
 import { getClassSkillId } from '@shared/data/classSkillDefs.ts';
+import { getSkillPowerMultiplier, getSkillMpCost, getSkillCooldown } from '@shared/data/skillEnhanceDefs.ts';
 import type { GridSystem } from './GridSystem.ts';
 
 export class SkillSystem {
@@ -33,6 +34,11 @@ export class SkillSystem {
     return ids;
   }
 
+  /** Get skill level for a unit (from equippedSkillLevels, default 1) */
+  getSkillLevel(unit: UnitData, skillId: string): number {
+    return unit.equippedSkillLevels?.[skillId] ?? 1;
+  }
+
   getUsableSkills(unit: UnitData): SkillDef[] {
     const allIds = this.getAllSkillIds(unit);
     if (allIds.length === 0) return [];
@@ -43,7 +49,9 @@ export class SkillSystem {
       .map(id => SKILL_DEFS[id])
       .filter((def): def is SkillDef => {
         if (!def) return false;
-        if (def.mpCost > mp) return false;
+        const level = this.getSkillLevel(unit, def.id);
+        const effectiveMp = getSkillMpCost(def.mpCost, level);
+        if (effectiveMp > mp) return false;
         if ((cooldowns[def.id] ?? 0) > 0) return false;
         return true;
       });
@@ -88,10 +96,15 @@ export class SkillSystem {
   executeSkill(
     caster: UnitData, skill: SkillDef, targetPos: Position, units: UnitData[],
   ): SkillResult {
-    // MP 소비
-    caster.mp = (caster.mp ?? 0) - skill.mpCost;
+    const skillLevel = this.getSkillLevel(caster, skill.id);
+    const powerMult = getSkillPowerMultiplier(skillLevel);
+    const effectiveMpCost = getSkillMpCost(skill.mpCost, skillLevel);
+    const effectiveCooldown = getSkillCooldown(skill.cooldown, skillLevel);
+
+    // MP 소비 (강화 레벨 적용)
+    caster.mp = (caster.mp ?? 0) - effectiveMpCost;
     if (!caster.skillCooldowns) caster.skillCooldowns = {};
-    if (skill.cooldown > 0) caster.skillCooldowns[skill.id] = skill.cooldown;
+    if (effectiveCooldown > 0) caster.skillCooldowns[skill.id] = effectiveCooldown;
 
     const effects: SkillEffectResult[] = [];
     const isAlly = skill.targetType === SkillTargetType.SINGLE_ALLY ||
@@ -119,14 +132,14 @@ export class SkillSystem {
           switch (sub.type) {
             case 'damage': {
               const scaling = sub.scaling === 'spirit' ? (caster.stats.spirit ?? 0) : caster.stats.attack;
-              const dmg = Math.max(1, Math.floor(scaling * (sub.power ?? 0) / 100) - target.stats.defense);
+              const dmg = Math.max(1, Math.floor(scaling * (sub.power ?? 0) / 100 * powerMult) - target.stats.defense);
               target.stats.hp = Math.max(0, target.stats.hp - dmg);
               effectResult.damageDealt = (effectResult.damageDealt ?? 0) + dmg;
               if (target.stats.hp <= 0) { target.isAlive = false; effectResult.unitDied = true; }
               break;
             }
             case 'heal': {
-              const heal = Math.floor(caster.stats.spirit * (sub.power ?? 0) / 100);
+              const heal = Math.floor(caster.stats.spirit * (sub.power ?? 0) / 100 * powerMult);
               const actual = Math.min(heal, target.stats.maxHp - target.stats.hp);
               target.stats.hp += actual;
               effectResult.healingDone = (effectResult.healingDone ?? 0) + actual;
@@ -178,7 +191,7 @@ export class SkillSystem {
           case SkillEffectType.DAMAGE: {
             const atkStat = caster.stats.attack;
             const defStat = target.stats.defense;
-            const damage = Math.max(1, Math.floor(skill.power + (atkStat - defStat) * 0.3));
+            const damage = Math.max(1, Math.floor((skill.power + (atkStat - defStat) * 0.3) * powerMult));
             target.stats.hp = Math.max(0, target.stats.hp - damage);
             effect.damageDealt = damage;
             if (target.stats.hp <= 0) {
@@ -189,7 +202,7 @@ export class SkillSystem {
           }
 
           case SkillEffectType.HEAL: {
-            const healing = Math.min(skill.power, target.stats.maxHp - target.stats.hp);
+            const healing = Math.min(Math.floor(skill.power * powerMult), target.stats.maxHp - target.stats.hp);
             target.stats.hp += healing;
             effect.healingDone = healing;
             break;

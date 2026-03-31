@@ -264,6 +264,12 @@ export async function loginClaim(day: number): Promise<{ success: boolean; gold:
   });
 }
 
+// ── 스킬 강화 API (서버 권위적) ──
+
+export async function enhanceSkill(unitId: string, skillId: string): Promise<{ success: boolean; newLevel: number; gold: number }> {
+  return apiRequest('/save/enhance-skill', { method: 'POST', body: JSON.stringify({ unitId, skillId }) });
+}
+
 export async function spendGold(amount: number, reason: string): Promise<{ gold: number }> {
   return apiRequest('/save/spend-gold', { method: 'POST', body: JSON.stringify({ amount, reason }) });
 }

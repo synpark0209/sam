@@ -99,6 +99,38 @@ export const SHOP_ITEMS: ShopItem[] = [
     reward: { type: 'skill', itemId: 'heal' },
   },
 
+  // ── 스킬 강화 소재 ──
+  {
+    id: 'shop_skill_book_basic',
+    name: '초급 스킬서',
+    description: 'Lv.1~3 스킬 강화에 필요',
+    icon: '📕',
+    category: 'general',
+    currency: 'gold',
+    price: 1000,
+    reward: { type: 'material', itemId: 'skill_book_basic', amount: 1 },
+  },
+  {
+    id: 'shop_skill_book_mid',
+    name: '중급 스킬서',
+    description: 'Lv.4~6 스킬 강화에 필요',
+    icon: '📗',
+    category: 'general',
+    currency: 'gold',
+    price: 3000,
+    reward: { type: 'material', itemId: 'skill_book_mid', amount: 1 },
+  },
+  {
+    id: 'shop_skill_book_high',
+    name: '고급 스킬서',
+    description: 'Lv.7~10 스킬 강화에 필요',
+    icon: '📘',
+    category: 'premium',
+    currency: 'gems',
+    price: 80,
+    reward: { type: 'material', itemId: 'skill_book_high', amount: 1 },
+  },
+
   // ── 프리미엄 (보석) ──
   {
     id: 'shop_prem_promotion_seal_2',

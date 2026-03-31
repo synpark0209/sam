@@ -153,6 +153,17 @@ export class SaveController {
     return this.saveService.loginClaim(req.user.userId, body.day);
   }
 
+  // ── 스킬 강화 ──
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('enhance-skill')
+  async enhanceSkill(
+    @Request() req: { user: { userId: number } },
+    @Body() body: { unitId: string; skillId: string },
+  ) {
+    return this.saveService.enhanceSkill(req.user.userId, body.unitId, body.skillId);
+  }
+
   @Get('ranking')
   async getRanking() {
     return this.saveService.getRanking();
