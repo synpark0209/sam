@@ -28,6 +28,7 @@ import { pvpRecordResult } from '../../api/client.ts';
 import type { AudioManager, SfxName } from '../systems/AudioManager.ts';
 import { UNIT_CLASS_DEFS } from '@shared/data/unitClassDefs.ts';
 import { SKILL_DEFS, HERO_UNIQUE_SKILLS } from '@shared/data/skillDefs.ts';
+import { detectFormation, applyFormationBuffs } from '@shared/data/formationDefs.ts';
 
 type InteractionState =
   | 'IDLE'
@@ -209,6 +210,9 @@ export class BattleScene extends Phaser.Scene {
         this.uiCam.ignore(child);
       }
     }
+
+    // 진형 감지 + 버프 적용
+    this.checkAndApplyFormation();
 
     this.turnSystem.startPlayerTurn();
     this.updateTurnUI();
@@ -1765,6 +1769,34 @@ export class BattleScene extends Phaser.Scene {
         });
       });
     }
+  }
+
+  // ── 진형 감지 ──
+
+  private checkAndApplyFormation(): void {
+    const playerUnits = this.battleState.units.filter(u => u.faction === 'player' && u.isAlive);
+    const formation = detectFormation(playerUnits);
+    if (!formation) return;
+
+    applyFormationBuffs(formation, playerUnits);
+
+    // 진형 활성화 표시
+    const gw = this.scale.width;
+    const zoom = this.cameras.main.zoom;
+    const formText = this.add.text(gw / 2 / zoom, 40 / zoom, `${formation.icon} ${formation.name}`, {
+      fontSize: `${Math.round(16 / zoom)}px`, color: '#ffd700', fontStyle: 'bold',
+      backgroundColor: '#000000aa', padding: { x: Math.round(10 / zoom), y: Math.round(6 / zoom) },
+    }).setOrigin(0.5).setDepth(500).setScrollFactor(0);
+
+    const descText = this.add.text(gw / 2 / zoom, 65 / zoom, formation.description, {
+      fontSize: `${Math.round(12 / zoom)}px`, color: '#88ccff',
+      backgroundColor: '#000000aa', padding: { x: Math.round(8 / zoom), y: Math.round(4 / zoom) },
+    }).setOrigin(0.5).setDepth(500).setScrollFactor(0);
+
+    // 3초 후 페이드아웃
+    this.time.delayedCall(3000, () => {
+      this.tweens.add({ targets: [formText, descText], alpha: 0, duration: 1000, onComplete: () => { formText.destroy(); descText.destroy(); } });
+    });
   }
 
   // ── 포기 확인 ──
