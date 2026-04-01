@@ -13,6 +13,8 @@ import {
 } from '@shared/data/dungeonDefs.ts';
 import type { DungeonDef, DungeonDifficulty, DungeonReward } from '@shared/data/dungeonDefs.ts';
 import { dungeonComplete } from '../../api/client.ts';
+import { FORMATIONS } from '@shared/data/formationDefs.ts';
+import type { FormationDef } from '@shared/data/formationDefs.ts';
 
 const GW = GAME_WIDTH;
 const GH = GAME_HEIGHT;
@@ -32,6 +34,7 @@ export class DailyDungeonScene extends Phaser.Scene {
   private selectedDifficulty: DungeonDifficulty | null = null;
   private battleUnits: DungeonUnit[] = [];
   private battleSpeed = 1;
+  private selectedFormation: string | null = null;
 
   constructor() {
     super('DailyDungeonScene');
@@ -320,6 +323,56 @@ export class DailyDungeonScene extends Phaser.Scene {
       this.add.text(GW - 24, y + 10, `ATK:${unit.stats.attack}`, { fontSize: '14px', color: '#888888' }).setOrigin(1, 0);
     }
 
+    // ── 진형 선택 ──
+    const formationY = startY + sortedUnits.length * itemH + 8;
+    this.add.text(15, formationY, '── 진형 선택 ──', {
+      fontSize: '16px', color: '#88aacc', fontStyle: 'bold',
+    });
+
+    const cardW = 70;
+    const cardH = 50;
+    const cardGap = 4;
+    const totalCardsW = FORMATIONS.length * cardW + (FORMATIONS.length - 1) * cardGap;
+    const cardsStartX = (GW - totalCardsW) / 2;
+    const cardsY = formationY + 26;
+
+    for (let i = 0; i < FORMATIONS.length; i++) {
+      const f = FORMATIONS[i];
+      const cx = cardsStartX + i * (cardW + cardGap);
+      const isSelected = this.selectedFormation === f.id;
+
+      const cardBg = this.add.graphics();
+      cardBg.fillStyle(0x1a1a2e, 1);
+      cardBg.fillRoundedRect(cx, cardsY, cardW, cardH, 4);
+      cardBg.lineStyle(isSelected ? 2 : 1, isSelected ? 0xffd700 : 0x333355, 1);
+      cardBg.strokeRoundedRect(cx, cardsY, cardW, cardH, 4);
+
+      this.add.text(cx + cardW / 2, cardsY + 14, f.icon, {
+        fontSize: isSelected ? '18px' : '15px',
+      }).setOrigin(0.5);
+
+      this.add.text(cx + cardW / 2, cardsY + 36, f.name.split('(')[0], {
+        fontSize: '11px', color: isSelected ? '#ffd700' : '#888888',
+      }).setOrigin(0.5);
+
+      const cardHit = this.add.rectangle(cx + cardW / 2, cardsY + cardH / 2, cardW, cardH, 0x000000, 0)
+        .setInteractive({ useHandCursor: true });
+      cardHit.on('pointerdown', () => {
+        this.selectedFormation = this.selectedFormation === f.id ? null : f.id;
+        this.showTeamSelect(dungeon, difficulty);
+      });
+    }
+
+    // 선택된 진형 설명
+    if (this.selectedFormation) {
+      const selF = FORMATIONS.find(f => f.id === this.selectedFormation);
+      if (selF) {
+        this.add.text(GW / 2, cardsY + cardH + 8, selF.description, {
+          fontSize: '13px', color: '#88ccff',
+        }).setOrigin(0.5);
+      }
+    }
+
     // 전투 시작 버튼 (full width, prominent)
     const btnG = this.add.graphics();
     btnG.fillStyle(0xaa3333, 1);
@@ -375,6 +428,25 @@ export class DailyDungeonScene extends Phaser.Scene {
     progress.stamina = (progress.stamina ?? 0) - this.selectedDifficulty.stamina;
 
     this.battleUnits = [];
+
+    // 진형 버프를 statusEffects로 적용
+    if (this.selectedFormation) {
+      const formation = FORMATIONS.find(f => f.id === this.selectedFormation);
+      if (formation) {
+        for (const buff of formation.buffs) {
+          if (buff.targetFilter && buff.targetFilter !== 'all') continue;
+          for (const unit of playerUnits) {
+            if (!unit.statusEffects) unit.statusEffects = [];
+            unit.statusEffects.push({
+              effect: buff.statusEffect,
+              remainingTurns: buff.duration,
+              magnitude: buff.magnitude,
+              sourceUnitId: 'formation',
+            });
+          }
+        }
+      }
+    }
 
     // 아군
     for (const u of playerUnits) {

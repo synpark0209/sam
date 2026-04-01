@@ -13,6 +13,8 @@ import type { HeroGrade } from '@shared/data/gachaDefs.ts';
 import { getTier, calculateEloChange, getNextTierProgress, DAILY_PVP_TICKETS } from '@shared/data/pvpDefs.ts';
 import { pvpRecordResult, addGold } from '../../api/client.ts';
 import { preloadUnitImages, hasUnitImage } from '../systems/UnitSpriteManager.ts';
+import { FORMATIONS } from '@shared/data/formationDefs.ts';
+import type { FormationDef } from '@shared/data/formationDefs.ts';
 
 const GW = GAME_WIDTH;
 const GH = GAME_HEIGHT;
@@ -48,6 +50,7 @@ export class PvPArenaScene extends Phaser.Scene {
   private battleUnits: ArenaUnit[] = [];
   private battleSpeed = 1;
   private battleLog: string[] = [];
+  private selectedFormation: string | null = null;
   private playerElo = 1000;
   private pvpWins = 0;
   private pvpLosses = 0;
@@ -465,6 +468,56 @@ export class PvPArenaScene extends Phaser.Scene {
       }
     }
 
+    // ── 진형 선택 ──
+    const formationY = listY + 28 + maxShow * itemH + 8;
+    this.add.text(15, formationY, '── 진형 선택 ──', {
+      fontSize: '16px', color: '#88aacc', fontStyle: 'bold',
+    });
+
+    const cardW = 70;
+    const cardH = 50;
+    const cardGap = 4;
+    const totalCardsW = FORMATIONS.length * cardW + (FORMATIONS.length - 1) * cardGap;
+    const cardsStartX = (GW - totalCardsW) / 2;
+    const cardsY = formationY + 26;
+
+    for (let i = 0; i < FORMATIONS.length; i++) {
+      const f = FORMATIONS[i];
+      const cx = cardsStartX + i * (cardW + cardGap);
+      const isSelected = this.selectedFormation === f.id;
+
+      const cardBg = this.add.graphics();
+      cardBg.fillStyle(0x1a1a2e, 1);
+      cardBg.fillRoundedRect(cx, cardsY, cardW, cardH, 4);
+      cardBg.lineStyle(isSelected ? 2 : 1, isSelected ? 0xffd700 : 0x333355, 1);
+      cardBg.strokeRoundedRect(cx, cardsY, cardW, cardH, 4);
+
+      this.add.text(cx + cardW / 2, cardsY + 14, f.icon, {
+        fontSize: isSelected ? '18px' : '15px',
+      }).setOrigin(0.5);
+
+      this.add.text(cx + cardW / 2, cardsY + 36, f.name.split('(')[0], {
+        fontSize: '11px', color: isSelected ? '#ffd700' : '#888888',
+      }).setOrigin(0.5);
+
+      const cardHit = this.add.rectangle(cx + cardW / 2, cardsY + cardH / 2, cardW, cardH, 0x000000, 0)
+        .setInteractive({ useHandCursor: true });
+      cardHit.on('pointerdown', () => {
+        this.selectedFormation = this.selectedFormation === f.id ? null : f.id;
+        this.showDeployPhase();
+      });
+    }
+
+    // 선택된 진형 설명
+    if (this.selectedFormation) {
+      const selF = FORMATIONS.find(f => f.id === this.selectedFormation);
+      if (selF) {
+        this.add.text(GW / 2, cardsY + cardH + 8, selF.description, {
+          fontSize: '13px', color: '#88ccff',
+        }).setOrigin(0.5);
+      }
+    }
+
     // 전투 시작 버튼 (full width, prominent)
     if (this.deployedCount > 0 && !this.selectedHeroForDeploy) {
       const btnG = this.add.graphics();
@@ -518,6 +571,24 @@ export class PvPArenaScene extends Phaser.Scene {
         speed: enemyPool[i].stats.speed, spirit: enemyPool[i].stats.spirit ?? 10, alive: true,
         mp: 15, maxMp: 15, skillCooldowns: {},
       });
+    }
+
+    // 진형 버프 적용
+    if (this.selectedFormation) {
+      const formation = FORMATIONS.find(f => f.id === this.selectedFormation);
+      if (formation) {
+        const playerUnits = this.battleUnits.filter(u => u.side === 'player');
+        for (const buff of formation.buffs) {
+          if (buff.targetFilter && buff.targetFilter !== 'all') continue;
+          for (const unit of playerUnits) {
+            if (buff.statusEffect === 'attack_up') unit.attack += buff.magnitude;
+            if (buff.statusEffect === 'defense_up') unit.defense += buff.magnitude;
+            if (buff.statusEffect === 'speed_up') unit.speed += buff.magnitude;
+            if (buff.statusEffect === 'morale_up') unit.spirit += buff.magnitude;
+          }
+        }
+        this.battleLog.push(`진형: ${formation.name} 활성화!`);
+      }
     }
 
     this.showBattlePhase();
