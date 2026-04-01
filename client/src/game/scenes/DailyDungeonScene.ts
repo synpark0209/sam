@@ -13,7 +13,7 @@ import {
 } from '@shared/data/dungeonDefs.ts';
 import type { DungeonDef, DungeonDifficulty, DungeonReward } from '@shared/data/dungeonDefs.ts';
 import { dungeonComplete } from '../../api/client.ts';
-import { FORMATIONS } from '@shared/data/formationDefs.ts';
+import { FORMATIONS, isFormationComplete, isPatternSlot } from '@shared/data/formationDefs.ts';
 
 const GW = GAME_WIDTH;
 const GH = GAME_HEIGHT;
@@ -27,6 +27,12 @@ interface DungeonUnit {
   skillCooldowns: Record<string, number>;
 }
 
+const GRID_COLS = 3;
+const GRID_ROWS = 3;
+const CELL_W = 100;
+const CELL_H = 80;
+const MAX_DEPLOY = 5;
+
 export class DailyDungeonScene extends Phaser.Scene {
   private campaignManager!: CampaignManager;
   private selectedDungeon: DungeonDef | null = null;
@@ -34,6 +40,9 @@ export class DailyDungeonScene extends Phaser.Scene {
   private battleUnits: DungeonUnit[] = [];
   private battleSpeed = 1;
   private selectedFormation: string | null = null;
+  private playerSlots: (UnitData | null)[] = Array(GRID_COLS * GRID_ROWS).fill(null);
+  private deployedCount = 0;
+  private selectedHeroForDeploy: UnitData | null = null;
 
   constructor() {
     super('DailyDungeonScene');
@@ -254,7 +263,7 @@ export class DailyDungeonScene extends Phaser.Scene {
     }
   }
 
-  // ── 팀 선택 ──
+  // ── 팀 선택 (3x3 그리드 배치) ──
 
   private showTeamSelect(dungeon: DungeonDef, difficulty: DungeonDifficulty): void {
     this.selectedDungeon = dungeon;
@@ -279,7 +288,7 @@ export class DailyDungeonScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // Decorative gold line under title
-    const lineY = 50;
+    const lineY = 48;
     g.fillStyle(0xffd700, 0.4);
     g.fillRect(20, lineY, GW - 40, 1);
     g.fillStyle(0xffd700, 0.8);
@@ -288,120 +297,257 @@ export class DailyDungeonScene extends Phaser.Scene {
     const backBtn = this.add.text(16, 14, '← 뒤로', {
       fontSize: '15px', color: '#88aacc', backgroundColor: '#1a1a3a', padding: { x: 12, y: 8 },
     }).setInteractive({ useHandCursor: true });
-    backBtn.on('pointerdown', () => this.showDungeonList());
-
-    this.add.text(GW / 2, 62, `웨이브 ${difficulty.waves}  |  적 Lv.${difficulty.enemyLevel}  |  ⚡${difficulty.stamina}`, {
-      fontSize: '15px', color: '#aaaaaa',
-    }).setOrigin(0.5);
-
-    // 장수 목록 (전체 선택 → 상위 5명 자동 출전)
-    this.add.text(GW / 2, 84, '보유 장수 중 상위 5명이 자동 출전합니다', {
-      fontSize: '14px', color: '#888888',
-    }).setOrigin(0.5);
-
-    const units = this.campaignManager.getProgress().playerUnits;
-    const sortedUnits = [...units].sort((a, b) => (b.level ?? 1) - (a.level ?? 1)).slice(0, 5);
-
-    const startY = 110;
-    const itemH = 58;
-    for (let i = 0; i < sortedUnits.length; i++) {
-      const unit = sortedUnits[i];
-      const y = startY + i * itemH;
-      const grade = unit.grade ?? 'N';
-      const gradeColor = getGradeColor(grade as HeroGrade);
-      const cls = unit.unitClass ? UNIT_CLASS_DEFS[unit.unitClass]?.name ?? '' : '';
-
-      const rowBg = this.add.graphics();
-      rowBg.fillStyle(0x111122, 0.8);
-      rowBg.fillRoundedRect(12, y - 4, GW - 24, itemH - 6, 6);
-
-      this.add.text(20, y + 8, `[${grade}]`, { fontSize: '16px', color: gradeColor, fontStyle: 'bold' });
-      this.add.text(56, y + 6, `${unit.name}  ${cls} Lv.${unit.level ?? 1}`, {
-        fontSize: '17px', color: '#ffffff',
-      });
-      this.add.text(GW - 24, y + 10, `ATK:${unit.stats.attack}`, { fontSize: '14px', color: '#888888' }).setOrigin(1, 0);
-    }
-
-    // ── 진형 선택 ──
-    const formationY = startY + sortedUnits.length * itemH + 8;
-    this.add.text(15, formationY, '── 진형 선택 ──', {
-      fontSize: '16px', color: '#88aacc', fontStyle: 'bold',
+    backBtn.on('pointerdown', () => {
+      this.playerSlots = Array(GRID_COLS * GRID_ROWS).fill(null);
+      this.deployedCount = 0;
+      this.selectedHeroForDeploy = null;
+      this.showDungeonList();
     });
 
-    const cardW = 70;
-    const cardH = 50;
-    const cardGap = 4;
-    const totalCardsW = FORMATIONS.length * cardW + (FORMATIONS.length - 1) * cardGap;
-    const cardsStartX = (GW - totalCardsW) / 2;
-    const cardsY = formationY + 26;
+    // ── 진형 선택 (그리드 위) ──
+    const formationY = 56;
+    const selFormation = FORMATIONS.find(f => f.id === this.selectedFormation) ?? null;
+
+    const fBtnW = 64;
+    const fBtnH = 38;
+    const fGap = 4;
+    const totalFW = FORMATIONS.length * fBtnW + (FORMATIONS.length - 1) * fGap;
+    const fStartX = (GW - totalFW) / 2;
 
     for (let i = 0; i < FORMATIONS.length; i++) {
       const f = FORMATIONS[i];
-      const cx = cardsStartX + i * (cardW + cardGap);
-      const isSelected = this.selectedFormation === f.id;
+      const fx = fStartX + i * (fBtnW + fGap);
+      const isSel = this.selectedFormation === f.id;
 
-      const cardBg = this.add.graphics();
-      cardBg.fillStyle(0x1a1a2e, 1);
-      cardBg.fillRoundedRect(cx, cardsY, cardW, cardH, 4);
-      cardBg.lineStyle(isSelected ? 2 : 1, isSelected ? 0xffd700 : 0x333355, 1);
-      cardBg.strokeRoundedRect(cx, cardsY, cardW, cardH, 4);
+      const fbg = this.add.graphics();
+      fbg.fillStyle(isSel ? 0x2a2a1a : 0x1a1a2e, 1);
+      fbg.fillRoundedRect(fx, formationY, fBtnW, fBtnH, 4);
+      fbg.lineStyle(isSel ? 2 : 1, isSel ? 0xffd700 : 0x333355, 1);
+      fbg.strokeRoundedRect(fx, formationY, fBtnW, fBtnH, 4);
 
-      this.add.text(cx + cardW / 2, cardsY + 14, f.icon, {
-        fontSize: isSelected ? '18px' : '15px',
+      this.add.text(fx + fBtnW / 2, formationY + 10, f.icon, {
+        fontSize: isSel ? '16px' : '13px',
+      }).setOrigin(0.5);
+      this.add.text(fx + fBtnW / 2, formationY + 28, f.name.split('(')[0], {
+        fontSize: '9px', color: isSel ? '#ffd700' : '#888888',
       }).setOrigin(0.5);
 
-      this.add.text(cx + cardW / 2, cardsY + 36, f.name.split('(')[0], {
-        fontSize: '11px', color: isSelected ? '#ffd700' : '#888888',
-      }).setOrigin(0.5);
+      this.add.rectangle(fx + fBtnW / 2, formationY + fBtnH / 2, fBtnW, fBtnH, 0x000000, 0)
+        .setInteractive({ useHandCursor: true })
+        .on('pointerdown', () => {
+          this.selectedFormation = this.selectedFormation === f.id ? null : f.id;
+          this.showTeamSelect(dungeon, difficulty);
+        });
+    }
 
-      const cardHit = this.add.rectangle(cx + cardW / 2, cardsY + cardH / 2, cardW, cardH, 0x000000, 0)
-        .setInteractive({ useHandCursor: true });
-      cardHit.on('pointerdown', () => {
-        this.selectedFormation = this.selectedFormation === f.id ? null : f.id;
+    // 선택된 진형 설명
+    let descEndY = formationY + fBtnH + 4;
+    if (selFormation) {
+      this.add.text(GW / 2, descEndY, `${selFormation.name} - ${selFormation.description}`, {
+        fontSize: '12px', color: '#88ccff',
+      }).setOrigin(0.5);
+      descEndY += 18;
+    }
+
+    // 던전 정보
+    this.add.text(GW / 2, descEndY, `웨이브 ${difficulty.waves}  |  적 Lv.${difficulty.enemyLevel}  |  ⚡${difficulty.stamina}`, {
+      fontSize: '13px', color: '#aaaaaa',
+    }).setOrigin(0.5);
+    descEndY += 16;
+
+    // 선택 상태 표시
+    const statusText = this.selectedHeroForDeploy
+      ? `"${this.selectedHeroForDeploy.name}" 배치할 칸을 선택하세요`
+      : `장수를 선택하세요 (${this.deployedCount}/${MAX_DEPLOY})`;
+    const statusColor = this.selectedHeroForDeploy ? '#ffaa00' : '#aaaaaa';
+    this.add.text(GW / 2, descEndY, statusText, {
+      fontSize: '14px', color: statusColor,
+    }).setOrigin(0.5);
+
+    // ── 3x3 그리드 ──
+    const colLabels = ['후열', '중열', '전열'];
+    const gridX = (GW - GRID_COLS * CELL_W) / 2;
+    const gridY = descEndY + 24;
+
+    for (let c = 0; c < GRID_COLS; c++) {
+      this.add.text(gridX + c * CELL_W + CELL_W / 2, gridY - 16, colLabels[c], {
+        fontSize: '13px', color: '#446688',
+      }).setOrigin(0.5);
+    }
+
+    for (let r = 0; r < GRID_ROWS; r++) {
+      for (let c = 0; c < GRID_COLS; c++) {
+        const x = gridX + c * CELL_W;
+        const y = gridY + r * CELL_H;
+        const idx = r * GRID_COLS + c;
+        const unit = this.playerSlots[idx];
+
+        // Determine if this cell is a pattern cell
+        const inPattern = selFormation ? isPatternSlot(selFormation, r, c) : true;
+        const isEmpty = !unit;
+        const canPlace = isEmpty && this.selectedHeroForDeploy && this.deployedCount < MAX_DEPLOY && inPattern;
+
+        const bg = this.add.graphics();
+        if (unit) {
+          bg.fillStyle(0x1a3a4a, 1);
+          bg.lineStyle(2, inPattern && selFormation ? 0xffd700 : 0x4488aa, 1);
+        } else if (!inPattern && selFormation) {
+          bg.fillStyle(0x0e0e1a, 0.6);
+          bg.lineStyle(1, 0x222233, 0.5);
+        } else if (canPlace) {
+          bg.fillStyle(0x2a3a2a, 1);
+          bg.lineStyle(2, selFormation ? 0xffd700 : 0x44aa44, 1);
+        } else {
+          bg.fillStyle(0x1a1a2a, 1);
+          bg.lineStyle(1, inPattern && selFormation ? 0x88aa44 : 0x333344, 1);
+        }
+        bg.fillRoundedRect(x, y, CELL_W - 4, CELL_H - 4, 4);
+        bg.strokeRoundedRect(x, y, CELL_W - 4, CELL_H - 4, 4);
+
+        if (unit) {
+          const grade = unit.grade ?? 'N';
+          const gradeColor = getGradeColor(grade as HeroGrade);
+          this.add.text(x + (CELL_W - 4) / 2, y + 12, `[${grade}]`, {
+            fontSize: '13px', color: gradeColor, fontStyle: 'bold',
+          }).setOrigin(0.5);
+          this.add.text(x + (CELL_W - 4) / 2, y + 28, unit.name, {
+            fontSize: '16px', color: '#ffffff', fontStyle: 'bold',
+          }).setOrigin(0.5);
+          const cls = unit.unitClass ? UNIT_CLASS_DEFS[unit.unitClass]?.name ?? '' : '';
+          this.add.text(x + (CELL_W - 4) / 2, y + 50, `${cls} Lv.${unit.level ?? 1}`, {
+            fontSize: '13px', color: '#88aacc',
+          }).setOrigin(0.5);
+
+          // 제거 버튼
+          const removeBtn = this.add.text(x + CELL_W - 12, y + 2, '×', {
+            fontSize: '16px', color: '#ff6666',
+          }).setInteractive({ useHandCursor: true });
+          removeBtn.on('pointerdown', () => {
+            this.playerSlots[idx] = null;
+            this.deployedCount--;
+            this.selectedHeroForDeploy = null;
+            this.showTeamSelect(dungeon, difficulty);
+          });
+        } else if (!inPattern && selFormation) {
+          this.add.text(x + (CELL_W - 4) / 2, y + (CELL_H - 4) / 2, '✕', {
+            fontSize: '16px', color: '#333344',
+          }).setOrigin(0.5);
+        } else {
+          const cellText = canPlace ? '배치' : (inPattern && selFormation ? '배치' : '빈칸');
+          const cellColor = canPlace ? '#44aa44' : (inPattern && selFormation ? '#667744' : '#444444');
+          this.add.text(x + (CELL_W - 4) / 2, y + (CELL_H - 4) / 2, cellText, {
+            fontSize: '14px', color: cellColor,
+          }).setOrigin(0.5);
+
+          if (canPlace) {
+            const hitArea = this.add.rectangle(x + (CELL_W - 4) / 2, y + (CELL_H - 4) / 2, CELL_W - 4, CELL_H - 4, 0x000000, 0)
+              .setInteractive({ useHandCursor: true });
+            hitArea.on('pointerdown', () => {
+              this.playerSlots[idx] = this.selectedHeroForDeploy;
+              this.deployedCount++;
+              this.selectedHeroForDeploy = null;
+              this.showTeamSelect(dungeon, difficulty);
+            });
+          }
+        }
+      }
+    }
+
+    // ── 장수 목록 ──
+    const listY = gridY + GRID_ROWS * CELL_H + 12;
+    this.add.text(15, listY, '── 장수 선택 ──', {
+      fontSize: '16px', color: '#88aacc', fontStyle: 'bold',
+    });
+
+    if (this.selectedHeroForDeploy) {
+      const cancelBtn = this.add.text(GW - 80, listY, '선택 취소', {
+        fontSize: '14px', color: '#ff8888', backgroundColor: '#2a1a1a', padding: { x: 10, y: 6 },
+      }).setInteractive({ useHandCursor: true });
+      cancelBtn.on('pointerdown', () => {
+        this.selectedHeroForDeploy = null;
         this.showTeamSelect(dungeon, difficulty);
       });
     }
 
-    // 선택된 진형 설명
-    if (this.selectedFormation) {
-      const selF = FORMATIONS.find(f => f.id === this.selectedFormation);
-      if (selF) {
-        this.add.text(GW / 2, cardsY + cardH + 8, selF.description, {
-          fontSize: '13px', color: '#88ccff',
-        }).setOrigin(0.5);
+    const allUnits = this.campaignManager.getProgress().playerUnits;
+    const deployedIds = new Set(this.playerSlots.filter(Boolean).map(u => u!.id));
+    const available = allUnits.filter(u => !deployedIds.has(u.id));
+
+    const itemH = 52;
+    const maxShow = Math.min(available.length, 5);
+    for (let i = 0; i < maxShow; i++) {
+      const unit = available[i];
+      const y = listY + 28 + i * itemH;
+      const grade = unit.grade ?? 'N';
+      const gradeColor = getGradeColor(grade as HeroGrade);
+      const cls = unit.unitClass ? UNIT_CLASS_DEFS[unit.unitClass]?.name ?? '' : '';
+      const isSelected = this.selectedHeroForDeploy?.id === unit.id;
+
+      const rowBg = this.add.graphics();
+      rowBg.fillStyle(isSelected ? 0x2a3a2a : 0x111122, 0.8);
+      rowBg.fillRoundedRect(12, y - 2, GW - 24, itemH - 2, 3);
+
+      this.add.text(18, y + 8, `[${grade}]`, { fontSize: '14px', color: gradeColor, fontStyle: 'bold' });
+      this.add.text(52, y + 4, unit.name, { fontSize: '17px', color: isSelected ? '#44ff44' : '#ffffff', fontStyle: 'bold' });
+      this.add.text(52, y + 26, `${cls} Lv.${unit.level ?? 1}  ATK:${unit.stats.attack}`, { fontSize: '14px', color: '#888888' });
+
+      if (this.deployedCount < MAX_DEPLOY && !isSelected) {
+        const selectBtn = this.add.text(GW - 70, y + 8, '선택', {
+          fontSize: '16px', color: '#ffffff', backgroundColor: '#3366aa', padding: { x: 14, y: 10 },
+        }).setInteractive({ useHandCursor: true });
+        selectBtn.on('pointerdown', () => {
+          this.selectedHeroForDeploy = unit;
+          this.showTeamSelect(dungeon, difficulty);
+        });
+      } else if (isSelected) {
+        this.add.text(GW - 70, y + 8, '선택됨', {
+          fontSize: '14px', color: '#44ff44',
+        });
       }
     }
 
-    // 전투 시작 버튼 (full width, prominent)
-    const btnG = this.add.graphics();
-    btnG.fillStyle(0xaa3333, 1);
-    btnG.fillRoundedRect(20, GH - 70, GW - 40, 54, 8);
-    btnG.lineStyle(2, 0xffd700, 0.6);
-    btnG.strokeRoundedRect(20, GH - 70, GW - 40, 54, 8);
+    // ── 전투 시작 버튼 ──
+    if (this.deployedCount > 0 && !this.selectedHeroForDeploy) {
+      const formationComplete = selFormation ? isFormationComplete(selFormation, this.playerSlots) : true;
+      const canStart = selFormation ? formationComplete : true;
 
-    this.add.text(GW / 2, GH - 43, '⚔️ 전투 시작', {
-      fontSize: '22px', color: '#ffffff', fontStyle: 'bold',
-    }).setOrigin(0.5);
+      const btnG = this.add.graphics();
+      btnG.fillStyle(canStart ? 0xaa3333 : 0x333333, 1);
+      btnG.fillRoundedRect(20, GH - 70, GW - 40, 54, 8);
+      btnG.lineStyle(2, canStart ? 0xffd700 : 0x555555, 0.6);
+      btnG.strokeRoundedRect(20, GH - 70, GW - 40, 54, 8);
 
-    const startHit = this.add.rectangle(GW / 2, GH - 43, GW - 40, 54, 0x000000, 0)
-      .setInteractive({ useHandCursor: true });
-    startHit.on('pointerdown', () => this.startDungeonBattle(sortedUnits));
+      if (selFormation && !formationComplete) {
+        this.add.text(GW / 2, GH - 43, '진형을 완성하세요', {
+          fontSize: '18px', color: '#ff8888', fontStyle: 'bold',
+        }).setOrigin(0.5);
+      } else {
+        this.add.text(GW / 2, GH - 43, '⚔️ 전투 시작', {
+          fontSize: '22px', color: '#ffffff', fontStyle: 'bold',
+        }).setOrigin(0.5);
+
+        this.add.rectangle(GW / 2, GH - 43, GW - 40, 54, 0x000000, 0)
+          .setInteractive({ useHandCursor: true })
+          .on('pointerdown', () => this.startDungeonBattle());
+      }
+    }
 
     // 소탕 버튼 (★3 클리어 시)
     const key = `${dungeon.id}_${difficulty.level}`;
     const stars = (this.campaignManager.getProgress().dungeonStars ?? {})[key] ?? 0;
     if (stars >= 3) {
+      const sweepBtnY = this.deployedCount > 0 ? GH - 132 : GH - 70;
       const sweepG = this.add.graphics();
       sweepG.fillStyle(0x1a3a1a, 1);
-      sweepG.fillRoundedRect(20, GH - 132, GW - 40, 50, 8);
+      sweepG.fillRoundedRect(20, sweepBtnY, GW - 40, 50, 8);
       sweepG.lineStyle(1, 0x44ff44, 0.4);
-      sweepG.strokeRoundedRect(20, GH - 132, GW - 40, 50, 8);
+      sweepG.strokeRoundedRect(20, sweepBtnY, GW - 40, 50, 8);
 
-      this.add.text(GW / 2, GH - 107, '🧹 소탕 (전투 스킵)', {
+      this.add.text(GW / 2, sweepBtnY + 25, '🧹 소탕 (전투 스킵)', {
         fontSize: '18px', color: '#44ff44', fontStyle: 'bold',
       }).setOrigin(0.5);
 
-      const sweepHit = this.add.rectangle(GW / 2, GH - 107, GW - 40, 50, 0x000000, 0)
+      const sweepHit = this.add.rectangle(GW / 2, sweepBtnY + 25, GW - 40, 50, 0x000000, 0)
         .setInteractive({ useHandCursor: true });
       sweepHit.on('pointerdown', () => this.executeSweep());
     }
@@ -421,19 +567,21 @@ export class DailyDungeonScene extends Phaser.Scene {
 
   // ── 전투 시작 ──
 
-  private startDungeonBattle(playerUnits: UnitData[]): void {
+  private startDungeonBattle(): void {
     if (!this.selectedDungeon || !this.selectedDifficulty) return;
     const progress = this.campaignManager.getProgress();
     progress.stamina = (progress.stamina ?? 0) - this.selectedDifficulty.stamina;
 
+    // Collect deployed units from the 3x3 grid
+    const playerUnits = this.playerSlots.filter(Boolean) as UnitData[];
+
     this.battleUnits = [];
 
-    // 진형 버프를 statusEffects로 적용
+    // 진형 버프를 statusEffects로 적용 (패턴 완성 시에만)
     if (this.selectedFormation) {
       const formation = FORMATIONS.find(f => f.id === this.selectedFormation);
-      if (formation) {
+      if (formation && isFormationComplete(formation, this.playerSlots)) {
         for (const buff of formation.buffs) {
-          if (buff.targetFilter && buff.targetFilter !== 'all') continue;
           for (const unit of playerUnits) {
             if (!unit.statusEffects) unit.statusEffects = [];
             unit.statusEffects.push({

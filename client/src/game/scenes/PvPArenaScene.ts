@@ -13,7 +13,7 @@ import type { HeroGrade } from '@shared/data/gachaDefs.ts';
 import { getTier, calculateEloChange, getNextTierProgress, DAILY_PVP_TICKETS } from '@shared/data/pvpDefs.ts';
 import { pvpRecordResult, addGold } from '../../api/client.ts';
 import { preloadUnitImages, hasUnitImage } from '../systems/UnitSpriteManager.ts';
-import { FORMATIONS } from '@shared/data/formationDefs.ts';
+import { FORMATIONS, isFormationComplete, isPatternSlot } from '@shared/data/formationDefs.ts';
 
 const GW = GAME_WIDTH;
 const GH = GAME_HEIGHT;
@@ -331,23 +331,68 @@ export class PvPArenaScene extends Phaser.Scene {
     }).setInteractive({ useHandCursor: true });
     backBtn.on('pointerdown', () => this.showArenaHome());
 
+    // ── 진형 선택 (그리드 위) ──
+    const formationY = 56;
+    const selFormation = FORMATIONS.find(f => f.id === this.selectedFormation) ?? null;
+
+    const fBtnW = 64;
+    const fBtnH = 38;
+    const fGap = 4;
+    const totalFW = FORMATIONS.length * fBtnW + (FORMATIONS.length - 1) * fGap;
+    const fStartX = (GW - totalFW) / 2;
+
+    for (let i = 0; i < FORMATIONS.length; i++) {
+      const f = FORMATIONS[i];
+      const fx = fStartX + i * (fBtnW + fGap);
+      const isSel = this.selectedFormation === f.id;
+
+      const fbg = this.add.graphics();
+      fbg.fillStyle(isSel ? 0x2a2a1a : 0x1a1a2e, 1);
+      fbg.fillRoundedRect(fx, formationY, fBtnW, fBtnH, 4);
+      fbg.lineStyle(isSel ? 2 : 1, isSel ? 0xffd700 : 0x333355, 1);
+      fbg.strokeRoundedRect(fx, formationY, fBtnW, fBtnH, 4);
+
+      this.add.text(fx + fBtnW / 2, formationY + 10, f.icon, {
+        fontSize: isSel ? '16px' : '13px',
+      }).setOrigin(0.5);
+      this.add.text(fx + fBtnW / 2, formationY + 28, f.name.split('(')[0], {
+        fontSize: '9px', color: isSel ? '#ffd700' : '#888888',
+      }).setOrigin(0.5);
+
+      this.add.rectangle(fx + fBtnW / 2, formationY + fBtnH / 2, fBtnW, fBtnH, 0x000000, 0)
+        .setInteractive({ useHandCursor: true })
+        .on('pointerdown', () => {
+          this.selectedFormation = this.selectedFormation === f.id ? null : f.id;
+          this.showDeployPhase();
+        });
+    }
+
+    // 선택된 진형 설명
+    let descEndY = formationY + fBtnH + 4;
+    if (selFormation) {
+      this.add.text(GW / 2, descEndY, `${selFormation.name} - ${selFormation.description}`, {
+        fontSize: '12px', color: '#88ccff',
+      }).setOrigin(0.5);
+      descEndY += 18;
+    }
+
     // 선택 상태 표시
     const statusText = this.selectedHeroForDeploy
       ? `"${this.selectedHeroForDeploy.name}" 배치할 칸을 선택하세요`
       : `장수를 선택하세요 (${this.deployedCount}/${MAX_DEPLOY})`;
     const statusColor = this.selectedHeroForDeploy ? '#ffaa00' : '#aaaaaa';
-    this.add.text(GW / 2, 58, statusText, {
-      fontSize: '15px', color: statusColor,
+    this.add.text(GW / 2, descEndY, statusText, {
+      fontSize: '14px', color: statusColor,
     }).setOrigin(0.5);
 
-    // 열 라벨 (후열←→전열)
+    // ── 3x3 그리드 ──
     const colLabels = ['후열', '중열', '전열'];
     const gridX = (GW - GRID_COLS * CELL_W) / 2;
-    const gridY = 86;
+    const gridY = descEndY + 24;
 
     for (let c = 0; c < GRID_COLS; c++) {
-      this.add.text(gridX + c * CELL_W + CELL_W / 2, gridY - 18, colLabels[c], {
-        fontSize: '14px', color: '#446688',
+      this.add.text(gridX + c * CELL_W + CELL_W / 2, gridY - 16, colLabels[c], {
+        fontSize: '13px', color: '#446688',
       }).setOrigin(0.5);
     }
 
@@ -358,13 +403,27 @@ export class PvPArenaScene extends Phaser.Scene {
         const idx = r * GRID_COLS + c;
         const unit = this.playerSlots[idx];
 
+        // Determine if this cell is a pattern cell
+        const inPattern = selFormation ? isPatternSlot(selFormation, r, c) : true;
         const isEmpty = !unit;
-        const isHighlight = isEmpty && this.selectedHeroForDeploy && this.deployedCount < MAX_DEPLOY;
+        const canPlace = isEmpty && this.selectedHeroForDeploy && this.deployedCount < MAX_DEPLOY && inPattern;
 
         const bg = this.add.graphics();
-        bg.fillStyle(unit ? 0x1a3a4a : isHighlight ? 0x2a3a2a : 0x1a1a2a, 1);
+        if (unit) {
+          bg.fillStyle(0x1a3a4a, 1);
+          bg.lineStyle(2, inPattern && selFormation ? 0xffd700 : 0x4488aa, 1);
+        } else if (!inPattern && selFormation) {
+          // Non-pattern cell: dimmed/locked
+          bg.fillStyle(0x0e0e1a, 0.6);
+          bg.lineStyle(1, 0x222233, 0.5);
+        } else if (canPlace) {
+          bg.fillStyle(0x2a3a2a, 1);
+          bg.lineStyle(2, selFormation ? 0xffd700 : 0x44aa44, 1);
+        } else {
+          bg.fillStyle(0x1a1a2a, 1);
+          bg.lineStyle(1, inPattern && selFormation ? 0x88aa44 : 0x333344, 1);
+        }
         bg.fillRoundedRect(x, y, CELL_W - 4, CELL_H - 4, 4);
-        bg.lineStyle(1, unit ? 0x4488aa : isHighlight ? 0x44aa44 : 0x333344, 1);
         bg.strokeRoundedRect(x, y, CELL_W - 4, CELL_H - 4, 4);
 
         if (unit) {
@@ -391,16 +450,20 @@ export class PvPArenaScene extends Phaser.Scene {
             this.selectedHeroForDeploy = null;
             this.showDeployPhase();
           });
+        } else if (!inPattern && selFormation) {
+          // Locked cell
+          this.add.text(x + (CELL_W - 4) / 2, y + (CELL_H - 4) / 2, '✕', {
+            fontSize: '16px', color: '#333344',
+          }).setOrigin(0.5);
         } else {
-          // 빈 칸 - 장수 선택 상태면 클릭으로 배치
-          const cellText = isHighlight ? '여기에 배치' : '빈칸';
-          const cellColor = isHighlight ? '#44aa44' : '#444444';
+          // Empty cell
+          const cellText = canPlace ? '배치' : (inPattern && selFormation ? '배치' : '빈칸');
+          const cellColor = canPlace ? '#44aa44' : (inPattern && selFormation ? '#667744' : '#444444');
           this.add.text(x + (CELL_W - 4) / 2, y + (CELL_H - 4) / 2, cellText, {
             fontSize: '14px', color: cellColor,
           }).setOrigin(0.5);
 
-          if (isHighlight) {
-            // 칸 클릭 영역
+          if (canPlace) {
             const hitArea = this.add.rectangle(x + (CELL_W - 4) / 2, y + (CELL_H - 4) / 2, CELL_W - 4, CELL_H - 4, 0x000000, 0)
               .setInteractive({ useHandCursor: true });
             hitArea.on('pointerdown', () => {
@@ -414,8 +477,8 @@ export class PvPArenaScene extends Phaser.Scene {
       }
     }
 
-    // 장수 목록
-    const listY = gridY + GRID_ROWS * CELL_H + 16;
+    // ── 장수 목록 ──
+    const listY = gridY + GRID_ROWS * CELL_H + 12;
     this.add.text(15, listY, '── 장수 선택 ──', {
       fontSize: '16px', color: '#88aacc', fontStyle: 'bold',
     });
@@ -467,71 +530,31 @@ export class PvPArenaScene extends Phaser.Scene {
       }
     }
 
-    // ── 진형 선택 ──
-    const formationY = listY + 28 + maxShow * itemH + 8;
-    this.add.text(15, formationY, '── 진형 선택 ──', {
-      fontSize: '16px', color: '#88aacc', fontStyle: 'bold',
-    });
-
-    const cardW = 70;
-    const cardH = 50;
-    const cardGap = 4;
-    const totalCardsW = FORMATIONS.length * cardW + (FORMATIONS.length - 1) * cardGap;
-    const cardsStartX = (GW - totalCardsW) / 2;
-    const cardsY = formationY + 26;
-
-    for (let i = 0; i < FORMATIONS.length; i++) {
-      const f = FORMATIONS[i];
-      const cx = cardsStartX + i * (cardW + cardGap);
-      const isSelected = this.selectedFormation === f.id;
-
-      const cardBg = this.add.graphics();
-      cardBg.fillStyle(0x1a1a2e, 1);
-      cardBg.fillRoundedRect(cx, cardsY, cardW, cardH, 4);
-      cardBg.lineStyle(isSelected ? 2 : 1, isSelected ? 0xffd700 : 0x333355, 1);
-      cardBg.strokeRoundedRect(cx, cardsY, cardW, cardH, 4);
-
-      this.add.text(cx + cardW / 2, cardsY + 14, f.icon, {
-        fontSize: isSelected ? '18px' : '15px',
-      }).setOrigin(0.5);
-
-      this.add.text(cx + cardW / 2, cardsY + 36, f.name.split('(')[0], {
-        fontSize: '11px', color: isSelected ? '#ffd700' : '#888888',
-      }).setOrigin(0.5);
-
-      const cardHit = this.add.rectangle(cx + cardW / 2, cardsY + cardH / 2, cardW, cardH, 0x000000, 0)
-        .setInteractive({ useHandCursor: true });
-      cardHit.on('pointerdown', () => {
-        this.selectedFormation = this.selectedFormation === f.id ? null : f.id;
-        this.showDeployPhase();
-      });
-    }
-
-    // 선택된 진형 설명
-    if (this.selectedFormation) {
-      const selF = FORMATIONS.find(f => f.id === this.selectedFormation);
-      if (selF) {
-        this.add.text(GW / 2, cardsY + cardH + 8, selF.description, {
-          fontSize: '13px', color: '#88ccff',
-        }).setOrigin(0.5);
-      }
-    }
-
-    // 전투 시작 버튼 (full width, prominent)
+    // ── 전투 시작 버튼 ──
     if (this.deployedCount > 0 && !this.selectedHeroForDeploy) {
+      // Check formation completeness
+      const formationComplete = selFormation ? isFormationComplete(selFormation, this.playerSlots) : true;
+      const canStart = selFormation ? formationComplete : true;
+
       const btnG = this.add.graphics();
-      btnG.fillStyle(0xaa3333, 1);
+      btnG.fillStyle(canStart ? 0xaa3333 : 0x333333, 1);
       btnG.fillRoundedRect(20, GH - 70, GW - 40, 54, 8);
-      btnG.lineStyle(2, 0xffd700, 0.6);
+      btnG.lineStyle(2, canStart ? 0xffd700 : 0x555555, 0.6);
       btnG.strokeRoundedRect(20, GH - 70, GW - 40, 54, 8);
 
-      this.add.text(GW / 2, GH - 43, '⚔️ 전투 시작', {
-        fontSize: '22px', color: '#ffffff', fontStyle: 'bold',
-      }).setOrigin(0.5);
+      if (selFormation && !formationComplete) {
+        this.add.text(GW / 2, GH - 43, '진형을 완성하세요', {
+          fontSize: '18px', color: '#ff8888', fontStyle: 'bold',
+        }).setOrigin(0.5);
+      } else {
+        this.add.text(GW / 2, GH - 43, '⚔️ 전투 시작', {
+          fontSize: '22px', color: '#ffffff', fontStyle: 'bold',
+        }).setOrigin(0.5);
 
-      this.add.rectangle(GW / 2, GH - 43, GW - 40, 54, 0x000000, 0)
-        .setInteractive({ useHandCursor: true })
-        .on('pointerdown', () => this.startArenaBattle());
+        this.add.rectangle(GW / 2, GH - 43, GW - 40, 54, 0x000000, 0)
+          .setInteractive({ useHandCursor: true })
+          .on('pointerdown', () => this.startArenaBattle());
+      }
     }
   }
 
@@ -572,13 +595,12 @@ export class PvPArenaScene extends Phaser.Scene {
       });
     }
 
-    // 진형 버프 적용
+    // 진형 버프 적용 (패턴 완성 시에만)
     if (this.selectedFormation) {
       const formation = FORMATIONS.find(f => f.id === this.selectedFormation);
-      if (formation) {
+      if (formation && isFormationComplete(formation, this.playerSlots)) {
         const playerUnits = this.battleUnits.filter(u => u.side === 'player');
         for (const buff of formation.buffs) {
-          if (buff.targetFilter && buff.targetFilter !== 'all') continue;
           for (const unit of playerUnits) {
             if (buff.statusEffect === 'attack_up') unit.attack += buff.magnitude;
             if (buff.statusEffect === 'defense_up') unit.defense += buff.magnitude;
