@@ -544,13 +544,16 @@ export class SaveService {
     const unit = playerUnits.find(u => u.id === unitId);
     if (!unit) throw new BadRequestException('Unit not found');
 
-    // Verify the unit actually has this skill
-    const allSkillIds: string[] = [];
-    if (unit.classSkillId) allSkillIds.push(unit.classSkillId);
-    if (unit.uniqueSkill && unit.uniqueSkillUnlocked) allSkillIds.push(unit.uniqueSkill);
-    if (unit.equippedSkills) allSkillIds.push(...unit.equippedSkills);
-    if (unit.skills) allSkillIds.push(...unit.skills);
-    if (!allSkillIds.includes(skillId)) {
+    // 병종 스킬은 강화 불가 (승급으로만 강해짐)
+    if (skillId.startsWith('class_')) {
+      throw new BadRequestException('병종 스킬은 강화할 수 없습니다');
+    }
+
+    // Verify the unit actually has this skill (고유 + 장착만)
+    const enhanceableSkillIds: string[] = [];
+    if (unit.uniqueSkill && unit.uniqueSkillUnlocked) enhanceableSkillIds.push(unit.uniqueSkill);
+    if (unit.equippedSkills) enhanceableSkillIds.push(...unit.equippedSkills);
+    if (!enhanceableSkillIds.includes(skillId)) {
       throw new BadRequestException('Unit does not have this skill');
     }
 
