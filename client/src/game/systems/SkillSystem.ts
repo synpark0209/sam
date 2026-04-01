@@ -6,8 +6,15 @@ import { getClassSkillId } from '@shared/data/classSkillDefs.ts';
 import { getSkillPowerMultiplier, getSkillMpCost, getSkillCooldown } from '@shared/data/skillEnhanceDefs.ts';
 import type { GridSystem } from './GridSystem.ts';
 
-export class SkillSystem {
-  /** 유닛의 4슬롯 스킬 ID 목록 반환 */
+  /** 전투 모드 */
+  private mode: 'scenario' | 'pvp' | 'dungeon' | 'full' = 'full';
+
+  /** 모드 설정 (시나리오: 병종+고유만, 그 외: 전체 4슬롯) */
+  setMode(mode: 'scenario' | 'pvp' | 'dungeon' | 'full'): void {
+    this.mode = mode;
+  }
+
+  /** 유닛의 스킬 ID 목록 반환 (모드에 따라 슬롯 제한) */
   getAllSkillIds(unit: UnitData): string[] {
     const ids: string[] = [];
 
@@ -22,8 +29,8 @@ export class SkillSystem {
       ids.push(unit.uniqueSkill);
     }
 
-    // 슬롯3~4: 장착 스킬
-    if (unit.equippedSkills) {
+    // 슬롯3~4: 장착 스킬 (시나리오 모드에서는 사용 불가)
+    if (this.mode !== 'scenario' && unit.equippedSkills) {
       const maxSlots = (unit.level ?? 1) >= 10 ? 2 : 1;
       ids.push(...unit.equippedSkills.slice(0, maxSlots));
     }
