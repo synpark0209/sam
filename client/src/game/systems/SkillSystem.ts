@@ -6,6 +6,7 @@ import { getClassSkillId } from '@shared/data/classSkillDefs.ts';
 import { getSkillPowerMultiplier, getSkillMpCost, getSkillCooldown } from '@shared/data/skillEnhanceDefs.ts';
 import type { GridSystem } from './GridSystem.ts';
 
+export class SkillSystem {
   /** 전투 모드 */
   private mode: 'scenario' | 'pvp' | 'dungeon' | 'full' = 'full';
 

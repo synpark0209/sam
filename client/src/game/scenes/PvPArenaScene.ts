@@ -14,7 +14,6 @@ import { getTier, calculateEloChange, getNextTierProgress, DAILY_PVP_TICKETS } f
 import { pvpRecordResult, addGold } from '../../api/client.ts';
 import { preloadUnitImages, hasUnitImage } from '../systems/UnitSpriteManager.ts';
 import { FORMATIONS } from '@shared/data/formationDefs.ts';
-import type { FormationDef } from '@shared/data/formationDefs.ts';
 
 const GW = GAME_WIDTH;
 const GH = GAME_HEIGHT;

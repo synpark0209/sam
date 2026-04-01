@@ -14,7 +14,6 @@ import {
 import type { DungeonDef, DungeonDifficulty, DungeonReward } from '@shared/data/dungeonDefs.ts';
 import { dungeonComplete } from '../../api/client.ts';
 import { FORMATIONS } from '@shared/data/formationDefs.ts';
-import type { FormationDef } from '@shared/data/formationDefs.ts';
 
 const GW = GAME_WIDTH;
 const GH = GAME_HEIGHT;
