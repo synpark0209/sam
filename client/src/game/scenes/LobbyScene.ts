@@ -613,19 +613,23 @@ export class LobbyScene extends Phaser.Scene {
     this.add.graphics().fillStyle(0x6666cc, 1).fillRoundedRect(expBarX, 95, expBarW * (exp / 100), 6, 3);
     this.add.text(GW - 38, 92, `${exp}/100`, { fontSize: '12px', color: '#8888aa' });
 
-    // 스탯 카드
+    // 스탯 카드 — 전체 12개 스탯
     const statBg = this.add.graphics();
-    statBg.fillStyle(0x141428, 1).fillRoundedRect(15, 108, GW - 30, 70, 6);
+    statBg.fillStyle(0x141428, 1).fillRoundedRect(15, 108, GW - 30, 100, 6);
 
     const statData = [
       { label: 'HP', value: unit.stats.maxHp, color: '#44ff44' },
       { label: '공격', value: unit.stats.attack, color: '#ff6644' },
       { label: '방어', value: unit.stats.defense, color: '#4488ff' },
       { label: '정신', value: unit.stats.spirit ?? 0, color: '#cc88ff' },
+      { label: '속도', value: unit.stats.speed, color: '#88ccff' },
+      { label: '이동', value: unit.stats.moveRange, color: '#88ff88' },
+      { label: '사거리', value: unit.stats.attackRange, color: '#ffcc44' },
       { label: '민첩', value: unit.stats.agility ?? 0, color: '#44ccaa' },
       { label: '순발', value: unit.stats.critical ?? 0, color: '#ffaa44' },
-      { label: '속도', value: unit.stats.speed, color: '#88ccff' },
-      { label: '관통', value: unit.stats.penetration ?? 0, color: '#ff8844' },
+      { label: '사기', value: unit.stats.morale ?? 0, color: '#ff8888' },
+      { label: '관통', value: `${unit.stats.penetration ?? 0}%`, color: '#ff8844' },
+      { label: '저항', value: `${unit.stats.resist ?? 0}%`, color: '#8888ff' },
     ];
 
     for (let i = 0; i < statData.length; i++) {
@@ -640,7 +644,7 @@ export class LobbyScene extends Phaser.Scene {
     }
 
     // 스킬 섹션
-    const skillY = 190;
+    const skillY = 220;
     const skillBg = this.add.graphics();
     skillBg.fillStyle(0x141428, 1).fillRoundedRect(15, skillY, GW - 30, 20, 4);
     this.add.text(25, skillY + 4, '✨ 스킬', {
