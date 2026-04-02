@@ -59,11 +59,11 @@ const stage1Battle: BattleConfig = {
     { x: 8, y: 4, type: TileType.FOREST }, { x: 8, y: 5, type: TileType.FOREST },
   ]),
   enemyUnits: [
-    enemy('e8_1', '순욱', UnitClass.STRATEGIST, 8, 3, 9, { maxHp: 150, hp: 150, attack: 30, spirit: 50 }),
-    enemy('e8_2', '연주 수비병', UnitClass.INFANTRY, 7, 4, 8),
-    enemy('e8_3', '연주 수비병', UnitClass.INFANTRY, 7, 5, 8),
-    enemy('e8_4', '연주 궁수', UnitClass.ARCHER, 9, 3, 8),
-    enemy('e8_5', '연주 궁수', UnitClass.ARCHER, 9, 6, 8),
+    enemy('e8_1', '순욱', UnitClass.STRATEGIST, 8, 3, 14, { maxHp: 200, hp: 200, attack: 38, spirit: 58, defense: 18 }),
+    enemy('e8_2', '연주 수비병', UnitClass.INFANTRY, 7, 4, 13),
+    enemy('e8_3', '연주 수비병', UnitClass.INFANTRY, 7, 5, 13),
+    enemy('e8_4', '연주 궁수', UnitClass.ARCHER, 9, 3, 12),
+    enemy('e8_5', '연주 궁수', UnitClass.ARCHER, 9, 6, 12),
   ],
   playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 5 }, { x: 2, y: 3 }, { x: 2, y: 6 }],
 };
@@ -90,11 +90,11 @@ const stage2Battle: BattleConfig = {
     { x: 10, y: 4, type: TileType.FOREST }, { x: 10, y: 5, type: TileType.FOREST },
   ]),
   enemyUnits: [
-    enemy('e9_1', '조조', UnitClass.STRATEGIST, 10, 4, 12, { maxHp: 160, hp: 160, attack: 35, spirit: 55 }),
-    enemy('e9_2', '허저', UnitClass.MARTIAL_ARTIST, 8, 3, 10, { maxHp: 250, hp: 250, attack: 58 }),
-    enemy('e9_3', '전위', UnitClass.MARTIAL_ARTIST, 8, 6, 10, { maxHp: 240, hp: 240, attack: 56 }),
-    enemy('e9_4', '하후돈', UnitClass.INFANTRY, 9, 2, 10, { maxHp: 230, hp: 230, attack: 52 }),
-    enemy('e9_5', '악진', UnitClass.INFANTRY, 9, 7, 9, { maxHp: 210, hp: 210, attack: 48 }),
+    enemy('e9_1', '조조', UnitClass.STRATEGIST, 10, 4, 16, { maxHp: 220, hp: 220, attack: 42, spirit: 62, defense: 20 }),
+    enemy('e9_2', '허저', UnitClass.MARTIAL_ARTIST, 8, 3, 15, { maxHp: 300, hp: 300, attack: 68, defense: 25 }),
+    enemy('e9_3', '전위', UnitClass.MARTIAL_ARTIST, 8, 6, 15, { maxHp: 290, hp: 290, attack: 66, defense: 24 }),
+    enemy('e9_4', '하후돈', UnitClass.INFANTRY, 9, 2, 14, { maxHp: 280, hp: 280, attack: 62, defense: 28 }),
+    enemy('e9_5', '악진', UnitClass.INFANTRY, 9, 7, 13, { maxHp: 260, hp: 260, attack: 58, defense: 22 }),
   ],
   playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 5 }, { x: 1, y: 3 }, { x: 1, y: 6 }],
 };
