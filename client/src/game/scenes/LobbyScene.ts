@@ -1550,9 +1550,9 @@ export class LobbyScene extends Phaser.Scene {
 
     gachaPull(type, count).then(result => {
       loadingText.destroy();
-      this.campaignManager.incrementMission('gacha_1');
-      // 세이브 리로드 (서버에서 장수가 추가됨)
+      // 세이브 리로드 먼저 (서버에서 장수가 추가됨) → 그 후 미션 증가
       this.campaignManager.loadFromServer().then(() => {
+        this.campaignManager.incrementMission('gacha_1');
         this.showGachaResults(result);
       });
     }).catch((err: Error) => {
