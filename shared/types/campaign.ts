@@ -60,4 +60,8 @@ export interface CampaignProgress {
   pvpLosses?: number;
   pvpTicketsDate?: string;               // 일일 티켓 리셋 날짜
   pvpTicketsUsed?: number;
+  lastFormation?: Record<string, {       // 모드별 마지막 진형/배치 기억
+    formationId: string;
+    unitIds: (string | null)[];          // 9칸 그리드 (3x3)
+  }>;
 }

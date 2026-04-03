@@ -2,7 +2,6 @@ import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '@shared/constants.ts';
 import type { UnitData } from '@shared/types/index.ts';
 import { UnitClass } from '@shared/types/index.ts';
-import { UNIT_CLASS_DEFS } from '@shared/data/unitClassDefs.ts';
 import { SKILL_DEFS } from '@shared/data/skillDefs.ts';
 import { SkillEffectType } from '@shared/types/skill.ts';
 import { getClassSkillId } from '@shared/data/classSkillDefs.ts';
@@ -13,15 +12,13 @@ import type { HeroGrade } from '@shared/data/gachaDefs.ts';
 import { getTier, calculateEloChange, getNextTierProgress, DAILY_PVP_TICKETS } from '@shared/data/pvpDefs.ts';
 import { pvpRecordResult, addGold } from '../../api/client.ts';
 import { preloadUnitImages, hasUnitImage, hasPixelLabCharacter, createSpriteSheetAnimations } from '../systems/UnitSpriteManager.ts';
-import { FORMATIONS, isFormationComplete, isPatternSlot } from '@shared/data/formationDefs.ts';
+import { FORMATIONS, isFormationComplete } from '@shared/data/formationDefs.ts';
+import { DeploymentUI } from '../ui/DeploymentUI.ts';
 
 const GW = GAME_WIDTH;
 const GH = GAME_HEIGHT;
 const GRID_COLS = 3; // 열: 후열/중열/전열
 const GRID_ROWS = 3; // 행: 배치 라인
-const CELL_W = 100;
-const CELL_H = 80;
-const MAX_DEPLOY = 5;
 
 interface ArenaUnit {
   data: UnitData;
@@ -44,8 +41,7 @@ interface ArenaUnit {
 export class PvPArenaScene extends Phaser.Scene {
   private campaignManager!: CampaignManager;
   private playerSlots: (UnitData | null)[] = Array(GRID_COLS * GRID_ROWS).fill(null);
-  private deployedCount = 0;
-  private selectedHeroForDeploy: UnitData | null = null; // 배치할 장수 선택 상태
+  private deployUI: DeploymentUI | null = null;
   private battleUnits: ArenaUnit[] = [];
   private battleSpeed = 1;
   private battleLog: string[] = [];
@@ -70,7 +66,6 @@ export class PvPArenaScene extends Phaser.Scene {
   create(): void {
     (this.registry.get('audioManager') as AudioManager)?.playBgm('battle');
     this.playerSlots = Array(GRID_COLS * GRID_ROWS).fill(null);
-    this.deployedCount = 0;
     createSpriteSheetAnimations(this);
 
     // 서버에서 PvP 데이터 로드
@@ -316,261 +311,17 @@ export class PvPArenaScene extends Phaser.Scene {
   // ── 배치 화면 ──
 
   private showDeployPhase(): void {
-    this.children.removeAll();
-
-    // Gradient background
-    const g = this.add.graphics();
-    const steps = 32;
-    for (let i = 0; i < steps; i++) {
-      const t = i / steps;
-      const r = Math.round(8 + t * 6);
-      const gb = Math.round(8 + t * 14);
-      const color = (r << 16) | (gb << 8) | (gb + 8);
-      g.fillStyle(color, 1);
-      g.fillRect(0, Math.round((GH / steps) * i), GW, Math.ceil(GH / steps) + 1);
-    }
-
-    this.add.text(GW / 2, 22, '⚔️ PvP 아레나 - 배치', {
-      fontSize: '20px', color: '#ffd700', fontStyle: 'bold',
-    }).setOrigin(0.5);
-
-    // Decorative gold line under title
-    const lineY = 48;
-    g.fillStyle(0xffd700, 0.4);
-    g.fillRect(20, lineY, GW - 40, 1);
-    g.fillStyle(0xffd700, 0.8);
-    g.fillRect(GW / 2 - 40, lineY, 80, 2);
-
-    const backBtn = this.add.text(16, 14, '← 뒤로', {
-      fontSize: '15px', color: '#88aacc', backgroundColor: '#1a1a3a', padding: { x: 12, y: 8 },
-    }).setInteractive({ useHandCursor: true });
-    backBtn.on('pointerdown', () => this.showArenaHome());
-
-    // ── 진형 선택 (그리드 위) ──
-    const formationY = 56;
-    const selFormation = FORMATIONS.find(f => f.id === this.selectedFormation) ?? null;
-
-    const fBtnW = 64;
-    const fBtnH = 38;
-    const fGap = 4;
-    const totalFW = FORMATIONS.length * fBtnW + (FORMATIONS.length - 1) * fGap;
-    const fStartX = (GW - totalFW) / 2;
-
-    for (let i = 0; i < FORMATIONS.length; i++) {
-      const f = FORMATIONS[i];
-      const fx = fStartX + i * (fBtnW + fGap);
-      const isSel = this.selectedFormation === f.id;
-
-      const fbg = this.add.graphics();
-      fbg.fillStyle(isSel ? 0x2a2a1a : 0x1a1a2e, 1);
-      fbg.fillRoundedRect(fx, formationY, fBtnW, fBtnH, 4);
-      fbg.lineStyle(isSel ? 2 : 1, isSel ? 0xffd700 : 0x333355, 1);
-      fbg.strokeRoundedRect(fx, formationY, fBtnW, fBtnH, 4);
-
-      this.add.text(fx + fBtnW / 2, formationY + 10, f.icon, {
-        fontSize: isSel ? '16px' : '13px',
-      }).setOrigin(0.5);
-      this.add.text(fx + fBtnW / 2, formationY + 28, f.name.split('(')[0], {
-        fontSize: '9px', color: isSel ? '#ffd700' : '#888888',
-      }).setOrigin(0.5);
-
-      this.add.rectangle(fx + fBtnW / 2, formationY + fBtnH / 2, fBtnW, fBtnH, 0x000000, 0)
-        .setInteractive({ useHandCursor: true })
-        .on('pointerdown', () => {
-          this.selectedFormation = this.selectedFormation === f.id ? null : f.id;
-          this.showDeployPhase();
-        });
-    }
-
-    // 선택된 진형 설명
-    let descEndY = formationY + fBtnH + 4;
-    if (selFormation) {
-      this.add.text(GW / 2, descEndY, `${selFormation.name} - ${selFormation.description}`, {
-        fontSize: '12px', color: '#88ccff',
-      }).setOrigin(0.5);
-      descEndY += 18;
-    }
-
-    // 선택 상태 표시
-    const statusText = this.selectedHeroForDeploy
-      ? `"${this.selectedHeroForDeploy.name}" 배치할 칸을 선택하세요`
-      : `장수를 선택하세요 (${this.deployedCount}/${MAX_DEPLOY})`;
-    const statusColor = this.selectedHeroForDeploy ? '#ffaa00' : '#aaaaaa';
-    this.add.text(GW / 2, descEndY, statusText, {
-      fontSize: '14px', color: statusColor,
-    }).setOrigin(0.5);
-
-    // ── 3x3 그리드 ──
-    const colLabels = ['후열', '중열', '전열'];
-    const gridX = (GW - GRID_COLS * CELL_W) / 2;
-    const gridY = descEndY + 24;
-
-    for (let c = 0; c < GRID_COLS; c++) {
-      this.add.text(gridX + c * CELL_W + CELL_W / 2, gridY - 16, colLabels[c], {
-        fontSize: '13px', color: '#446688',
-      }).setOrigin(0.5);
-    }
-
-    for (let r = 0; r < GRID_ROWS; r++) {
-      for (let c = 0; c < GRID_COLS; c++) {
-        const x = gridX + c * CELL_W;
-        const y = gridY + r * CELL_H;
-        const idx = r * GRID_COLS + c;
-        const unit = this.playerSlots[idx];
-
-        // Determine if this cell is a pattern cell
-        const inPattern = selFormation ? isPatternSlot(selFormation, r, c) : true;
-        const isEmpty = !unit;
-        const canPlace = isEmpty && this.selectedHeroForDeploy && this.deployedCount < MAX_DEPLOY && inPattern;
-
-        const bg = this.add.graphics();
-        if (unit) {
-          bg.fillStyle(0x1a3a4a, 1);
-          bg.lineStyle(2, inPattern && selFormation ? 0xffd700 : 0x4488aa, 1);
-        } else if (!inPattern && selFormation) {
-          // Non-pattern cell: dimmed/locked
-          bg.fillStyle(0x0e0e1a, 0.6);
-          bg.lineStyle(1, 0x222233, 0.5);
-        } else if (canPlace) {
-          bg.fillStyle(0x2a3a2a, 1);
-          bg.lineStyle(2, selFormation ? 0xffd700 : 0x44aa44, 1);
-        } else {
-          bg.fillStyle(0x1a1a2a, 1);
-          bg.lineStyle(1, inPattern && selFormation ? 0x88aa44 : 0x333344, 1);
-        }
-        bg.fillRoundedRect(x, y, CELL_W - 4, CELL_H - 4, 4);
-        bg.strokeRoundedRect(x, y, CELL_W - 4, CELL_H - 4, 4);
-
-        if (unit) {
-          const grade = unit.grade ?? 'N';
-          const gradeColor = getGradeColor(grade as HeroGrade);
-          this.add.text(x + (CELL_W - 4) / 2, y + 12, `[${grade}]`, {
-            fontSize: '13px', color: gradeColor, fontStyle: 'bold',
-          }).setOrigin(0.5);
-          this.add.text(x + (CELL_W - 4) / 2, y + 28, unit.name, {
-            fontSize: '16px', color: '#ffffff', fontStyle: 'bold',
-          }).setOrigin(0.5);
-          const cls = unit.unitClass ? UNIT_CLASS_DEFS[unit.unitClass]?.name ?? '' : '';
-          this.add.text(x + (CELL_W - 4) / 2, y + 50, `${cls} Lv.${unit.level ?? 1}`, {
-            fontSize: '13px', color: '#88aacc',
-          }).setOrigin(0.5);
-
-          // 제거 버튼
-          const removeBtn = this.add.text(x + CELL_W - 12, y + 2, '×', {
-            fontSize: '16px', color: '#ff6666',
-          }).setInteractive({ useHandCursor: true });
-          removeBtn.on('pointerdown', () => {
-            this.playerSlots[idx] = null;
-            this.deployedCount--;
-            this.selectedHeroForDeploy = null;
-            this.showDeployPhase();
-          });
-        } else if (!inPattern && selFormation) {
-          // Locked cell
-          this.add.text(x + (CELL_W - 4) / 2, y + (CELL_H - 4) / 2, '✕', {
-            fontSize: '16px', color: '#333344',
-          }).setOrigin(0.5);
-        } else {
-          // Empty cell
-          const cellText = canPlace ? '배치' : (inPattern && selFormation ? '배치' : '빈칸');
-          const cellColor = canPlace ? '#44aa44' : (inPattern && selFormation ? '#667744' : '#444444');
-          this.add.text(x + (CELL_W - 4) / 2, y + (CELL_H - 4) / 2, cellText, {
-            fontSize: '14px', color: cellColor,
-          }).setOrigin(0.5);
-
-          if (canPlace) {
-            const hitArea = this.add.rectangle(x + (CELL_W - 4) / 2, y + (CELL_H - 4) / 2, CELL_W - 4, CELL_H - 4, 0x000000, 0)
-              .setInteractive({ useHandCursor: true });
-            hitArea.on('pointerdown', () => {
-              this.playerSlots[idx] = this.selectedHeroForDeploy;
-              this.deployedCount++;
-              this.selectedHeroForDeploy = null;
-              this.showDeployPhase();
-            });
-          }
-        }
-      }
-    }
-
-    // ── 장수 목록 ──
-    const listY = gridY + GRID_ROWS * CELL_H + 12;
-    this.add.text(15, listY, '── 장수 선택 ──', {
-      fontSize: '16px', color: '#88aacc', fontStyle: 'bold',
+    this.deployUI = new DeploymentUI(this, {
+      mode: 'pvp',
+      campaignManager: this.campaignManager,
+      title: '⚔️ PvP 아레나 - 배치',
+      onBack: () => this.showArenaHome(),
+      onStartBattle: (_formationId, slots) => {
+        this.playerSlots = slots;
+        this.selectedFormation = this.deployUI?.getFormation()?.id ?? null;
+        this.startArenaBattle();
+      },
     });
-
-    if (this.selectedHeroForDeploy) {
-      const cancelBtn = this.add.text(GW - 80, listY, '선택 취소', {
-        fontSize: '14px', color: '#ff8888', backgroundColor: '#2a1a1a', padding: { x: 10, y: 6 },
-      }).setInteractive({ useHandCursor: true });
-      cancelBtn.on('pointerdown', () => {
-        this.selectedHeroForDeploy = null;
-        this.showDeployPhase();
-      });
-    }
-
-    const allUnits = this.campaignManager.getProgress().playerUnits;
-    const deployedIds = new Set(this.playerSlots.filter(Boolean).map(u => u!.id));
-    const available = allUnits.filter(u => !deployedIds.has(u.id));
-
-    const itemH = 52;
-    const maxShow = Math.min(available.length, 5);
-    for (let i = 0; i < maxShow; i++) {
-      const unit = available[i];
-      const y = listY + 28 + i * itemH;
-      const grade = unit.grade ?? 'N';
-      const gradeColor = getGradeColor(grade as HeroGrade);
-      const cls = unit.unitClass ? UNIT_CLASS_DEFS[unit.unitClass]?.name ?? '' : '';
-      const isSelected = this.selectedHeroForDeploy?.id === unit.id;
-
-      const rowBg = this.add.graphics();
-      rowBg.fillStyle(isSelected ? 0x2a3a2a : 0x111122, 0.8);
-      rowBg.fillRoundedRect(12, y - 2, GW - 24, itemH - 2, 3);
-
-      this.add.text(18, y + 8, `[${grade}]`, { fontSize: '14px', color: gradeColor, fontStyle: 'bold' });
-      this.add.text(52, y + 4, unit.name, { fontSize: '17px', color: isSelected ? '#44ff44' : '#ffffff', fontStyle: 'bold' });
-      this.add.text(52, y + 26, `${cls} Lv.${unit.level ?? 1}  ATK:${unit.stats.attack}`, { fontSize: '14px', color: '#888888' });
-
-      if (this.deployedCount < MAX_DEPLOY && !isSelected) {
-        const selectBtn = this.add.text(GW - 70, y + 8, '선택', {
-          fontSize: '16px', color: '#ffffff', backgroundColor: '#3366aa', padding: { x: 14, y: 10 },
-        }).setInteractive({ useHandCursor: true });
-        selectBtn.on('pointerdown', () => {
-          this.selectedHeroForDeploy = unit;
-          this.showDeployPhase();
-        });
-      } else if (isSelected) {
-        this.add.text(GW - 70, y + 8, '선택됨', {
-          fontSize: '14px', color: '#44ff44',
-        });
-      }
-    }
-
-    // ── 전투 시작 버튼 ──
-    if (this.deployedCount > 0 && !this.selectedHeroForDeploy) {
-      // Check formation completeness
-      const formationComplete = selFormation ? isFormationComplete(selFormation, this.playerSlots) : true;
-      const canStart = selFormation ? formationComplete : true;
-
-      const btnG = this.add.graphics();
-      btnG.fillStyle(canStart ? 0xaa3333 : 0x333333, 1);
-      btnG.fillRoundedRect(20, GH - 70, GW - 40, 54, 8);
-      btnG.lineStyle(2, canStart ? 0xffd700 : 0x555555, 0.6);
-      btnG.strokeRoundedRect(20, GH - 70, GW - 40, 54, 8);
-
-      if (selFormation && !formationComplete) {
-        this.add.text(GW / 2, GH - 43, '진형을 완성하세요', {
-          fontSize: '18px', color: '#ff8888', fontStyle: 'bold',
-        }).setOrigin(0.5);
-      } else {
-        this.add.text(GW / 2, GH - 43, '⚔️ 전투 시작', {
-          fontSize: '22px', color: '#ffffff', fontStyle: 'bold',
-        }).setOrigin(0.5);
-
-        this.add.rectangle(GW / 2, GH - 43, GW - 40, 54, 0x000000, 0)
-          .setInteractive({ useHandCursor: true })
-          .on('pointerdown', () => this.startArenaBattle());
-      }
-    }
   }
 
   // ── 전투 실행 ──
@@ -1749,7 +1500,6 @@ export class PvPArenaScene extends Phaser.Scene {
       }).setOrigin(0.5).setInteractive({ useHandCursor: true });
       retryBtn.on('pointerdown', () => {
         this.playerSlots = Array(GRID_COLS * GRID_ROWS).fill(null);
-        this.deployedCount = 0;
         this.showDeployPhase();
       });
     }

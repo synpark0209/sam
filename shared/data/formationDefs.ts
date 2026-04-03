@@ -11,33 +11,32 @@ export interface FormationDef {
   name: string;
   icon: string;
   description: string;
-  /** 3×3 배치 패턴 (true = 장수 배치 필요) */
+  /** 3×3 배치 패턴 (true = 장수 배치 칸) — 상하 기준 */
   pattern: boolean[][];
-  /** 필요 장수 수 (pattern에서 true 개수) */
   unitCount: number;
   buffs: FormationBuff[];
 }
 
 /**
- * 3×3 그리드 진형 정의
- * 패턴: [row][col], row=0은 후열, row=2는 전열
+ * 3×3 그리드 진형 정의 (상하 방향 기준)
  *
- *   열0(후) 열1(중) 열2(전)
- * 행0  [ ]   [ ]   [ ]
- * 행1  [ ]   [ ]   [ ]
- * 행2  [ ]   [ ]   [ ]
+ * 행(row) 0 = 전열 (적 가까이)
+ * 행(row) 2 = 후열 (적 멀리)
+ * 열(col) 0~2 = 좌~우
+ *
+ * PvP에서는 90도 회전하여 좌우로 표시
  */
 export const FORMATIONS: FormationDef[] = [
   {
     id: 'crane_wing', name: '학익진(鶴翼陣)', icon: '🦅',
     description: '공격 +10, 사기 +15',
-    // V자 형태
+    // V자 + 중앙
     pattern: [
-      [false, false, true],
       [true,  false, true],
-      [false, false, true],
+      [false, true,  false],
+      [true,  false, true],
     ],
-    unitCount: 4,
+    unitCount: 5,
     buffs: [
       { statusEffect: 'attack_up', magnitude: 10, duration: 3 },
       { statusEffect: 'morale_up', magnitude: 15, duration: 3 },
@@ -46,13 +45,13 @@ export const FORMATIONS: FormationDef[] = [
   {
     id: 'fish_scale', name: '어린진(魚鱗陣)', icon: '🐟',
     description: '방어 +20, 공격 +10',
-    // 세로 중앙 + 전열
+    // 세로 중앙 + 전열 양쪽
     pattern: [
-      [false, true, false],
-      [false, true, true],
-      [false, true, false],
+      [true,  true,  true],
+      [false, true,  false],
+      [false, true,  false],
     ],
-    unitCount: 4,
+    unitCount: 5,
     buffs: [
       { statusEffect: 'defense_up', magnitude: 20, duration: 3 },
       { statusEffect: 'attack_up', magnitude: 10, duration: 3 },
@@ -61,7 +60,7 @@ export const FORMATIONS: FormationDef[] = [
   {
     id: 'arrow_head', name: '봉시진(鋒矢陣)', icon: '➤',
     description: '공격 +25, 사거리 +1',
-    // 화살촉: 중앙 세로 + 전열 양쪽
+    // 화살촉: 십자형
     pattern: [
       [false, true,  false],
       [true,  true,  true],
@@ -76,13 +75,13 @@ export const FORMATIONS: FormationDef[] = [
   {
     id: 'long_snake', name: '장사진(長蛇陣)', icon: '🐍',
     description: '이동 +1, 속도 +2',
-    // 가로 중앙 일렬 + 후열 1명
+    // 가로 + 세로 중앙
     pattern: [
       [true,  true,  true],
-      [false, false, false],
+      [false, true,  false],
       [false, true,  false],
     ],
-    unitCount: 4,
+    unitCount: 5,
     buffs: [
       { statusEffect: 'move_up', magnitude: 1, duration: 3 },
       { statusEffect: 'speed_up', magnitude: 2, duration: 3 },
@@ -91,11 +90,11 @@ export const FORMATIONS: FormationDef[] = [
   {
     id: 'square', name: '방원진(方圓陣)', icon: '🛡️',
     description: '방어 +15, 재생 +8',
-    // 밀집 사각 + 중앙
+    // 밀집 + 중앙
     pattern: [
-      [false, true, true],
-      [false, true, true],
-      [false, false, true],
+      [true,  false, true],
+      [true,  true,  false],
+      [true,  false, false],
     ],
     unitCount: 5,
     buffs: [
@@ -105,7 +104,22 @@ export const FORMATIONS: FormationDef[] = [
   },
 ];
 
-/** 진형 패턴 검증: 모든 패턴 칸에 장수가 배치되었는지 확인 */
+/** 최소 4칸 이상 채워졌는지 확인 (전투 시작 가능 조건) */
+export function isFormationReady(
+  formation: FormationDef,
+  slots: (unknown | null)[],
+): boolean {
+  let filled = 0;
+  for (let row = 0; row < 3; row++) {
+    for (let col = 0; col < 3; col++) {
+      const idx = row * 3 + col;
+      if (formation.pattern[row][col] && slots[idx]) filled++;
+    }
+  }
+  return filled >= 4;
+}
+
+/** 진형 패턴이 완전히 채워졌는지 확인 (5/5) */
 export function isFormationComplete(
   formation: FormationDef,
   slots: (unknown | null)[],
@@ -119,7 +133,21 @@ export function isFormationComplete(
   return true;
 }
 
-/** 특정 칸이 진형에서 활성화된 칸인지 확인 */
+/** 특정 칸이 진형 패턴 칸인지 확인 */
 export function isPatternSlot(formation: FormationDef, row: number, col: number): boolean {
   return formation.pattern[row]?.[col] ?? false;
+}
+
+/** 진형의 첫 번째 빈 패턴 칸 인덱스 반환 (-1이면 없음) */
+export function getFirstEmptyPatternSlot(
+  formation: FormationDef,
+  slots: (unknown | null)[],
+): number {
+  for (let row = 0; row < 3; row++) {
+    for (let col = 0; col < 3; col++) {
+      const idx = row * 3 + col;
+      if (formation.pattern[row][col] && !slots[idx]) return idx;
+    }
+  }
+  return -1;
 }
