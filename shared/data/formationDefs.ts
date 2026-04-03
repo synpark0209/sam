@@ -11,30 +11,31 @@ export interface FormationDef {
   name: string;
   icon: string;
   description: string;
-  /** 3×3 배치 패턴 (true = 장수 배치 칸) — 상하 기준 */
+  /**
+   * 3×3 배치 패턴 — 좌우 방향 기준
+   * pattern[row][col]
+   * col 0 = 후열 (왼쪽, 아군 뒤), col 2 = 전열 (오른쪽, 적 가까이)
+   * row 0~2 = 상~하 (세로 위치)
+   */
   pattern: boolean[][];
   unitCount: number;
   buffs: FormationBuff[];
 }
 
-/**
- * 3×3 그리드 진형 정의 (상하 방향 기준)
- *
- * 행(row) 0 = 전열 (적 가까이)
- * 행(row) 2 = 후열 (적 멀리)
- * 열(col) 0~2 = 좌~우
- *
- * PvP에서는 90도 회전하여 좌우로 표시
- */
 export const FORMATIONS: FormationDef[] = [
   {
     id: 'crane_wing', name: '학익진(鶴翼陣)', icon: '🦅',
     description: '공격 +10, 사기 +15',
-    // V자 + 중앙
+    // 옆으로 누운 V자: 전열 중앙 + 후열 상하
+    //  ●  ·  ·
+    //  ·  ●  ●
+    //  ●  ·  ·
+    //  ·  ●  ·
+    //  → 5칸 sideways V
     pattern: [
       [true,  false, true],
-      [false, true,  false],
-      [true,  false, true],
+      [false, true,  true],
+      [true,  true,  false],
     ],
     unitCount: 5,
     buffs: [
@@ -45,11 +46,14 @@ export const FORMATIONS: FormationDef[] = [
   {
     id: 'fish_scale', name: '어린진(魚鱗陣)', icon: '🐟',
     description: '방어 +20, 공격 +10',
-    // 세로 중앙 + 전열 양쪽
+    // 옆으로 누운 T자: 전열 세로 3칸 + 중열 중앙 + 후열 중앙
+    //  ·  ·  ●
+    //  ●  ●  ●
+    //  ·  ·  ●
     pattern: [
+      [false, false, true],
       [true,  true,  true],
-      [false, true,  false],
-      [false, true,  false],
+      [false, false, true],
     ],
     unitCount: 5,
     buffs: [
@@ -60,7 +64,10 @@ export const FORMATIONS: FormationDef[] = [
   {
     id: 'arrow_head', name: '봉시진(鋒矢陣)', icon: '➤',
     description: '공격 +25, 사거리 +1',
-    // 화살촉: 십자형
+    // 화살촉: 가로 십자
+    //  ·  ●  ·
+    //  ●  ●  ●
+    //  ·  ●  ·
     pattern: [
       [false, true,  false],
       [true,  true,  true],
@@ -75,11 +82,14 @@ export const FORMATIONS: FormationDef[] = [
   {
     id: 'long_snake', name: '장사진(長蛇陣)', icon: '🐍',
     description: '이동 +1, 속도 +2',
-    // 가로 + 세로 중앙
+    // 가로 뱀: 중앙 가로 + 상하 전열
+    //  ·  ·  ●
+    //  ●  ●  ●
+    //  ·  ·  ●
     pattern: [
+      [false, false, true],
       [true,  true,  true],
-      [false, true,  false],
-      [false, true,  false],
+      [false, false, true],
     ],
     unitCount: 5,
     buffs: [
@@ -90,11 +100,14 @@ export const FORMATIONS: FormationDef[] = [
   {
     id: 'square', name: '방원진(方圓陣)', icon: '🛡️',
     description: '방어 +15, 재생 +8',
-    // 밀집 + 중앙
+    // 밀집 사각: 후열~중열 밀집 + 전열 중앙
+    //  ●  ●  ·
+    //  ●  ●  ●
+    //  ·  ·  ·
     pattern: [
-      [true,  false, true],
       [true,  true,  false],
-      [true,  false, false],
+      [true,  true,  true],
+      [false, false, false],
     ],
     unitCount: 5,
     buffs: [
@@ -104,7 +117,7 @@ export const FORMATIONS: FormationDef[] = [
   },
 ];
 
-/** 최소 4칸 이상 채워졌는지 확인 (전투 시작 가능 조건) */
+/** 최소 4칸 이상 채워졌는지 확인 */
 export function isFormationReady(
   formation: FormationDef,
   slots: (unknown | null)[],
@@ -119,7 +132,7 @@ export function isFormationReady(
   return filled >= 4;
 }
 
-/** 진형 패턴이 완전히 채워졌는지 확인 (5/5) */
+/** 진형 완전히 채워졌는지 (5/5) */
 export function isFormationComplete(
   formation: FormationDef,
   slots: (unknown | null)[],
@@ -133,12 +146,12 @@ export function isFormationComplete(
   return true;
 }
 
-/** 특정 칸이 진형 패턴 칸인지 확인 */
+/** 특정 칸이 진형 패턴 칸인지 */
 export function isPatternSlot(formation: FormationDef, row: number, col: number): boolean {
   return formation.pattern[row]?.[col] ?? false;
 }
 
-/** 진형의 첫 번째 빈 패턴 칸 인덱스 반환 (-1이면 없음) */
+/** 첫 번째 빈 패턴 칸 인덱스 (-1 = 없음) */
 export function getFirstEmptyPatternSlot(
   formation: FormationDef,
   slots: (unknown | null)[],
@@ -150,4 +163,20 @@ export function getFirstEmptyPatternSlot(
     }
   }
   return -1;
+}
+
+/**
+ * 좌우 패턴을 상하로 전치 (던전용)
+ * 좌우: col=후→전 (좌→우)
+ * 상하: row=전→후 (위→아래) — col이 row가 됨
+ */
+export function transposePattern(pattern: boolean[][]): boolean[][] {
+  const result: boolean[][] = [[], [], []];
+  for (let r = 0; r < 3; r++) {
+    for (let c = 0; c < 3; c++) {
+      // 전치: [r][c] → [c][r], 그리고 col 방향 반전 (전열이 위로)
+      result[c][r] = pattern[r][2 - c];
+    }
+  }
+  return result;
 }
