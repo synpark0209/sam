@@ -460,26 +460,25 @@ export class PvPArenaScene extends Phaser.Scene {
       stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0.5).setDepth(60);
 
-    // 전장 배치 (아군: 하단 상하, 적군: 상단 좌우)
+    // 전장 배치 (적군: 상단, 아군: 하단, 둘 다 상하 배치)
     const unitW = 56;
     const unitH = 62;
+    const gridStartX = (GW - GRID_COLS * unitW) / 2;
     
-    // 적군: 상단 좌우 3열 배치
+    // 적군: 상단 (row0=전열=아래쪽(아군 가까이), row2=후열=위쪽)
     const enemyFieldY = 50;
-    const enemyStartX = (GW - GRID_COLS * unitW) / 2;
-    const eLabels = ['전', '중', '후'];
-    for (let c = 0; c < GRID_COLS; c++) {
-      this.add.text(enemyStartX + c * unitW + unitW / 2, enemyFieldY - 10, eLabels[c], {
-        fontSize: '12px', color: '#aa4444',
-      }).setOrigin(0.5);
+    const eLabels = ['후', '중', '전'];
+    for (let r = 0; r < GRID_ROWS; r++) {
+      this.add.text(gridStartX - 14, enemyFieldY + r * unitH + unitH / 2, eLabels[r], {
+        fontSize: '10px', color: '#aa4444',
+      }).setOrigin(1, 0.5);
     }
     
-    // 아군: 하단 상하 3행 배치 (row0=전열=위, row2=후열=아래)
+    // 아군: 하단 (row0=전열=위쪽(적군 가까이), row2=후열=아래쪽)
     const playerFieldY = GH - 130 - GRID_ROWS * unitH;
-    const playerStartX = (GW - GRID_COLS * unitW) / 2;
     const pLabels = ['전', '중', '후'];
     for (let r = 0; r < GRID_ROWS; r++) {
-      this.add.text(playerStartX - 14, playerFieldY + r * unitH + unitH / 2, pLabels[r], {
+      this.add.text(gridStartX - 14, playerFieldY + r * unitH + unitH / 2, pLabels[r], {
         fontSize: '10px', color: '#4466aa',
       }).setOrigin(1, 0.5);
     }
@@ -492,18 +491,12 @@ export class PvPArenaScene extends Phaser.Scene {
 
     for (const unit of this.battleUnits) {
       const isPlayer = unit.side === 'player';
-      let x: number, y: number;
-      
-      if (isPlayer) {
-        // 아군: 상하 배치 (col→X좌표, row→Y좌표)
-        x = playerStartX + unit.col * unitW + unitW / 2;
-        y = playerFieldY + unit.row * unitH + unitH / 2;
-      } else {
-        // 적군: 좌우 배치 (col→X좌표, row→Y좌표)
-        const displayCol = GRID_COLS - 1 - unit.col;
-        x = enemyStartX + displayCol * unitW + unitW / 2;
-        y = enemyFieldY + unit.row * unitH + unitH / 2;
-      }
+      const baseY = isPlayer ? playerFieldY : enemyFieldY;
+      // 둘 다 상하 배치: col→X, row→Y
+      // 적군은 row 반전 (전열이 아군 쪽을 향하도록)
+      const displayRow = isPlayer ? unit.row : (GRID_ROWS - 1 - unit.row);
+      const x = gridStartX + unit.col * unitW + unitW / 2;
+      const y = baseY + displayRow * unitH + unitH / 2;
 
       const container = this.add.container(x, y);
       const cls = unit.data.unitClass ?? UnitClass.INFANTRY;
