@@ -659,17 +659,40 @@ export class PvPArenaScene extends Phaser.Scene {
 
   private showBattlePhase(): void {
     this.children.removeAll();
-    this.add.graphics().fillStyle(0x1a2a1a, 1).fillRect(0, 0, GW, GH);
+
+    // ── Battlefield background with sky + ground gradients ──
+    const bgGfx = this.add.graphics();
+    const skyH = Math.floor(GH * 0.4);
+    const groundH = GH - skyH;
+    // Sky gradient (dark blue to lighter blue)
+    const skySteps = 24;
+    for (let i = 0; i < skySteps; i++) {
+      const t = i / skySteps;
+      const r = Math.round(10 + t * 20);
+      const g = Math.round(15 + t * 35);
+      const b = Math.round(40 + t * 60);
+      bgGfx.fillStyle((r << 16) | (g << 8) | b, 1);
+      bgGfx.fillRect(0, Math.floor(skyH * t), GW, Math.ceil(skyH / skySteps) + 1);
+    }
+    // Ground gradient (dark green to brown)
+    const gndSteps = 24;
+    for (let i = 0; i < gndSteps; i++) {
+      const t = i / gndSteps;
+      const r = Math.round(20 + t * 50);
+      const g = Math.round(35 + t * (-10));
+      const b = Math.round(15 + t * 5);
+      bgGfx.fillStyle((r << 16) | (Math.max(0, g) << 8) | b, 1);
+      bgGfx.fillRect(0, skyH + Math.floor(groundH * t), GW, Math.ceil(groundH / gndSteps) + 1);
+    }
+    // Center dividing line (golden)
+    bgGfx.lineStyle(2, 0xffd700, 0.6);
+    bgGfx.lineBetween(GW / 2, 45, GW / 2, GH - 140);
 
     // 턴 카운터
     const turnText = this.add.text(GW / 2, 12, '턴 1', {
       fontSize: '16px', color: '#ffd700', fontStyle: 'bold',
-    }).setOrigin(0.5);
-
-    // VS 표시
-    this.add.text(GW / 2, 32, 'VS', {
-      fontSize: '22px', color: '#ff4444', fontStyle: 'bold',
-    }).setOrigin(0.5);
+      stroke: '#000000', strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(60);
 
     // 전장 배치 (왼쪽: 아군 후→전, 오른쪽: 적군 전→후)
     const unitW = 56;
@@ -799,8 +822,66 @@ export class PvPArenaScene extends Phaser.Scene {
       logTexts.push(lt);
     }
 
-    // 전투 실행
-    this.executeBattleTurns(turnText, logTexts);
+    // ── Action order bar (below turn counter) ──
+    const orderBarY = 34;
+    const orderIcons: Phaser.GameObjects.Graphics[] = [];
+    const orderLabels: Phaser.GameObjects.Text[] = [];
+    const allSorted = [...this.battleUnits.filter(u => u.alive)]
+      .sort((a, b) => b.speed - a.speed);
+    const iconSize = 16;
+    const orderStartX = GW / 2 - (allSorted.length * (iconSize + 4)) / 2;
+    for (let i = 0; i < allSorted.length; i++) {
+      const u = allSorted[i];
+      const ox = orderStartX + i * (iconSize + 4) + iconSize / 2;
+      const circle = this.add.graphics();
+      circle.fillStyle(u.side === 'player' ? 0x2244aa : 0xaa2222, 1);
+      circle.fillCircle(ox, orderBarY, iconSize / 2);
+      circle.lineStyle(1, 0xffffff, 0.5);
+      circle.strokeCircle(ox, orderBarY, iconSize / 2);
+      circle.setDepth(60);
+      orderIcons.push(circle);
+      const label = this.add.text(ox, orderBarY, u.data.name.charAt(0), {
+        fontSize: '9px', color: '#ffffff', fontStyle: 'bold',
+      }).setOrigin(0.5).setDepth(61);
+      orderLabels.push(label);
+    }
+
+    // ── VS Cut-in animation ──
+    const vsText = this.add.text(GW / 2, GH / 2 - 40, 'VS', {
+      fontSize: '48px', color: '#ff2222', fontStyle: 'bold',
+      stroke: '#000000', strokeThickness: 6,
+    }).setOrigin(0.5).setScale(0.5).setDepth(200);
+
+    // Dark overlay for VS moment
+    const vsOverlay = this.add.graphics();
+    vsOverlay.fillStyle(0x000000, 0.5);
+    vsOverlay.fillRect(0, 0, GW, GH);
+    vsOverlay.setDepth(199);
+
+    // Camera flash
+    this.cameras.main.flash(300, 255, 255, 255);
+
+    // VS scale animation: 0.5 -> 1.2 -> 1.0
+    this.tweens.add({
+      targets: vsText, scaleX: 1.2, scaleY: 1.2, duration: 400, ease: 'Back.easeOut',
+      onComplete: () => {
+        this.tweens.add({
+          targets: vsText, scaleX: 1.0, scaleY: 1.0, duration: 200, ease: 'Sine.easeInOut',
+        });
+      },
+    });
+
+    // After 1.5s, fade VS and start battle
+    this.time.delayedCall(1500, () => {
+      this.tweens.add({
+        targets: [vsText, vsOverlay], alpha: 0, duration: 300,
+        onComplete: () => {
+          vsText.destroy();
+          vsOverlay.destroy();
+          this.executeBattleTurns(turnText, logTexts, orderIcons, orderLabels);
+        },
+      });
+    });
   }
 
   /** 상성 배율 */
@@ -919,7 +1000,12 @@ export class PvPArenaScene extends Phaser.Scene {
     return enemies;
   }
 
-  private executeBattleTurns(turnText: Phaser.GameObjects.Text, logTexts: Phaser.GameObjects.Text[]): void {
+  private executeBattleTurns(
+    turnText: Phaser.GameObjects.Text,
+    logTexts: Phaser.GameObjects.Text[],
+    orderIcons?: Phaser.GameObjects.Graphics[],
+    orderLabels?: Phaser.GameObjects.Text[],
+  ): void {
     let turnCount = 0;
     const maxTurns = 30;
     const recentLogs: string[] = [];
@@ -968,9 +1054,39 @@ export class PvPArenaScene extends Phaser.Scene {
     const attackAnim = (attacker: ArenaUnit, target: ArenaUnit) => {
       if (!attacker.sprite || !target.sprite) return;
       const origX = attacker.sprite.x;
-      const dx = target.sprite.x > attacker.sprite.x ? 10 : -10;
+      const origY = attacker.sprite.y;
+      const dx = target.sprite.x > attacker.sprite.x ? 35 : -35;
+      const dy = (target.sprite.y - attacker.sprite.y) * 0.15;
+      // Dash toward target
       this.tweens.add({
-        targets: attacker.sprite, x: origX + dx, duration: 80, yoyo: true,
+        targets: attacker.sprite,
+        x: origX + dx,
+        y: origY + dy,
+        duration: 120 / this.battleSpeed,
+        ease: 'Quad.easeIn',
+        onComplete: () => {
+          // Screen shake on impact
+          this.cameras.main.shake(100 / this.battleSpeed, 0.008);
+          // White flash on target
+          if (target.sprite) {
+            const flash = this.add.graphics();
+            flash.fillStyle(0xffffff, 0.7);
+            flash.fillCircle(target.sprite.x, target.sprite.y - 4, 26);
+            flash.setDepth(150);
+            this.tweens.add({
+              targets: flash, alpha: 0, duration: 100 / this.battleSpeed,
+              onComplete: () => flash.destroy(),
+            });
+          }
+          // Return to original position
+          this.tweens.add({
+            targets: attacker.sprite,
+            x: origX,
+            y: origY,
+            duration: 150 / this.battleSpeed,
+            ease: 'Quad.easeOut',
+          });
+        },
       });
     };
 
@@ -991,8 +1107,25 @@ export class PvPArenaScene extends Phaser.Scene {
           const mpRatio = unit.mp / Math.max(1, unit.maxMp);
           mpBar.fillStyle(0x4488ff, 1).fillRoundedRect(-22, portraitR + 20, 44 * mpRatio, 3, 1);
         }
-        if (!unit.alive) {
-          unit.sprite.setAlpha(0.15);
+        if (!unit.alive && unit.sprite.alpha > 0.15) {
+          // Death animation: rotate, fade, red flash
+          const deathX = unit.sprite.x;
+          const deathY = unit.sprite.y;
+          this.tweens.add({
+            targets: unit.sprite,
+            angle: 15,
+            alpha: 0,
+            duration: 500 / this.battleSpeed,
+            ease: 'Sine.easeIn',
+          });
+          const deathFlash = this.add.graphics();
+          deathFlash.fillStyle(0xff0000, 0.5);
+          deathFlash.fillCircle(deathX, deathY, 20);
+          deathFlash.setDepth(120);
+          this.tweens.add({
+            targets: deathFlash, alpha: 0, duration: 400 / this.battleSpeed,
+            onComplete: () => deathFlash.destroy(),
+          });
         }
       }
     };
@@ -1009,6 +1142,52 @@ export class PvPArenaScene extends Phaser.Scene {
 
       turnCount++;
       turnText.setText(`턴 ${turnCount}`);
+
+      // ── Turn number center announcement ──
+      const turnAnnounce = this.add.text(GW / 2, GH / 2 - 60, `턴 ${turnCount}`, {
+        fontSize: '20px', color: '#ffd700', fontStyle: 'bold',
+        stroke: '#000000', strokeThickness: 4,
+      }).setOrigin(0.5).setDepth(180).setAlpha(0);
+      this.tweens.add({
+        targets: turnAnnounce, alpha: 1, duration: 150,
+        onComplete: () => {
+          this.time.delayedCall(350 / this.battleSpeed, () => {
+            this.tweens.add({
+              targets: turnAnnounce, alpha: 0, y: turnAnnounce.y - 15, duration: 200,
+              onComplete: () => turnAnnounce.destroy(),
+            });
+          });
+        },
+      });
+
+      // ── Update action order bar ──
+      const turnAlive = this.battleUnits.filter(u => u.alive);
+      const turnSorted = [...turnAlive].sort((a, b) => b.speed - a.speed);
+      if (orderIcons && orderLabels) {
+        // Clear old icons
+        for (const ic of orderIcons) ic.destroy();
+        for (const lb of orderLabels) lb.destroy();
+        orderIcons.length = 0;
+        orderLabels.length = 0;
+        const oBarY = 34;
+        const oSize = 16;
+        const oStartX = GW / 2 - (turnSorted.length * (oSize + 4)) / 2;
+        for (let i = 0; i < turnSorted.length; i++) {
+          const u = turnSorted[i];
+          const ox = oStartX + i * (oSize + 4) + oSize / 2;
+          const circle = this.add.graphics();
+          circle.fillStyle(u.side === 'player' ? 0x2244aa : 0xaa2222, 1);
+          circle.fillCircle(ox, oBarY, oSize / 2);
+          circle.lineStyle(1, 0xffffff, 0.5);
+          circle.strokeCircle(ox, oBarY, oSize / 2);
+          circle.setDepth(60);
+          orderIcons.push(circle);
+          const label = this.add.text(ox, oBarY, u.data.name.charAt(0), {
+            fontSize: '9px', color: '#ffffff', fontStyle: 'bold',
+          }).setOrigin(0.5).setDepth(61);
+          orderLabels.push(label);
+        }
+      }
 
       // 쿨다운 감소
       for (const u of alive) {
@@ -1037,33 +1216,114 @@ export class PvPArenaScene extends Phaser.Scene {
         actionIdx++;
         if (!unit.alive) { doAction(); return; }
 
+        // Highlight current acting unit in order bar
+        if (orderIcons && orderLabels) {
+          const turnSortedNow = [...this.battleUnits.filter(u => u.alive)].sort((a, b) => b.speed - a.speed);
+          const idx = turnSortedNow.indexOf(unit);
+          if (idx >= 0 && idx < orderIcons.length) {
+            // Reset all
+            for (let oi = 0; oi < orderIcons.length; oi++) {
+              orderIcons[oi].setAlpha(0.5);
+            }
+            orderIcons[idx].setAlpha(1.0);
+            // Add glow ring
+            const oBarY = 34;
+            const oSize = 16;
+            const oStartX = GW / 2 - (turnSortedNow.length * (oSize + 4)) / 2;
+            const glowX = oStartX + idx * (oSize + 4) + oSize / 2;
+            const glow = this.add.graphics();
+            glow.lineStyle(2, 0xffd700, 1);
+            glow.strokeCircle(glowX, oBarY, oSize / 2 + 2);
+            glow.setDepth(62);
+            this.time.delayedCall(800 / this.battleSpeed, () => glow.destroy());
+          }
+        }
+
         // 스킬 사용 시도
         const skillResult = this.tryUseSkill(unit, this.battleUnits);
         if (skillResult) {
-          attackAnim(unit, skillResult.target);
-          this.time.delayedCall(400 / this.battleSpeed, () => {
-            showLabel(unit, `✨${skillResult.skillName}`, '#cc88ff');
+          // ── Skill cut-in effect ──
+          const skillOverlay = this.add.graphics();
+          skillOverlay.fillStyle(0x000000, 0.3);
+          skillOverlay.fillRect(0, 0, GW, GH);
+          skillOverlay.setDepth(190);
 
-            if (skillResult.type === 'heal') {
-              const healAmount = skillResult.value;
-              skillResult.target.hp = Math.min(skillResult.target.maxHp, skillResult.target.hp + healAmount);
-              showDamagePopup(skillResult.target, healAmount, '#44ff44');
-              addLog(`${unit.data.name} → ${skillResult.target.data.name} 회복 +${healAmount} (${skillResult.skillName})`);
-            } else {
-              skillResult.target.hp -= skillResult.value;
-              showDamagePopup(skillResult.target, skillResult.value, '#cc44ff');
-              shakeUnit(skillResult.target);
-              let logMsg = `${unit.data.name} → ${skillResult.target.data.name} (${skillResult.value} ${skillResult.skillName})`;
-              if (skillResult.target.hp <= 0) {
-                skillResult.target.hp = 0;
-                skillResult.target.alive = false;
-                logMsg += ' 격파!';
+          const skillNameText = this.add.text(GW / 2, GH / 2 - 40, skillResult.skillName, {
+            fontSize: '20px', color: '#ffd700', fontStyle: 'bold',
+            stroke: '#000000', strokeThickness: 4,
+          }).setOrigin(0.5).setDepth(191).setScale(0.5);
+
+          this.tweens.add({
+            targets: skillNameText, scaleX: 1, scaleY: 1, duration: 200, ease: 'Back.easeOut',
+          });
+
+          this.time.delayedCall(300 / this.battleSpeed, () => {
+            this.tweens.add({
+              targets: [skillOverlay, skillNameText], alpha: 0, duration: 200,
+              onComplete: () => { skillOverlay.destroy(); skillNameText.destroy(); },
+            });
+
+            attackAnim(unit, skillResult.target);
+            this.time.delayedCall(400 / this.battleSpeed, () => {
+              showLabel(unit, `${skillResult.skillName}`, '#cc88ff');
+
+              if (skillResult.type === 'heal') {
+                const healAmount = skillResult.value;
+                skillResult.target.hp = Math.min(skillResult.target.maxHp, skillResult.target.hp + healAmount);
+                showDamagePopup(skillResult.target, healAmount, '#44ff44');
+                addLog(`${unit.data.name} → ${skillResult.target.data.name} 회복 +${healAmount} (${skillResult.skillName})`);
+                // Green rising particles for heal
+                if (skillResult.target.sprite) {
+                  for (let p = 0; p < 6; p++) {
+                    const px = skillResult.target.sprite.x + (Math.random() - 0.5) * 30;
+                    const py = skillResult.target.sprite.y + 10;
+                    const particle = this.add.graphics();
+                    particle.fillStyle(0x44ff44, 0.8);
+                    particle.fillCircle(0, 0, 3);
+                    particle.setPosition(px, py).setDepth(130);
+                    this.tweens.add({
+                      targets: particle, y: py - 40 - Math.random() * 20, alpha: 0,
+                      duration: 600 / this.battleSpeed, delay: p * 50,
+                      onComplete: () => particle.destroy(),
+                    });
+                  }
+                }
+              } else {
+                skillResult.target.hp -= skillResult.value;
+                showDamagePopup(skillResult.target, skillResult.value, '#cc44ff');
+                shakeUnit(skillResult.target);
+                // Red particles/flash for damage skills
+                if (skillResult.target.sprite) {
+                  for (let p = 0; p < 8; p++) {
+                    const px = skillResult.target.sprite.x + (Math.random() - 0.5) * 30;
+                    const py = skillResult.target.sprite.y + (Math.random() - 0.5) * 20;
+                    const particle = this.add.graphics();
+                    particle.fillStyle(0xff2222, 0.8);
+                    particle.fillCircle(0, 0, 2 + Math.random() * 2);
+                    particle.setPosition(px, py).setDepth(130);
+                    this.tweens.add({
+                      targets: particle,
+                      x: px + (Math.random() - 0.5) * 40,
+                      y: py + (Math.random() - 0.5) * 40,
+                      alpha: 0,
+                      duration: 400 / this.battleSpeed,
+                      delay: p * 30,
+                      onComplete: () => particle.destroy(),
+                    });
+                  }
+                }
+                let logMsg = `${unit.data.name} → ${skillResult.target.data.name} (${skillResult.value} ${skillResult.skillName})`;
+                if (skillResult.target.hp <= 0) {
+                  skillResult.target.hp = 0;
+                  skillResult.target.alive = false;
+                  logMsg += ' 격파!';
+                }
+                addLog(logMsg);
               }
-              addLog(logMsg);
-            }
 
-            updateHpBars();
-            this.time.delayedCall(600 / this.battleSpeed, doAction);
+              updateHpBars();
+              this.time.delayedCall(600 / this.battleSpeed, doAction);
+            });
           });
           return;
         }
@@ -1166,12 +1426,50 @@ export class PvPArenaScene extends Phaser.Scene {
     this.children.removeAll();
     this.add.graphics().fillStyle(0x0a0a1a, 1).fillRect(0, 0, GW, GH);
 
+    // Camera flash on victory
+    if (won) {
+      this.cameras.main.flash(500, 255, 215, 0);
+    } else {
+      this.cameras.main.flash(300, 180, 40, 40);
+    }
+
     const resultText = result === 'win' ? '승리!' : result === 'lose' ? '패배...' : '시간 초과';
     const resultColor = result === 'win' ? '#ffd700' : '#ff4444';
 
-    this.add.text(GW / 2, GH * 0.12, resultText, {
-      fontSize: '36px', color: resultColor, fontStyle: 'bold',
-    }).setOrigin(0.5);
+    const resultLabel = this.add.text(GW / 2, GH * 0.12, resultText, {
+      fontSize: '42px', color: resultColor, fontStyle: 'bold',
+      stroke: '#000000', strokeThickness: 6,
+    }).setOrigin(0.5).setScale(0.5);
+
+    // Result text scale-in animation
+    this.tweens.add({
+      targets: resultLabel, scaleX: 1, scaleY: 1, duration: 400, ease: 'Back.easeOut',
+    });
+
+    // Particle effects (gold sparkles for win, red for loss)
+    const particleColor = won ? 0xffd700 : 0xff4444;
+    for (let i = 0; i < 20; i++) {
+      const px = GW / 2 + (Math.random() - 0.5) * GW * 0.8;
+      const py = GH * 0.12 + (Math.random() - 0.5) * 60;
+      const sparkle = this.add.graphics();
+      sparkle.fillStyle(particleColor, 0.9);
+      sparkle.fillCircle(0, 0, 2 + Math.random() * 3);
+      sparkle.setPosition(px, py).setAlpha(0);
+      this.tweens.add({
+        targets: sparkle,
+        alpha: 1,
+        y: py - 30 - Math.random() * 40,
+        x: px + (Math.random() - 0.5) * 30,
+        duration: 800 + Math.random() * 600,
+        delay: i * 60,
+        onComplete: () => {
+          this.tweens.add({
+            targets: sparkle, alpha: 0, duration: 400,
+            onComplete: () => sparkle.destroy(),
+          });
+        },
+      });
+    }
 
     // ELO 변동
     const eloText = eloChange >= 0 ? `+${eloChange}` : `${eloChange}`;
