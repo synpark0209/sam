@@ -460,32 +460,50 @@ export class PvPArenaScene extends Phaser.Scene {
       stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0.5).setDepth(60);
 
-    // 전장 배치 (왼쪽: 아군 후→전, 오른쪽: 적군 전→후)
+    // 전장 배치 (아군: 하단 상하, 적군: 상단 좌우)
     const unitW = 56;
     const unitH = 62;
-    const gapX = 16;
-    const playerStartX = GW / 2 - gapX - GRID_COLS * unitW;
-    const enemyStartX = GW / 2 + gapX;
-    const fieldY = 50;
-
-    // 열 라벨 (아군: 후→전, 적군: 전→후)
-    const pLabels = ['후', '중', '전'];
+    
+    // 적군: 상단 좌우 3열 배치
+    const enemyFieldY = 50;
+    const enemyStartX = (GW - GRID_COLS * unitW) / 2;
     const eLabels = ['전', '중', '후'];
     for (let c = 0; c < GRID_COLS; c++) {
-      this.add.text(playerStartX + c * unitW + unitW / 2, fieldY - 10, pLabels[c], {
-        fontSize: '12px', color: '#4466aa',
-      }).setOrigin(0.5);
-      this.add.text(enemyStartX + c * unitW + unitW / 2, fieldY - 10, eLabels[c], {
+      this.add.text(enemyStartX + c * unitW + unitW / 2, enemyFieldY - 10, eLabels[c], {
         fontSize: '12px', color: '#aa4444',
       }).setOrigin(0.5);
     }
+    
+    // 아군: 하단 상하 3행 배치 (row0=전열=위, row2=후열=아래)
+    const playerFieldY = GH - 130 - GRID_ROWS * unitH;
+    const playerStartX = (GW - GRID_COLS * unitW) / 2;
+    const pLabels = ['전', '중', '후'];
+    for (let r = 0; r < GRID_ROWS; r++) {
+      this.add.text(playerStartX - 14, playerFieldY + r * unitH + unitH / 2, pLabels[r], {
+        fontSize: '10px', color: '#4466aa',
+      }).setOrigin(1, 0.5);
+    }
+
+    // 중앙 구분선
+    const dividerY = (enemyFieldY + GRID_ROWS * unitH + playerFieldY) / 2;
+    const divG = this.add.graphics().setDepth(2);
+    divG.fillStyle(0xffd700, 0.3);
+    divG.fillRect(20, dividerY, GW - 40, 2);
 
     for (const unit of this.battleUnits) {
       const isPlayer = unit.side === 'player';
-      const baseX = isPlayer ? playerStartX : enemyStartX;
-      const displayCol = isPlayer ? unit.col : (GRID_COLS - 1 - unit.col);
-      const x = baseX + displayCol * unitW + unitW / 2;
-      const y = fieldY + unit.row * unitH + unitH / 2;
+      let x: number, y: number;
+      
+      if (isPlayer) {
+        // 아군: 상하 배치 (col→X좌표, row→Y좌표)
+        x = playerStartX + unit.col * unitW + unitW / 2;
+        y = playerFieldY + unit.row * unitH + unitH / 2;
+      } else {
+        // 적군: 좌우 배치 (col→X좌표, row→Y좌표)
+        const displayCol = GRID_COLS - 1 - unit.col;
+        x = enemyStartX + displayCol * unitW + unitW / 2;
+        y = enemyFieldY + unit.row * unitH + unitH / 2;
+      }
 
       const container = this.add.container(x, y);
       const cls = unit.data.unitClass ?? UnitClass.INFANTRY;
@@ -1049,28 +1067,6 @@ export class PvPArenaScene extends Phaser.Scene {
                 }
               } else {
                 skillResult.target.hp -= skillResult.value;
-                showDamagePopup(skillResult.target, skillResult.value, '#cc44ff');
-                shakeUnit(skillResult.target);
-                // Red particles/flash for damage skills
-                if (skillResult.target.sprite) {
-                  for (let p = 0; p < 8; p++) {
-                    const px = skillResult.target.sprite.x + (Math.random() - 0.5) * 30;
-                    const py = skillResult.target.sprite.y + (Math.random() - 0.5) * 20;
-                    const particle = this.add.graphics();
-                    particle.fillStyle(0xff2222, 0.8);
-                    particle.fillCircle(0, 0, 2 + Math.random() * 2);
-                    particle.setPosition(px, py).setDepth(130);
-                    this.tweens.add({
-                      targets: particle,
-                      x: px + (Math.random() - 0.5) * 40,
-                      y: py + (Math.random() - 0.5) * 40,
-                      alpha: 0,
-                      duration: 400 / this.battleSpeed,
-                      delay: p * 30,
-                      onComplete: () => particle.destroy(),
-                    });
-                  }
-                }
                 let logMsg = `${unit.data.name} → ${skillResult.target.data.name} (${skillResult.value} ${skillResult.skillName})`;
                 if (skillResult.target.hp <= 0) {
                   skillResult.target.hp = 0;
