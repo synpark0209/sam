@@ -685,19 +685,46 @@ export class DailyDungeonScene extends Phaser.Scene {
     return '';
   }
 
+  /** Get a Phaser animation key for a dungeon unit, or null if not registered */
+  private getDungeonAnimKey(unit: DungeonUnit, anim: string, direction: string): string | null {
+    const heroId = unit.data.id;
+    const heroKeys: Record<string, string> = { p1: 'pl_lubu', p2: 'pl_zhangliao' };
+    const heroKey = heroKeys[heroId];
+    if (heroKey) {
+      const key = `${heroKey}_${anim}_${direction}`;
+      if (this.anims.exists(key)) return key;
+    }
+    // Try hero-specific PixelLab key
+    const plHeroKey = `pl_${heroId}_${anim}_${direction}`;
+    if (this.anims.exists(plHeroKey)) return plHeroKey;
+    // Fallback to class-based
+    const cls = unit.data.unitClass ?? 'infantry';
+    const classKey = `pl_${cls}_${anim}_${direction}`;
+    if (this.anims.exists(classKey)) return classKey;
+    return null;
+  }
+
   // ── Grid position helpers ──
 
   private getPlayerGridPos(slotIndex: number): { x: number; y: number } {
     const cellW = 110;
-    const cellH = 90;
+    // slot index = row * GRID_COLS + col
+    // In formation: col 0=rear, col 2=front (left-to-right in PvP)
+    // For vertical dungeon: col maps to Y (front=top, rear=bottom), row maps to X
     const col = slotIndex % GRID_COLS;
     const row = Math.floor(slotIndex / GRID_COLS);
-    const gridStartX = (GW - GRID_COLS * cellW) / 2;
-    const gridStartY = 320;
-    return {
-      x: gridStartX + col * cellW + cellW / 2,
-      y: gridStartY + row * cellH + cellH / 2,
-    };
+
+    // Row (0-2) → X positions, centered across width
+    const gridStartX = (GW - GRID_ROWS * cellW) / 2;
+    const x = gridStartX + row * cellW + cellW / 2;
+
+    // Col 2 (front) → y=320 (closer to enemies at top)
+    // Col 1 (mid)   → y=400
+    // Col 0 (rear)  → y=480 (farther from enemies)
+    const yPositions = [480, 400, 320]; // col 0=rear(bottom), col 1=mid, col 2=front(top)
+    const y = yPositions[col] ?? 400;
+
+    return { x, y };
   }
 
   private getEnemyGridPositions(count: number): { x: number; y: number }[] {
@@ -854,6 +881,9 @@ export class DailyDungeonScene extends Phaser.Scene {
       const scale = targetSize / Math.max(frame.width, frame.height);
       sprite.setScale(scale * 1.3);
       container.add(sprite);
+      // Play idle animation if available
+      const idleAnimKey = this.getDungeonAnimKey(u, 'idle', direction);
+      if (idleAnimKey) sprite.play(idleAnimKey);
     } else {
       // Emoji fallback
       const clsIcons: Record<string, string> = {
@@ -995,6 +1025,21 @@ export class DailyDungeonScene extends Phaser.Scene {
 
         if (atkContainer && defContainer) {
           const origY = atkContainer.y;
+
+          // Play attack animation on attacker sprite
+          const atkChild = atkContainer.getAt(1);
+          if (atkChild instanceof Phaser.GameObjects.Sprite) {
+            const atkDir = unit.side === 'player' ? 'north' : 'south';
+            const atkAnimKey = this.getDungeonAnimKey(unit, 'attack', atkDir);
+            if (atkAnimKey) {
+              atkChild.play(atkAnimKey);
+              atkChild.once('animationcomplete', () => {
+                const idleKey = this.getDungeonAnimKey(unit, 'idle', atkDir);
+                if (idleKey) atkChild.play(idleKey);
+              });
+            }
+          }
+
           if (isRanged) {
             // Ranged: stay in place, show projectile
             const projGfx = this.add.graphics().setDepth(80);
@@ -1081,8 +1126,45 @@ export class DailyDungeonScene extends Phaser.Scene {
                 },
               });
 
-              // Death: fade + rotation
-              if (!target.alive) {
+              // Play hit or die animation on defender sprite
+              const defChild = defContainer.getAt(1);
+              const defDir = target.side === 'player' ? 'north' : 'south';
+              if (defChild instanceof Phaser.GameObjects.Sprite) {
+                if (!target.alive) {
+                  // Death animation then fade
+                  const dieKey = this.getDungeonAnimKey(target, 'die', defDir);
+                  if (dieKey) {
+                    defChild.play(dieKey);
+                    defChild.once('animationcomplete', () => {
+                      this.tweens.add({
+                        targets: defContainer,
+                        alpha: 0,
+                        duration: 300 / this.battleSpeed,
+                        ease: 'Power2',
+                      });
+                    });
+                  } else {
+                    // No die animation: just fade + rotation
+                    this.tweens.add({
+                      targets: defContainer,
+                      alpha: 0, angle: target.side === 'player' ? -15 : 15,
+                      duration: 500 / this.battleSpeed,
+                      ease: 'Power2',
+                    });
+                  }
+                } else {
+                  // Hit animation then return to idle
+                  const hitKey = this.getDungeonAnimKey(target, 'hit', defDir);
+                  if (hitKey) {
+                    defChild.play(hitKey);
+                    defChild.once('animationcomplete', () => {
+                      const idleKey = this.getDungeonAnimKey(target, 'idle', defDir);
+                      if (idleKey) defChild.play(idleKey);
+                    });
+                  }
+                }
+              } else if (!target.alive) {
+                // Emoji fallback death: fade + rotation
                 this.tweens.add({
                   targets: defContainer,
                   alpha: 0, angle: target.side === 'player' ? -15 : 15,
@@ -1090,6 +1172,7 @@ export class DailyDungeonScene extends Phaser.Scene {
                   ease: 'Power2',
                 });
               }
+
             }
           }
           this.updateDungeonCards();
