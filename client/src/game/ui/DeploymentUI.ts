@@ -150,18 +150,18 @@ export class DeploymentUI {
       fontSize: '12px', color: '#88ccff',
     }).setOrigin(0.5);
 
-    // 4. 3x3 Grid (top-bottom: row0=front, row2=rear)
+    // 4. 3x3 Grid (col0=rear, col2=front)
     const gridY = formY + 60;
     const cellW = 90;
     const cellH = 72;
     const gridX = (GW - 3 * cellW) / 2;
 
-    // Row labels
-    const rowLabels = ['\uC804\uC5F4', '\uC911\uC5F4', '\uD6C4\uC5F4'];
-    for (let r = 0; r < 3; r++) {
-      this.scene.add.text(gridX - 8, gridY + r * cellH + cellH / 2, rowLabels[r], {
-        fontSize: '10px', color: '#446688',
-      }).setOrigin(1, 0.5);
+    // Column labels (col: rear->front)
+    const colLabels = ['후열', '중열', '전열'];
+    for (let c = 0; c < 3; c++) {
+      this.scene.add.text(gridX + c * cellW + cellW / 2, gridY - 14, colLabels[c], {
+        fontSize: '11px', color: '#446688',
+      }).setOrigin(0.5);
     }
 
     for (let r = 0; r < 3; r++) {
