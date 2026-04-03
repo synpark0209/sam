@@ -12,7 +12,7 @@ import { getGradeColor } from '@shared/data/gachaDefs.ts';
 import type { HeroGrade } from '@shared/data/gachaDefs.ts';
 import { getTier, calculateEloChange, getNextTierProgress, DAILY_PVP_TICKETS } from '@shared/data/pvpDefs.ts';
 import { pvpRecordResult, addGold } from '../../api/client.ts';
-import { preloadUnitImages, hasUnitImage, hasPixelLabCharacter } from '../systems/UnitSpriteManager.ts';
+import { preloadUnitImages, hasUnitImage, hasPixelLabCharacter, createSpriteSheetAnimations } from '../systems/UnitSpriteManager.ts';
 import { FORMATIONS, isFormationComplete, isPatternSlot } from '@shared/data/formationDefs.ts';
 
 const GW = GAME_WIDTH;
@@ -73,6 +73,7 @@ export class PvPArenaScene extends Phaser.Scene {
     this.deployedCount = 0;
     this.ticketsUsed = 0;
     // ELO/전적은 서버에서 로드 (세이브 데이터에 포함)
+    createSpriteSheetAnimations(this);
     this.showArenaHome();
   }
 
@@ -1428,19 +1429,17 @@ export class PvPArenaScene extends Phaser.Scene {
   }
 
   /** 유닛의 PixelLab 텍스처 키를 가져옴 (방향별) */
-  private getUnitTextureKey(unit: ArenaUnit, direction: string): string {
-    // 장수 ID로 PixelLab 텍스처 확인
+  /** 유닛의 PixelLab 텍스처 키 (정적 프레임) */
+  private getUnitTextureKey(unit: ArenaUnit, direction: string, anim = 'idle'): string {
     const heroId = unit.data.id;
     const heroKeys: Record<string, string> = { p1: 'pl_lubu', p2: 'pl_zhangliao' };
     const heroKey = heroKeys[heroId];
     if (heroKey) {
-      const key = `${heroKey}_idle_${direction}_0`;
+      const key = `${heroKey}_${anim}_${direction}_0`;
       if (this.textures.exists(key)) return key;
     }
-
-    // 병종 기반 PixelLab 텍스처 확인
     const cls = unit.data.unitClass ?? 'infantry';
-    const classKey = `pl_${cls}_idle_${direction}_0`;
+    const classKey = `pl_${cls}_${anim}_${direction}_0`;
     if (this.textures.exists(classKey)) return classKey;
 
     // 유닛 이미지 폴백
@@ -1451,6 +1450,21 @@ export class PvPArenaScene extends Phaser.Scene {
   }
 
   /** 전투 클로즈업 듀얼 연출 */
+  /** 유닛의 PixelLab 애니메이션 키 반환 (Phaser anim key) */
+  private getUnitAnimKey(unit: ArenaUnit, anim: string, direction: string): string | null {
+    const heroId = unit.data.id;
+    const heroKeys: Record<string, string> = { p1: 'pl_lubu', p2: 'pl_zhangliao' };
+    const heroKey = heroKeys[heroId];
+    if (heroKey) {
+      const key = `${heroKey}_${anim}_${direction}`;
+      if (this.anims.exists(key)) return key;
+    }
+    const cls = unit.data.unitClass ?? 'infantry';
+    const classKey = `pl_${cls}_${anim}_${direction}`;
+    if (this.anims.exists(classKey)) return classKey;
+    return null;
+  }
+
   private showDuelCloseUp(
     attacker: ArenaUnit,
     defender: ArenaUnit,
@@ -1462,94 +1476,146 @@ export class PvPArenaScene extends Phaser.Scene {
   ): void {
     const gw = GW;
     const gh = GH;
-    const centerY = gh * 0.4;
-
-    // Dark overlay
-    const overlay = this.add.graphics().setDepth(200);
-    overlay.fillStyle(0x000000, 0.6);
-    overlay.fillRect(0, 0, gw, gh);
-
-    // Get attacker sprite texture (east facing for attacker, west for defender)
-    const atkKey = this.getUnitTextureKey(attacker, 'east');
-    const defKey = this.getUnitTextureKey(defender, 'west');
-
-    const atkSprite = this.add.sprite(gw * 0.25, centerY, atkKey).setScale(2.5).setDepth(201);
-    const defSprite = this.add.sprite(gw * 0.75, centerY, defKey).setScale(2.5).setDepth(201);
-
-    // Attacker name label
-    const atkName = this.add.text(gw * 0.25, centerY + 50, attacker.data.name, {
-      fontSize: '14px', color: '#88ccff', fontStyle: 'bold',
-      stroke: '#000000', strokeThickness: 3,
-    }).setOrigin(0.5).setDepth(202);
-
-    // Defender name label
-    const defName = this.add.text(gw * 0.75, centerY + 50, defender.data.name, {
-      fontSize: '14px', color: '#ff8888', fontStyle: 'bold',
-      stroke: '#000000', strokeThickness: 3,
-    }).setOrigin(0.5).setDepth(202);
-
-    // Slash/impact after brief pause
-    this.time.delayedCall(300 / this.battleSpeed, () => {
-      // Attacker dashes right toward defender
+    const centerY = gh * 0.38;
+    const allObjs: Phaser.GameObjects.GameObject[] = [];
+    const cleanup = () => {
       this.tweens.add({
-        targets: atkSprite, x: gw * 0.55, duration: 200 / this.battleSpeed,
-        ease: 'Power2',
-        onComplete: () => {
-          // Impact
-          this.cameras.main.shake(100, 0.01);
+        targets: allObjs, alpha: 0, duration: 200,
+        onComplete: () => { for (const o of allObjs) o.destroy(); onComplete(); },
+      });
+    };
 
-          // Impact flash
-          const flash = this.add.graphics().setDepth(203);
-          flash.fillStyle(0xffffff, 0.6);
-          flash.fillCircle(gw * 0.65, centerY, 30);
+    // 어두운 오버레이
+    const overlay = this.add.graphics().setDepth(200);
+    overlay.fillStyle(0x000000, 0.65);
+    overlay.fillRect(0, 0, gw, gh);
+    allObjs.push(overlay);
+
+    // 공격자 스프라이트 (동쪽 방향, idle로 시작)
+    const atkIdleKey = this.getUnitTextureKey(attacker, 'east', 'idle');
+    const atkSprite = this.add.sprite(gw * 0.22, centerY, atkIdleKey).setScale(2.8).setDepth(201);
+    allObjs.push(atkSprite);
+
+    // 방어자 스프라이트 (서쪽 방향, idle로 시작)
+    const defIdleKey = this.getUnitTextureKey(defender, 'west', 'idle');
+    const defSprite = this.add.sprite(gw * 0.78, centerY, defIdleKey).setScale(2.8).setDepth(201);
+    allObjs.push(defSprite);
+
+    // idle 애니메이션 재생
+    const atkIdleAnim = this.getUnitAnimKey(attacker, 'idle', 'east');
+    if (atkIdleAnim) atkSprite.play(atkIdleAnim);
+    const defIdleAnim = this.getUnitAnimKey(defender, 'idle', 'west');
+    if (defIdleAnim) defSprite.play(defIdleAnim);
+
+    // 이름 라벨
+    const atkName = this.add.text(gw * 0.22, centerY + 60, attacker.data.name, {
+      fontSize: '16px', color: '#88ccff', fontStyle: 'bold',
+      stroke: '#000000', strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(202);
+    allObjs.push(atkName);
+
+    const defName = this.add.text(gw * 0.78, centerY + 60, defender.data.name, {
+      fontSize: '16px', color: '#ff8888', fontStyle: 'bold',
+      stroke: '#000000', strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(202);
+    allObjs.push(defName);
+
+    // 스킬명 표시
+    if (skillName) {
+      const st = this.add.text(gw / 2, centerY - 70, `✨ ${skillName}`, {
+        fontSize: '20px', color: '#ffd700', fontStyle: 'bold',
+        stroke: '#000000', strokeThickness: 4,
+      }).setOrigin(0.5).setDepth(203).setAlpha(0);
+      allObjs.push(st);
+      this.tweens.add({ targets: st, alpha: 1, y: centerY - 80, duration: 300 / this.battleSpeed });
+    }
+
+    // 0.4초 후 → 공격 모션
+    this.time.delayedCall(400 / this.battleSpeed, () => {
+      // 공격자: attack 애니메이션 재생
+      const atkAttackAnim = this.getUnitAnimKey(attacker, 'attack', 'east');
+      if (atkAttackAnim) atkSprite.play(atkAttackAnim);
+
+      // 공격자 돌진
+      this.tweens.add({
+        targets: atkSprite, x: gw * 0.52, duration: 250 / this.battleSpeed, ease: 'Power3',
+        onComplete: () => {
+          // 임팩트!
+          this.cameras.main.shake(150, 0.015);
+          this.cameras.main.flash(100, 255, 255, 255, false);
+
+          // 타격 이펙트 (흰색 + 주황 원)
+          const impactG = this.add.graphics().setDepth(204);
+          impactG.fillStyle(0xffffff, 0.8);
+          impactG.fillCircle(gw * 0.65, centerY, 25);
+          impactG.fillStyle(0xff8844, 0.5);
+          impactG.fillCircle(gw * 0.65, centerY, 15);
+          allObjs.push(impactG);
+          this.tweens.add({ targets: impactG, alpha: 0, duration: 200, onComplete: () => impactG.destroy() });
+
+          // 방어자: hit 애니메이션 재생
+          const defHitAnim = this.getUnitAnimKey(defender, 'hit', 'west');
+          if (defHitAnim) defSprite.play(defHitAnim);
+
+          // 방어자 뒤로 밀림
           this.tweens.add({
-            targets: flash, alpha: 0, duration: 150,
-            onComplete: () => flash.destroy(),
+            targets: defSprite, x: gw * 0.85, duration: 150 / this.battleSpeed, ease: 'Power2',
+            onComplete: () => {
+              // 밀린 후 원위치 복귀 (살아있으면)
+              if (defender.hp - damage > 0) {
+                this.tweens.add({
+                  targets: defSprite, x: gw * 0.78, duration: 200 / this.battleSpeed,
+                  delay: 100,
+                  onComplete: () => {
+                    const defBackIdle = this.getUnitAnimKey(defender, 'idle', 'west');
+                    if (defBackIdle) defSprite.play(defBackIdle);
+                  },
+                });
+              }
+            },
           });
 
-          // Damage popup
+          // 데미지 숫자 팝업
           const dmgColor = isHeal ? '#44ff44' : '#ff4444';
           const dmgPrefix = isHeal ? '+' : '-';
-          const dmgText = this.add.text(gw * 0.75, centerY - 40, `${dmgPrefix}${damage}`, {
-            fontSize: '28px', color: dmgColor, fontStyle: 'bold',
-            stroke: '#000000', strokeThickness: 4,
-          }).setOrigin(0.5).setDepth(202);
+          const dmgText = this.add.text(gw * 0.78, centerY - 45, `${dmgPrefix}${damage}`, {
+            fontSize: '32px', color: dmgColor, fontStyle: 'bold',
+            stroke: '#000000', strokeThickness: 5,
+          }).setOrigin(0.5).setDepth(203);
+          allObjs.push(dmgText);
+          this.tweens.add({ targets: dmgText, y: centerY - 80, alpha: 0.7, duration: 700 });
 
-          // Damage float up
-          this.tweens.add({
-            targets: dmgText, y: centerY - 65, duration: 600,
-          });
-
-          // Skill name above attacker
-          let skillText: Phaser.GameObjects.Text | null = null;
-          if (skillName) {
-            skillText = this.add.text(gw * 0.25, centerY - 50, skillName, {
-              fontSize: '18px', color: '#ffd700', fontStyle: 'bold',
-              stroke: '#000000', strokeThickness: 3,
-            }).setOrigin(0.5).setDepth(202);
-            this.tweens.add({
-              targets: skillText, alpha: 0, y: centerY - 70, duration: 600, delay: 400,
+          // 사망 시 die 애니메이션
+          if (defender.hp - damage <= 0) {
+            this.time.delayedCall(200 / this.battleSpeed, () => {
+              const defDieAnim = this.getUnitAnimKey(defender, 'die', 'west');
+              if (defDieAnim) defSprite.play(defDieAnim);
+              this.tweens.add({
+                targets: defSprite, alpha: 0, angle: 20, y: centerY + 15,
+                duration: 500 / this.battleSpeed,
+              });
+              // "격파!" 텍스트
+              const killText = this.add.text(gw * 0.78, centerY - 20, '격파!', {
+                fontSize: '24px', color: '#ff0000', fontStyle: 'bold',
+                stroke: '#000000', strokeThickness: 4,
+              }).setOrigin(0.5).setDepth(203);
+              allObjs.push(killText);
             });
           }
 
-          // Defender shake
-          this.tweens.add({
-            targets: defSprite, x: gw * 0.78, duration: 50, yoyo: true, repeat: 2,
-          });
-
-          // Cleanup after showing
-          this.time.delayedCall(600 / this.battleSpeed, () => {
-            const allObjs: Phaser.GameObjects.GameObject[] = [overlay, atkSprite, defSprite, dmgText, atkName, defName];
-            if (skillText) allObjs.push(skillText);
+          // 공격자 복귀
+          this.time.delayedCall(300 / this.battleSpeed, () => {
             this.tweens.add({
-              targets: allObjs,
-              alpha: 0, duration: 200,
+              targets: atkSprite, x: gw * 0.22, duration: 200 / this.battleSpeed,
               onComplete: () => {
-                for (const obj of allObjs) obj.destroy();
-                onComplete();
+                const atkBackIdle = this.getUnitAnimKey(attacker, 'idle', 'east');
+                if (atkBackIdle) atkSprite.play(atkBackIdle);
               },
             });
           });
+
+          // 전체 클린업
+          this.time.delayedCall(900 / this.battleSpeed, cleanup);
         },
       });
     });
