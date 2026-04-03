@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '@shared/constants.ts';
-import type { UnitData } from '@shared/types/index.ts';
+import type { UnitData, UnitClass } from '@shared/types/index.ts';
 import { UNIT_CLASS_DEFS } from '@shared/data/unitClassDefs.ts';
 import { SKILL_DEFS } from '@shared/data/skillDefs.ts';
 import type { CampaignManager } from '../systems/CampaignManager.ts';
@@ -14,6 +14,7 @@ import {
 import type { DungeonDef, DungeonDifficulty, DungeonReward } from '@shared/data/dungeonDefs.ts';
 import { dungeonComplete } from '../../api/client.ts';
 import { FORMATIONS, isFormationComplete, isPatternSlot } from '@shared/data/formationDefs.ts';
+import { preloadUnitImages, hasPixelLabCharacter } from '../systems/UnitSpriteManager.ts';
 
 const GW = GAME_WIDTH;
 const GH = GAME_HEIGHT;
@@ -50,6 +51,10 @@ export class DailyDungeonScene extends Phaser.Scene {
 
   init(data: { campaignManager: CampaignManager }) {
     this.campaignManager = data.campaignManager;
+  }
+
+  preload(): void {
+    preloadUnitImages(this);
   }
 
   create(): void {
@@ -665,20 +670,47 @@ export class DailyDungeonScene extends Phaser.Scene {
     const diff = this.selectedDifficulty!;
     const isBoss = waveNum === diff.waves;
 
-    // 배경
-    const bg = this.add.graphics();
-    bg.fillGradientStyle(isBoss ? 0x200a0a : 0x0a1a10, isBoss ? 0x200a0a : 0x0a1a10, 0x0a0a1a, 0x0a0a1a, 1);
-    bg.fillRect(0, 0, GW, GH);
+    // -- Battlefield background (sky + ground like PvP Arena) --
+    const bgGfx = this.add.graphics();
+    const skyH = Math.floor(GH * 0.35);
+    const groundH = GH - skyH;
 
-    // 중앙 전장 라인
-    const line = this.add.graphics();
-    line.lineStyle(1, 0x333344, 0.3);
-    line.lineBetween(GW / 2, 35, GW / 2, GH - 120);
+    // Sky gradient (dark blue to lighter blue)
+    const skySteps = 24;
+    for (let i = 0; i < skySteps; i++) {
+      const t = i / skySteps;
+      const r = Math.round(10 + t * 20);
+      const g = Math.round(15 + t * 35);
+      const b = Math.round(40 + t * 60);
+      bgGfx.fillStyle((r << 16) | (g << 8) | b, 1);
+      bgGfx.fillRect(0, Math.floor(skyH * t), GW, Math.ceil(skyH / skySteps) + 1);
+    }
+
+    // Ground gradient (dark green to brown)
+    const gndSteps = 24;
+    for (let i = 0; i < gndSteps; i++) {
+      const t = i / gndSteps;
+      const r = Math.round(20 + t * 50);
+      const g2 = Math.round(35 + t * (-10));
+      const b = Math.round(15 + t * 5);
+      bgGfx.fillStyle((r << 16) | (Math.max(0, g2) << 8) | b, 1);
+      bgGfx.fillRect(0, skyH + Math.floor(groundH * t), GW, Math.ceil(groundH / gndSteps) + 1);
+    }
+
+    // Boss wave: red tint overlay
+    if (isBoss) {
+      bgGfx.fillStyle(0xff0000, 0.08);
+      bgGfx.fillRect(0, 0, GW, GH);
+    }
+
+    // Golden center dividing line
+    bgGfx.lineStyle(2, 0xffd700, 0.6);
+    bgGfx.lineBetween(GW / 2, 35, GW / 2, GH - 120);
 
     // 웨이브 표시
     this.add.text(GW / 2, 14, `⚔️ Wave ${waveNum}/${diff.waves}${isBoss ? ' 🔥BOSS' : ''}`, {
       fontSize: '16px', color: isBoss ? '#ff4444' : '#ffd700', fontStyle: 'bold',
-      stroke: '#000000', strokeThickness: 2,
+      stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0.5);
 
     // 배속 버튼
@@ -734,6 +766,7 @@ export class DailyDungeonScene extends Phaser.Scene {
     const container = this.add.container(x, y);
     const h = 44;
 
+    // card background (index 0)
     const card = this.add.graphics();
     card.fillStyle(isPlayer ? 0x1a2a4a : 0x4a1a1a, 0.85);
     card.fillRoundedRect(0, 0, w, h, 5);
@@ -741,29 +774,67 @@ export class DailyDungeonScene extends Phaser.Scene {
     card.strokeRoundedRect(0, 0, w, h, 5);
     container.add(card);
 
-    const clsIcons: Record<string, string> = {
-      cavalry: '🐎', infantry: '🛡️', archer: '🏹',
-      strategist: '📜', martial_artist: '👊', bandit: '🗡️',
-    };
-    const icon = this.add.text(6, h / 2, clsIcons[u.data.unitClass ?? 'infantry'] ?? '⚔️', { fontSize: '14px' }).setOrigin(0, 0.5);
-    container.add(icon);
+    // icon / sprite (index 1)
+    const unitClass = u.data.unitClass ?? 'infantry';
+    const heroId = u.data.id;
+    const plKey = `pl_${unitClass}_idle_south_0`;
+    const hasPL = hasPixelLabCharacter(this, heroId, unitClass as UnitClass);
+    const hasPLClass = !hasPL && this.textures.exists(plKey);
 
+    if (hasPL || hasPLClass) {
+      // Use PixelLab sprite
+      const texKey = hasPL
+        ? `pl_${heroId}_idle_south_0`
+        : plKey;
+      // Check texture actually exists before creating sprite
+      if (this.textures.exists(texKey)) {
+        const sprite = this.add.sprite(20, h / 2, texKey);
+        const tex = this.textures.get(texKey);
+        const frame = tex.get(0);
+        const targetSize = 36;
+        const scale = targetSize / Math.max(frame.width, frame.height);
+        sprite.setScale(scale);
+        container.add(sprite);
+      } else {
+        // fallback emoji
+        const clsIcons: Record<string, string> = {
+          cavalry: '🐎', infantry: '🛡️', archer: '🏹',
+          strategist: '📜', martial_artist: '👊', bandit: '🗡️',
+        };
+        const icon = this.add.text(6, h / 2, clsIcons[unitClass] ?? '⚔️', { fontSize: '14px' }).setOrigin(0, 0.5);
+        container.add(icon);
+      }
+    } else {
+      // Emoji fallback
+      const clsIcons: Record<string, string> = {
+        cavalry: '🐎', infantry: '🛡️', archer: '🏹',
+        strategist: '📜', martial_artist: '👊', bandit: '🗡️',
+      };
+      const icon = this.add.text(6, h / 2, clsIcons[unitClass] ?? '⚔️', { fontSize: '14px' }).setOrigin(0, 0.5);
+      container.add(icon);
+    }
+
+    // name (index 2)
     const name = this.add.text(24, 5, u.data.name, { fontSize: '12px', color: '#ffffff', fontStyle: 'bold' });
     container.add(name);
 
+    // hpText (index 3)
     const hpText = this.add.text(w - 5, 5, `${u.hp}`, { fontSize: '10px', color: '#aaaaaa' }).setOrigin(1, 0);
     container.add(hpText);
 
+    // hpBg (index 4)
     const hpBg = this.add.graphics();
     hpBg.fillStyle(0x222233, 1).fillRoundedRect(24, 20, w - 30, 6, 3);
     container.add(hpBg);
 
+    // hpBar (index 5)
     const hpBar = this.add.graphics();
     const ratio = u.hp / u.maxHp;
     hpBar.fillStyle(ratio > 0.5 ? 0x00ff00 : ratio > 0.25 ? 0xffff00 : 0xff0000, 1);
     hpBar.fillRoundedRect(24, 20, (w - 30) * ratio, 6, 3);
     container.add(hpBar);
 
+    // mpBar (index 6)
     const mpBar = this.add.graphics();
     mpBar.fillStyle(0x4488ff, 1).fillRoundedRect(24, 28, (w - 30) * (u.mp / Math.max(1, u.maxMp)), 3, 2);
     container.add(mpBar);
@@ -854,46 +925,89 @@ export class DailyDungeonScene extends Phaser.Scene {
 
         const damage = missed ? 0 : Math.max(1, Math.floor(rawDmg * critMult));
 
-        // 공격 애니메이션: 유닛 전진 → 복귀
+        // Enhanced attack animation
         const atkContainer = this.unitContainers.get(unit.data.id);
         const defContainer = this.unitContainers.get(target.data.id);
         if (atkContainer) {
           const origX = atkContainer.x;
-          const moveDir = unit.side === 'player' ? 30 : -30;
+          const dashDir = unit.side === 'player' ? 40 : -40;
+          // Attacker dash toward center with Power2 ease
           this.tweens.add({
-            targets: atkContainer, x: origX + moveDir, duration: 120 / this.battleSpeed, yoyo: true,
+            targets: atkContainer, x: origX + dashDir,
+            duration: 150 / this.battleSpeed, ease: 'Power2',
+            yoyo: true, yoyoDelay: 60 / this.battleSpeed,
           });
         }
 
-        this.time.delayedCall(250 / this.battleSpeed, () => {
+        this.time.delayedCall(200 / this.battleSpeed, () => {
           if (missed) {
             addLog(`${unit.data.name} → ${target.data.name} (빗나감!)`);
-            // MISS 텍스트
             if (defContainer) {
               const missText = this.add.text(defContainer.x + 60, defContainer.y, 'MISS', {
-                fontSize: '14px', color: '#888888', fontStyle: 'bold',
+                fontSize: '16px', color: '#888888', fontStyle: 'bold',
+                stroke: '#000000', strokeThickness: 2,
               }).setOrigin(0.5).setDepth(100);
-              this.tweens.add({ targets: missText, y: missText.y - 20, alpha: 0, duration: 600, onComplete: () => missText.destroy() });
+              this.tweens.add({ targets: missText, y: missText.y - 30, alpha: 0, duration: 700, onComplete: () => missText.destroy() });
             }
           } else {
             target.hp -= damage;
             let msg = `${unit.data.name} → ${target.data.name} (${damage}${isCrit ? ' 크리!' : ''})`;
             if (target.hp <= 0) { target.hp = 0; target.alive = false; msg += ' 격파!'; }
             addLog(msg);
-            // 데미지 팝업
+
             if (defContainer) {
+              // Screen shake on impact
+              this.cameras.main.shake(80 / this.battleSpeed, 0.005);
+
+              // Impact flash circle on defender
+              const flashCircle = this.add.graphics().setDepth(99);
+              flashCircle.fillStyle(isCrit ? 0xffaa00 : 0xffffff, 0.7);
+              flashCircle.fillCircle(defContainer.x + 55, defContainer.y + 22, 18);
+              this.tweens.add({
+                targets: flashCircle, alpha: 0,
+                duration: 200 / this.battleSpeed,
+                onComplete: () => flashCircle.destroy(),
+              });
+
+              // Larger damage text
               const dmgColor = isCrit ? '#ffaa00' : '#ff4444';
-              const dmgText = this.add.text(defContainer.x + 60, defContainer.y, `-${damage}`, {
-                fontSize: '14px', color: dmgColor, fontStyle: 'bold', stroke: '#000000', strokeThickness: 2,
+              const dmgSize = isCrit ? '22px' : '18px';
+              const dmgText = this.add.text(defContainer.x + 60, defContainer.y - 4, `-${damage}`, {
+                fontSize: dmgSize, color: dmgColor, fontStyle: 'bold',
+                stroke: '#000000', strokeThickness: 3,
               }).setOrigin(0.5).setDepth(100);
-              this.tweens.add({ targets: dmgText, y: dmgText.y - 25, alpha: 0, duration: 700, onComplete: () => dmgText.destroy() });
-              // 피격 흔들림
+              this.tweens.add({ targets: dmgText, y: dmgText.y - 35, alpha: 0, duration: 800, onComplete: () => dmgText.destroy() });
+
+              // Defender knockback + shake
               const ox = defContainer.x;
-              this.tweens.add({ targets: defContainer, x: ox + 4, duration: 40, yoyo: true, repeat: 3, onComplete: () => { defContainer.x = ox; } });
+              const knockDir = target.side === 'player' ? -8 : 8;
+              this.tweens.add({
+                targets: defContainer, x: ox + knockDir,
+                duration: 50 / this.battleSpeed, yoyo: true,
+                onComplete: () => {
+                  defContainer.x = ox;
+                  // Additional shake
+                  this.tweens.add({
+                    targets: defContainer, x: ox + 3,
+                    duration: 30, yoyo: true, repeat: 2,
+                    onComplete: () => { defContainer.x = ox; },
+                  });
+                },
+              });
+
+              // Death: rotation + fade out
+              if (!target.alive) {
+                this.tweens.add({
+                  targets: defContainer,
+                  alpha: 0, angle: target.side === 'player' ? -15 : 15,
+                  duration: 500 / this.battleSpeed,
+                  ease: 'Power2',
+                });
+              }
             }
           }
           this.updateDungeonCards();
-          this.time.delayedCall(300 / this.battleSpeed, doAction);
+          this.time.delayedCall(350 / this.battleSpeed, doAction);
         });
       };
 
@@ -912,8 +1026,31 @@ export class DailyDungeonScene extends Phaser.Scene {
 
     const diff = this.selectedDifficulty!;
     if (waveNum < diff.waves) {
-      // 다음 웨이브
-      this.time.delayedCall(500, () => this.runWave(waveNum + 1));
+      // Wave transition announcement
+      const nextWave = waveNum + 1;
+      const overlay = this.add.rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.6).setDepth(200);
+      const waveAnnounce = this.add.text(GW / 2, GH / 2, `Wave ${nextWave}/${diff.waves} 시작!`, {
+        fontSize: '24px', color: '#ffd700', fontStyle: 'bold',
+        stroke: '#000000', strokeThickness: 4,
+      }).setOrigin(0.5).setDepth(201).setScale(0.3).setAlpha(0);
+
+      this.tweens.add({
+        targets: waveAnnounce, scale: 1, alpha: 1,
+        duration: 300, ease: 'Back.easeOut',
+        onComplete: () => {
+          this.time.delayedCall(700, () => {
+            this.tweens.add({
+              targets: [overlay, waveAnnounce], alpha: 0,
+              duration: 300,
+              onComplete: () => {
+                overlay.destroy();
+                waveAnnounce.destroy();
+                this.runWave(nextWave);
+              },
+            });
+          });
+        },
+      });
     } else {
       // 전체 클리어
       const survivors = this.battleUnits.filter(u => u.side === 'player' && u.alive);
@@ -1002,71 +1139,110 @@ export class DailyDungeonScene extends Phaser.Scene {
 
   private showResult(stars: number, reward: DungeonReward, isSweep: boolean): void {
     this.children.removeAll();
+
+    // Background
     const rbg = this.add.graphics();
     rbg.fillGradientStyle(0x0c1220, 0x0c1220, 0x1a1a30, 0x1a1a30, 1);
     rbg.fillRect(0, 0, GW, GH);
 
+    // Camera flash (gold for win, red for loss)
+    const flashColor = stars > 0 ? 0xffd700 : 0xff2222;
+    const flash = this.add.rectangle(GW / 2, GH / 2, GW, GH, flashColor, 0.4).setDepth(300);
+    this.tweens.add({ targets: flash, alpha: 0, duration: 500, onComplete: () => flash.destroy() });
+
+    // Result text (larger)
     const resultText = stars > 0 ? (isSweep ? '소탕 완료!' : '클리어!') : '패배...';
     const resultColor = stars > 0 ? '#ffd700' : '#ff4444';
 
-    this.add.text(GW / 2, GH * 0.12, resultText, {
-      fontSize: '34px', color: resultColor, fontStyle: 'bold',
-    }).setOrigin(0.5);
+    const resultLabel = this.add.text(GW / 2, GH * 0.12, resultText, {
+      fontSize: '40px', color: resultColor, fontStyle: 'bold',
+      stroke: '#000000', strokeThickness: 4,
+    }).setOrigin(0.5).setScale(0.5).setAlpha(0);
+    this.tweens.add({ targets: resultLabel, scale: 1, alpha: 1, duration: 400, ease: 'Back.easeOut' });
 
-    // 별 표시
+    // Stars display - bounce in one by one
     if (stars > 0) {
-      const starText = '★'.repeat(stars) + '☆'.repeat(3 - stars);
-      this.add.text(GW / 2, GH * 0.22, starText, {
-        fontSize: '30px', color: '#ffd700',
-      }).setOrigin(0.5);
-    }
+      for (let i = 0; i < 3; i++) {
+        const isFilled = i < stars;
+        const starChar = isFilled ? '★' : '☆';
+        const starColor = isFilled ? '#ffd700' : '#333355';
+        const starObj = this.add.text(GW / 2 - 40 + i * 40, GH * 0.22, starChar, {
+          fontSize: '36px', color: starColor,
+          stroke: isFilled ? '#aa8800' : '#000000', strokeThickness: 2,
+        }).setOrigin(0.5).setScale(0).setAlpha(0);
 
-    // 보상
-    let y = GH * 0.35;
-    this.add.text(GW / 2, y, '── 보상 ──', {
-      fontSize: '16px', color: '#88aacc', fontStyle: 'bold',
-    }).setOrigin(0.5);
-    y += 28;
-
-    this.add.text(GW / 2, y, `💰 금화 +${reward.gold}`, {
-      fontSize: '16px', color: '#ffaa00',
-    }).setOrigin(0.5);
-    y += 24;
-
-    if (reward.equipment && reward.equipment.length > 0) {
-      const names = reward.equipment.map(e => EQUIPMENT_DEFS[e]?.name ?? e).join(', ');
-      this.add.text(GW / 2, y, `⚔️ ${names}`, {
-        fontSize: '14px', color: '#44ccff',
-      }).setOrigin(0.5);
-      y += 22;
-    }
-
-    if (reward.skills && reward.skills.length > 0) {
-      const names = reward.skills.map(s => SKILL_DEFS[s]?.name ?? s).join(', ');
-      this.add.text(GW / 2, y, `✨ ${names}`, {
-        fontSize: '14px', color: '#cc88ff',
-      }).setOrigin(0.5);
-      y += 22;
-    }
-
-    if (reward.materials) {
-      for (const [k, v] of Object.entries(reward.materials)) {
-        this.add.text(GW / 2, y, `📦 ${k} x${v}`, {
-          fontSize: '14px', color: '#88cc88',
-        }).setOrigin(0.5);
-        y += 22;
+        this.tweens.add({
+          targets: starObj, scale: 1, alpha: 1,
+          duration: 300, ease: 'Back.easeOut',
+          delay: 500 + i * 200,
+        });
       }
     }
 
-    // 버튼
-    const retryBtn = this.add.text(GW / 2 - 70, GH - 45, '다시 도전', {
-      fontSize: '16px', color: '#ffffff', backgroundColor: '#3366aa', padding: { x: 16, y: 10 },
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    retryBtn.on('pointerdown', () => this.showDungeonList());
+    // 보상 (delayed appearance)
+    const rewardDelay = stars > 0 ? 1200 : 600;
 
-    const lobbyBtn = this.add.text(GW / 2 + 70, GH - 45, '로비로', {
-      fontSize: '16px', color: '#ffffff', backgroundColor: '#2a2a4a', padding: { x: 16, y: 10 },
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    lobbyBtn.on('pointerdown', () => this.scene.start('LobbyScene', { campaignManager: this.campaignManager }));
+    this.time.delayedCall(rewardDelay, () => {
+      let y = GH * 0.35;
+      const rewardTitle = this.add.text(GW / 2, y, '── 보상 ──', {
+        fontSize: '16px', color: '#88aacc', fontStyle: 'bold',
+      }).setOrigin(0.5).setAlpha(0);
+      this.tweens.add({ targets: rewardTitle, alpha: 1, duration: 300 });
+      y += 28;
+
+      const goldText = this.add.text(GW / 2, y, `💰 금화 +${reward.gold}`, {
+        fontSize: '18px', color: '#ffaa00', fontStyle: 'bold',
+      }).setOrigin(0.5).setAlpha(0);
+      this.tweens.add({ targets: goldText, alpha: 1, duration: 300, delay: 100 });
+      y += 28;
+
+      let itemDelay = 200;
+      if (reward.equipment && reward.equipment.length > 0) {
+        const names = reward.equipment.map(e => EQUIPMENT_DEFS[e]?.name ?? e).join(', ');
+        const eqText = this.add.text(GW / 2, y, `⚔️ ${names}`, {
+          fontSize: '15px', color: '#44ccff',
+        }).setOrigin(0.5).setAlpha(0);
+        this.tweens.add({ targets: eqText, alpha: 1, duration: 300, delay: itemDelay });
+        y += 24;
+        itemDelay += 100;
+      }
+
+      if (reward.skills && reward.skills.length > 0) {
+        const names = reward.skills.map(s => SKILL_DEFS[s]?.name ?? s).join(', ');
+        const skText = this.add.text(GW / 2, y, `✨ ${names}`, {
+          fontSize: '15px', color: '#cc88ff',
+        }).setOrigin(0.5).setAlpha(0);
+        this.tweens.add({ targets: skText, alpha: 1, duration: 300, delay: itemDelay });
+        y += 24;
+        itemDelay += 100;
+      }
+
+      if (reward.materials) {
+        for (const [k, v] of Object.entries(reward.materials)) {
+          const matText = this.add.text(GW / 2, y, `📦 ${k} x${v}`, {
+            fontSize: '15px', color: '#88cc88',
+          }).setOrigin(0.5).setAlpha(0);
+          this.tweens.add({ targets: matText, alpha: 1, duration: 300, delay: itemDelay });
+          y += 24;
+          itemDelay += 100;
+        }
+      }
+    });
+
+    // Buttons (appear after rewards)
+    const btnDelay = stars > 0 ? 1800 : 1000;
+    this.time.delayedCall(btnDelay, () => {
+      const retryBtn = this.add.text(GW / 2 - 70, GH - 45, '다시 도전', {
+        fontSize: '16px', color: '#ffffff', backgroundColor: '#3366aa', padding: { x: 16, y: 10 },
+      }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setAlpha(0);
+      this.tweens.add({ targets: retryBtn, alpha: 1, duration: 300 });
+      retryBtn.on('pointerdown', () => this.showDungeonList());
+
+      const lobbyBtn = this.add.text(GW / 2 + 70, GH - 45, '로비로', {
+        fontSize: '16px', color: '#ffffff', backgroundColor: '#2a2a4a', padding: { x: 16, y: 10 },
+      }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setAlpha(0);
+      this.tweens.add({ targets: lobbyBtn, alpha: 1, duration: 300 });
+      lobbyBtn.on('pointerdown', () => this.scene.start('LobbyScene', { campaignManager: this.campaignManager }));
+    });
   }
 }
