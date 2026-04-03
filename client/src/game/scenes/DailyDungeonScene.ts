@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '@shared/constants.ts';
-import type { UnitData, UnitClass } from '@shared/types/index.ts';
+import type { UnitData } from '@shared/types/index.ts';
 import { UNIT_CLASS_DEFS } from '@shared/data/unitClassDefs.ts';
 import { SKILL_DEFS } from '@shared/data/skillDefs.ts';
 import type { CampaignManager } from '../systems/CampaignManager.ts';
@@ -14,7 +14,7 @@ import {
 import type { DungeonDef, DungeonDifficulty, DungeonReward } from '@shared/data/dungeonDefs.ts';
 import { dungeonComplete } from '../../api/client.ts';
 import { FORMATIONS, isFormationComplete, isPatternSlot } from '@shared/data/formationDefs.ts';
-import { preloadUnitImages, hasPixelLabCharacter } from '../systems/UnitSpriteManager.ts';
+import { preloadUnitImages, createSpriteSheetAnimations } from '../systems/UnitSpriteManager.ts';
 
 const GW = GAME_WIDTH;
 const GH = GAME_HEIGHT;
@@ -59,6 +59,7 @@ export class DailyDungeonScene extends Phaser.Scene {
 
   create(): void {
     (this.registry.get('audioManager') as AudioManager)?.playBgm('battle');
+    createSpriteSheetAnimations(this);
     this.updateStamina();
     this.showDungeonList();
   }
@@ -664,56 +665,105 @@ export class DailyDungeonScene extends Phaser.Scene {
 
   private unitContainers: Map<string, Phaser.GameObjects.Container> = new Map();
 
+  // ── Sprite texture helper ──
+
+  private getDungeonSpriteKey(unit: DungeonUnit, direction: string): string {
+    const heroId = unit.data.id;
+    const heroKeys: Record<string, string> = { p1: 'pl_lubu', p2: 'pl_zhangliao' };
+    const heroKey = heroKeys[heroId];
+    if (heroKey) {
+      const key = `${heroKey}_idle_${direction}_0`;
+      if (this.textures.exists(key)) return key;
+    }
+    // Try hero-specific PixelLab key
+    const plHeroKey = `pl_${heroId}_idle_${direction}_0`;
+    if (this.textures.exists(plHeroKey)) return plHeroKey;
+    // Fallback to class-based
+    const cls = unit.data.unitClass ?? 'infantry';
+    const classKey = `pl_${cls}_idle_${direction}_0`;
+    if (this.textures.exists(classKey)) return classKey;
+    return '';
+  }
+
+  // ── Grid position helpers ──
+
+  private getPlayerGridPos(slotIndex: number): { x: number; y: number } {
+    const cellW = 110;
+    const cellH = 90;
+    const col = slotIndex % GRID_COLS;
+    const row = Math.floor(slotIndex / GRID_COLS);
+    const gridStartX = (GW - GRID_COLS * cellW) / 2;
+    const gridStartY = 320;
+    return {
+      x: gridStartX + col * cellW + cellW / 2,
+      y: gridStartY + row * cellH + cellH / 2,
+    };
+  }
+
+  private getEnemyGridPositions(count: number): { x: number; y: number }[] {
+    const cellW = 110;
+    const positions: { x: number; y: number }[] = [];
+    if (count <= 3) {
+      // Single row, centered
+      const startX = (GW - count * cellW) / 2;
+      const y = 120;
+      for (let i = 0; i < count; i++) {
+        positions.push({ x: startX + i * cellW + cellW / 2, y });
+      }
+    } else {
+      // Two rows
+      const topCount = Math.ceil(count / 2);
+      const bottomCount = count - topCount;
+      const startXTop = (GW - topCount * cellW) / 2;
+      for (let i = 0; i < topCount; i++) {
+        positions.push({ x: startXTop + i * cellW + cellW / 2, y: 80 });
+      }
+      const startXBot = (GW - bottomCount * cellW) / 2;
+      for (let i = 0; i < bottomCount; i++) {
+        positions.push({ x: startXBot + i * cellW + cellW / 2, y: 170 });
+      }
+    }
+    return positions;
+  }
+
   private showWaveBattle(waveNum: number): void {
     this.children.removeAll();
     this.unitContainers.clear();
     const diff = this.selectedDifficulty!;
     const isBoss = waveNum === diff.waves;
 
-    // -- Battlefield background (sky + ground like PvP Arena) --
+    // -- Dark battlefield background --
     const bgGfx = this.add.graphics();
-    const skyH = Math.floor(GH * 0.35);
-    const groundH = GH - skyH;
-
-    // Sky gradient (dark blue to lighter blue)
-    const skySteps = 24;
-    for (let i = 0; i < skySteps; i++) {
-      const t = i / skySteps;
-      const r = Math.round(10 + t * 20);
-      const g = Math.round(15 + t * 35);
-      const b = Math.round(40 + t * 60);
+    const bgSteps = 32;
+    for (let i = 0; i < bgSteps; i++) {
+      const t = i / bgSteps;
+      const r = Math.round(8 + t * 12);
+      const g = Math.round(10 + t * 18);
+      const b = Math.round(20 + t * 30);
       bgGfx.fillStyle((r << 16) | (g << 8) | b, 1);
-      bgGfx.fillRect(0, Math.floor(skyH * t), GW, Math.ceil(skyH / skySteps) + 1);
-    }
-
-    // Ground gradient (dark green to brown)
-    const gndSteps = 24;
-    for (let i = 0; i < gndSteps; i++) {
-      const t = i / gndSteps;
-      const r = Math.round(20 + t * 50);
-      const g2 = Math.round(35 + t * (-10));
-      const b = Math.round(15 + t * 5);
-      bgGfx.fillStyle((r << 16) | (Math.max(0, g2) << 8) | b, 1);
-      bgGfx.fillRect(0, skyH + Math.floor(groundH * t), GW, Math.ceil(groundH / gndSteps) + 1);
+      bgGfx.fillRect(0, Math.floor((GH / bgSteps) * i), GW, Math.ceil(GH / bgSteps) + 1);
     }
 
     // Boss wave: red tint overlay
     if (isBoss) {
-      bgGfx.fillStyle(0xff0000, 0.08);
+      bgGfx.fillStyle(0xff0000, 0.06);
       bgGfx.fillRect(0, 0, GW, GH);
     }
 
-    // Golden center dividing line
-    bgGfx.lineStyle(2, 0xffd700, 0.6);
-    bgGfx.lineBetween(GW / 2, 35, GW / 2, GH - 120);
+    // Golden horizontal dividing line at y=305
+    bgGfx.lineStyle(2, 0xffd700, 0.5);
+    bgGfx.lineBetween(20, 305, GW - 20, 305);
+    // Subtle glow
+    bgGfx.lineStyle(4, 0xffd700, 0.15);
+    bgGfx.lineBetween(20, 305, GW - 20, 305);
 
-    // 웨이브 표시
+    // Wave header (y=0-35)
     this.add.text(GW / 2, 14, `⚔️ Wave ${waveNum}/${diff.waves}${isBoss ? ' 🔥BOSS' : ''}`, {
       fontSize: '16px', color: isBoss ? '#ff4444' : '#ffd700', fontStyle: 'bold',
       stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0.5);
 
-    // 배속 버튼
+    // Speed button
     const speedBtn = this.add.text(GW - 45, 8, `${this.battleSpeed}x`, {
       fontSize: '15px', color: '#ffffff', backgroundColor: '#000000cc', padding: { x: 8, y: 6 },
     }).setInteractive({ useHandCursor: true }).setDepth(50);
@@ -722,141 +772,152 @@ export class DailyDungeonScene extends Phaser.Scene {
       speedBtn.setText(`${this.battleSpeed}x`);
     });
 
-    // 아군 (좌측)
-    const players = this.battleUnits.filter(u => u.side === 'player');
+    // -- Enemy area (top, y=50-300) --
     const enemies = this.battleUnits.filter(u => u.side === 'enemy' && u.alive);
-    const unitH = 50;
-    const cardW = 110;
+    const enemyPositions = this.getEnemyGridPositions(enemies.length);
 
-    for (let i = 0; i < players.length; i++) {
-      const u = players[i];
-      const y = 36 + i * unitH;
-      const c = this.createDungeonUnitCard(u, 8, y, cardW, true);
-      this.unitContainers.set(u.data.id, c);
-    }
-
-    // 적군 (우측, 슬라이드 인)
     for (let i = 0; i < enemies.length; i++) {
       const u = enemies[i];
-      const y = 36 + i * unitH;
-      const c = this.createDungeonUnitCard(u, GW + 30, y, cardW, false);
+      const pos = enemyPositions[i];
+      // Start above and tween down (push-in effect)
+      const c = this.createDungeonUnitSprite(u, pos.x, pos.y - 60, 'south', false);
       this.unitContainers.set(u.data.id, c);
       this.tweens.add({
-        targets: c, x: GW - cardW - 8, duration: 400, ease: 'Back.easeOut', delay: i * 100,
+        targets: c, y: pos.y,
+        duration: 500, ease: 'Back.easeOut', delay: i * 120,
       });
     }
 
-    // 전투 로그
-    const logBg = this.add.graphics();
-    logBg.fillStyle(0x0a0a14, 0.85).fillRoundedRect(8, GH - 125, GW - 16, 118, 8);
-    logBg.lineStyle(1, 0x2a2a44, 0.5).strokeRoundedRect(8, GH - 125, GW - 16, 118, 8);
-    this.add.text(GW / 2, GH - 120, '── 전투 로그 ──', { fontSize: '12px', color: '#555566' }).setOrigin(0.5);
-
-    const logTexts: Phaser.GameObjects.Text[] = [];
-    for (let i = 0; i < 5; i++) {
-      logTexts.push(this.add.text(18, GH - 104 + i * 20, '', { fontSize: '12px', color: '#aaaaaa' }));
+    // -- Player area (bottom, y=310-530) --
+    const players = this.battleUnits.filter(u => u.side === 'player');
+    // Map players to their formation slots
+    for (let slotIdx = 0; slotIdx < this.playerSlots.length; slotIdx++) {
+      const slotUnit = this.playerSlots[slotIdx];
+      if (!slotUnit) continue;
+      const battleUnit = players.find(p => p.data.id === slotUnit.id);
+      if (!battleUnit) continue;
+      const pos = this.getPlayerGridPos(slotIdx);
+      const c = this.createDungeonUnitSprite(battleUnit, pos.x, pos.y, 'north', true);
+      this.unitContainers.set(battleUnit.data.id, c);
+    }
+    // Place any players not found in slots (fallback)
+    const unplacedPlayers = players.filter(p => !this.unitContainers.has(p.data.id));
+    let fallbackSlot = 0;
+    for (const u of unplacedPlayers) {
+      while (fallbackSlot < GRID_COLS * GRID_ROWS && this.playerSlots[fallbackSlot]) fallbackSlot++;
+      const pos = this.getPlayerGridPos(Math.min(fallbackSlot, GRID_COLS * GRID_ROWS - 1));
+      const c = this.createDungeonUnitSprite(u, pos.x, pos.y, 'north', true);
+      this.unitContainers.set(u.data.id, c);
+      fallbackSlot++;
     }
 
-    this.time.delayedCall(600 + enemies.length * 100, () => {
+    // -- Battle log (y=540-690) --
+    const logBg = this.add.graphics();
+    logBg.fillStyle(0x0a0a14, 0.9).fillRoundedRect(8, GH - 150, GW - 16, 143, 8);
+    logBg.lineStyle(1, 0x2a2a44, 0.5).strokeRoundedRect(8, GH - 150, GW - 16, 143, 8);
+    this.add.text(GW / 2, GH - 145, '── 전투 로그 ──', { fontSize: '12px', color: '#555566' }).setOrigin(0.5);
+
+    const logTexts: Phaser.GameObjects.Text[] = [];
+    for (let i = 0; i < 6; i++) {
+      logTexts.push(this.add.text(18, GH - 128 + i * 20, '', { fontSize: '12px', color: '#aaaaaa' }));
+    }
+
+    this.time.delayedCall(600 + enemies.length * 120, () => {
       this.executeWaveBattle(waveNum, logTexts);
     });
   }
 
-  private createDungeonUnitCard(u: DungeonUnit, x: number, y: number, w: number, isPlayer: boolean): Phaser.GameObjects.Container {
+  /** Create a sprite-based unit container for the vertical battle view */
+  private createDungeonUnitSprite(
+    u: DungeonUnit,
+    x: number, y: number,
+    direction: 'south' | 'north',
+    isPlayer: boolean,
+  ): Phaser.GameObjects.Container {
     const container = this.add.container(x, y);
-    const h = 44;
+    const hpBarW = 60;
 
-    // card background (index 0)
-    const card = this.add.graphics();
-    card.fillStyle(isPlayer ? 0x1a2a4a : 0x4a1a1a, 0.85);
-    card.fillRoundedRect(0, 0, w, h, 5);
-    card.lineStyle(1, isPlayer ? 0x3366aa : 0xaa3333, 0.5);
-    card.strokeRoundedRect(0, 0, w, h, 5);
-    container.add(card);
+    // Index 0: Faction indicator dot
+    const dotColor = isPlayer ? 0x4488ff : 0xff4444;
+    const dot = this.add.graphics();
+    dot.fillStyle(dotColor, 0.8);
+    dot.fillCircle(0, -38, 4);
+    container.add(dot);
 
-    // icon / sprite (index 1)
-    const unitClass = u.data.unitClass ?? 'infantry';
-    const heroId = u.data.id;
-    const plKey = `pl_${unitClass}_idle_south_0`;
-    const hasPL = hasPixelLabCharacter(this, heroId, unitClass as UnitClass);
-    const hasPLClass = !hasPL && this.textures.exists(plKey);
-
-    if (hasPL || hasPLClass) {
-      // Use PixelLab sprite
-      const texKey = hasPL
-        ? `pl_${heroId}_idle_south_0`
-        : plKey;
-      // Check texture actually exists before creating sprite
-      if (this.textures.exists(texKey)) {
-        const sprite = this.add.sprite(20, h / 2, texKey);
-        const tex = this.textures.get(texKey);
-        const frame = tex.get(0);
-        const targetSize = 36;
-        const scale = targetSize / Math.max(frame.width, frame.height);
-        sprite.setScale(scale);
-        container.add(sprite);
-      } else {
-        // fallback emoji
-        const clsIcons: Record<string, string> = {
-          cavalry: '🐎', infantry: '🛡️', archer: '🏹',
-          strategist: '📜', martial_artist: '👊', bandit: '🗡️',
-        };
-        const icon = this.add.text(6, h / 2, clsIcons[unitClass] ?? '⚔️', { fontSize: '14px' }).setOrigin(0, 0.5);
-        container.add(icon);
-      }
+    // Index 1: Sprite or emoji fallback
+    const texKey = this.getDungeonSpriteKey(u, direction);
+    if (texKey) {
+      const sprite = this.add.sprite(0, -10, texKey);
+      const tex = this.textures.get(texKey);
+      const frame = tex.get(0);
+      const targetSize = 52;
+      const scale = targetSize / Math.max(frame.width, frame.height);
+      sprite.setScale(scale * 1.3);
+      container.add(sprite);
     } else {
       // Emoji fallback
       const clsIcons: Record<string, string> = {
         cavalry: '🐎', infantry: '🛡️', archer: '🏹',
         strategist: '📜', martial_artist: '👊', bandit: '🗡️',
       };
-      const icon = this.add.text(6, h / 2, clsIcons[unitClass] ?? '⚔️', { fontSize: '14px' }).setOrigin(0, 0.5);
+      const unitClass = u.data.unitClass ?? 'infantry';
+      const icon = this.add.text(0, -14, clsIcons[unitClass] ?? '⚔️', {
+        fontSize: '28px',
+      }).setOrigin(0.5);
       container.add(icon);
     }
 
-    // name (index 2)
-    const name = this.add.text(24, 5, u.data.name, { fontSize: '12px', color: '#ffffff', fontStyle: 'bold' });
+    // Index 2: Name text (below sprite)
+    const name = this.add.text(0, 22, u.data.name, {
+      fontSize: '11px', color: '#ffffff', fontStyle: 'bold',
+      stroke: '#000000', strokeThickness: 2,
+    }).setOrigin(0.5);
     container.add(name);
 
-    // hpText (index 3)
-    const hpText = this.add.text(w - 5, 5, `${u.hp}`, { fontSize: '10px', color: '#aaaaaa' }).setOrigin(1, 0);
+    // Index 3: HP text
+    const hpText = this.add.text(0, 34, `${u.hp}/${u.maxHp}`, {
+      fontSize: '9px', color: '#aaaaaa',
+      stroke: '#000000', strokeThickness: 1,
+    }).setOrigin(0.5);
     container.add(hpText);
 
-    // hpBg (index 4)
+    // Index 4: HP bar background
     const hpBg = this.add.graphics();
-    hpBg.fillStyle(0x222233, 1).fillRoundedRect(24, 20, w - 30, 6, 3);
+    hpBg.fillStyle(0x222233, 1).fillRoundedRect(-hpBarW / 2, 42, hpBarW, 6, 3);
     container.add(hpBg);
 
-    // hpBar (index 5)
+    // Index 5: HP bar fill
     const hpBar = this.add.graphics();
     const ratio = u.hp / u.maxHp;
-    hpBar.fillStyle(ratio > 0.5 ? 0x00ff00 : ratio > 0.25 ? 0xffff00 : 0xff0000, 1);
-    hpBar.fillRoundedRect(24, 20, (w - 30) * ratio, 6, 3);
+    const barColor = ratio > 0.5 ? 0x00ff00 : ratio > 0.25 ? 0xffff00 : 0xff0000;
+    hpBar.fillStyle(barColor, 1);
+    hpBar.fillRoundedRect(-hpBarW / 2, 42, hpBarW * ratio, 6, 3);
     container.add(hpBar);
-
-    // mpBar (index 6)
-    const mpBar = this.add.graphics();
-    mpBar.fillStyle(0x4488ff, 1).fillRoundedRect(24, 28, (w - 30) * (u.mp / Math.max(1, u.maxMp)), 3, 2);
-    container.add(mpBar);
 
     if (!u.alive) container.setAlpha(0.15);
     return container;
   }
 
   private updateDungeonCards(): void {
+    const hpBarW = 60;
     for (const unit of this.battleUnits) {
       const c = this.unitContainers.get(unit.data.id);
       if (!c) continue;
-      const w = 110;
+
+      // Index 5: HP bar fill
       const hpBar = c.getAt(5) as Phaser.GameObjects.Graphics;
       hpBar.clear();
       if (unit.alive) {
         const ratio = unit.hp / unit.maxHp;
-        hpBar.fillStyle(ratio > 0.5 ? 0x00ff00 : ratio > 0.25 ? 0xffff00 : 0xff0000, 1);
-        hpBar.fillRoundedRect(24, 20, (w - 30) * ratio, 6, 3);
+        const barColor = ratio > 0.5 ? 0x00ff00 : ratio > 0.25 ? 0xffff00 : 0xff0000;
+        hpBar.fillStyle(barColor, 1);
+        hpBar.fillRoundedRect(-hpBarW / 2, 42, hpBarW * ratio, 6, 3);
       }
+
+      // Index 3: HP text
       const hpText = c.getAt(3) as Phaser.GameObjects.Text;
-      hpText.setText(`${Math.max(0, unit.hp)}`);
+      hpText.setText(`${Math.max(0, unit.hp)}/${unit.maxHp}`);
+
       if (!unit.alive) c.setAlpha(0.15);
     }
   }
@@ -865,7 +926,7 @@ export class DailyDungeonScene extends Phaser.Scene {
     const logs: string[] = [];
     const addLog = (msg: string) => {
       logs.push(msg);
-      const show = logs.slice(-4);
+      const show = logs.slice(-6);
       for (let i = 0; i < logTexts.length; i++) logTexts[i].setText(show[i] ?? '');
     };
 
@@ -874,11 +935,11 @@ export class DailyDungeonScene extends Phaser.Scene {
       if (turnCount >= 20) { this.onWaveEnd(waveNum, false); return; }
 
       const alive = this.battleUnits.filter(u => u.alive);
-      const players = alive.filter(u => u.side === 'player');
-      const enemies = alive.filter(u => u.side === 'enemy');
+      const pAlive = alive.filter(u => u.side === 'player');
+      const eAlive = alive.filter(u => u.side === 'enemy');
 
-      if (players.length === 0) { this.onWaveEnd(waveNum, false); return; }
-      if (enemies.length === 0) { this.onWaveEnd(waveNum, true); return; }
+      if (pAlive.length === 0) { this.onWaveEnd(waveNum, false); return; }
+      if (eAlive.length === 0) { this.onWaveEnd(waveNum, true); return; }
 
       turnCount++;
       const sorted = [...alive].sort((a, b) => b.speed - a.speed + (Math.random() - 0.5) * 2);
@@ -886,7 +947,7 @@ export class DailyDungeonScene extends Phaser.Scene {
       let idx = 0;
       const doAction = () => {
         if (idx >= sorted.length) {
-          // 쿨다운 감소
+          // Cooldown reduction
           for (const u of alive) {
             for (const k of Object.keys(u.skillCooldowns)) {
               if (u.skillCooldowns[k] > 0) u.skillCooldowns[k]--;
@@ -910,7 +971,7 @@ export class DailyDungeonScene extends Phaser.Scene {
 
         const target = targets.sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp))[0];
 
-        // 데미지 계산
+        // Damage calculation
         const atkAgi = unit.data.stats.agility ?? 20;
         const defAgi = target.data.stats.agility ?? 20;
         const hitRate = Math.min(99, Math.max(30, 90 + (atkAgi - defAgi) * 2));
@@ -925,29 +986,52 @@ export class DailyDungeonScene extends Phaser.Scene {
 
         const damage = missed ? 0 : Math.max(1, Math.floor(rawDmg * critMult));
 
-        // Enhanced attack animation
+        // Vertical attack animation
         const atkContainer = this.unitContainers.get(unit.data.id);
         const defContainer = this.unitContainers.get(target.data.id);
-        if (atkContainer) {
-          const origX = atkContainer.x;
-          const dashDir = unit.side === 'player' ? 40 : -40;
-          // Attacker dash toward center with Power2 ease
-          this.tweens.add({
-            targets: atkContainer, x: origX + dashDir,
-            duration: 150 / this.battleSpeed, ease: 'Power2',
-            yoyo: true, yoyoDelay: 60 / this.battleSpeed,
-          });
+
+        const unitClass = unit.data.unitClass ?? 'infantry';
+        const isRanged = unitClass === 'archer' || unitClass === 'strategist';
+
+        if (atkContainer && defContainer) {
+          const origY = atkContainer.y;
+          if (isRanged) {
+            // Ranged: stay in place, show projectile
+            const projGfx = this.add.graphics().setDepth(80);
+            const projColor = unitClass === 'strategist' ? 0x8844ff : 0xffaa00;
+            projGfx.fillStyle(projColor, 0.9);
+            projGfx.fillCircle(atkContainer.x, atkContainer.y, 5);
+            this.tweens.add({
+              targets: projGfx,
+              x: defContainer.x - atkContainer.x,
+              y: defContainer.y - atkContainer.y,
+              duration: 250 / this.battleSpeed,
+              ease: 'Power1',
+              onComplete: () => projGfx.destroy(),
+            });
+          } else {
+            // Melee: move toward target vertically
+            const dashDir = unit.side === 'player' ? -50 : 50;
+            this.tweens.add({
+              targets: atkContainer, y: origY + dashDir,
+              duration: 150 / this.battleSpeed, ease: 'Power2',
+              yoyo: true, yoyoDelay: 60 / this.battleSpeed,
+            });
+          }
         }
 
-        this.time.delayedCall(200 / this.battleSpeed, () => {
+        this.time.delayedCall(250 / this.battleSpeed, () => {
           if (missed) {
             addLog(`${unit.data.name} → ${target.data.name} (빗나감!)`);
             if (defContainer) {
-              const missText = this.add.text(defContainer.x + 60, defContainer.y, 'MISS', {
+              const missText = this.add.text(defContainer.x, defContainer.y - 30, 'MISS', {
                 fontSize: '16px', color: '#888888', fontStyle: 'bold',
                 stroke: '#000000', strokeThickness: 2,
               }).setOrigin(0.5).setDepth(100);
-              this.tweens.add({ targets: missText, y: missText.y - 30, alpha: 0, duration: 700, onComplete: () => missText.destroy() });
+              this.tweens.add({
+                targets: missText, y: missText.y - 30, alpha: 0,
+                duration: 700, onComplete: () => missText.destroy(),
+              });
             }
           } else {
             target.hp -= damage;
@@ -959,43 +1043,45 @@ export class DailyDungeonScene extends Phaser.Scene {
               // Screen shake on impact
               this.cameras.main.shake(80 / this.battleSpeed, 0.005);
 
-              // Impact flash circle on defender
+              // Impact flash circle on target
               const flashCircle = this.add.graphics().setDepth(99);
               flashCircle.fillStyle(isCrit ? 0xffaa00 : 0xffffff, 0.7);
-              flashCircle.fillCircle(defContainer.x + 55, defContainer.y + 22, 18);
+              flashCircle.fillCircle(defContainer.x, defContainer.y - 10, 20);
               this.tweens.add({
                 targets: flashCircle, alpha: 0,
                 duration: 200 / this.battleSpeed,
                 onComplete: () => flashCircle.destroy(),
               });
 
-              // Larger damage text
+              // Damage text floating up
               const dmgColor = isCrit ? '#ffaa00' : '#ff4444';
               const dmgSize = isCrit ? '22px' : '18px';
-              const dmgText = this.add.text(defContainer.x + 60, defContainer.y - 4, `-${damage}`, {
+              const dmgText = this.add.text(defContainer.x, defContainer.y - 40, `-${damage}`, {
                 fontSize: dmgSize, color: dmgColor, fontStyle: 'bold',
                 stroke: '#000000', strokeThickness: 3,
               }).setOrigin(0.5).setDepth(100);
-              this.tweens.add({ targets: dmgText, y: dmgText.y - 35, alpha: 0, duration: 800, onComplete: () => dmgText.destroy() });
-
-              // Defender knockback + shake
-              const ox = defContainer.x;
-              const knockDir = target.side === 'player' ? -8 : 8;
               this.tweens.add({
-                targets: defContainer, x: ox + knockDir,
+                targets: dmgText, y: dmgText.y - 35, alpha: 0,
+                duration: 800, onComplete: () => dmgText.destroy(),
+              });
+
+              // Defender knockback (vertical)
+              const oy = defContainer.y;
+              const knockDir = target.side === 'player' ? 8 : -8;
+              this.tweens.add({
+                targets: defContainer, y: oy + knockDir,
                 duration: 50 / this.battleSpeed, yoyo: true,
                 onComplete: () => {
-                  defContainer.x = ox;
-                  // Additional shake
+                  defContainer.y = oy;
                   this.tweens.add({
-                    targets: defContainer, x: ox + 3,
+                    targets: defContainer, y: oy + 3,
                     duration: 30, yoyo: true, repeat: 2,
-                    onComplete: () => { defContainer.x = ox; },
+                    onComplete: () => { defContainer.y = oy; },
                   });
                 },
               });
 
-              // Death: rotation + fade out
+              // Death: fade + rotation
               if (!target.alive) {
                 this.tweens.add({
                   targets: defContainer,
