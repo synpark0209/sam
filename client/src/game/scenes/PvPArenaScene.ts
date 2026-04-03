@@ -12,7 +12,7 @@ import { getGradeColor } from '@shared/data/gachaDefs.ts';
 import type { HeroGrade } from '@shared/data/gachaDefs.ts';
 import { getTier, calculateEloChange, getNextTierProgress, DAILY_PVP_TICKETS } from '@shared/data/pvpDefs.ts';
 import { pvpRecordResult, addGold } from '../../api/client.ts';
-import { preloadUnitImages, hasUnitImage } from '../systems/UnitSpriteManager.ts';
+import { preloadUnitImages, hasUnitImage, hasPixelLabCharacter } from '../systems/UnitSpriteManager.ts';
 import { FORMATIONS, isFormationComplete, isPatternSlot } from '@shared/data/formationDefs.ts';
 
 const GW = GAME_WIDTH;
@@ -737,9 +737,22 @@ export class PvPArenaScene extends Phaser.Scene {
       circleBg.strokeCircle(0, -4, portraitR + 2);
       container.add(circleBg);
 
-      // 유닛 이미지 또는 병종 아이콘
-      const hasImage = hasUnitImage(this, cls, unit.data.faction ?? 'player');
-      if (hasImage) {
+      // PixelLab 스프라이트 또는 유닛 이미지 또는 병종 아이콘
+      const heroId = unit.data.id;
+      const hasPL = hasPixelLabCharacter(this, heroId, cls);
+      if (hasPL) {
+        const plKey = this.getUnitTextureKey(unit, 'south');
+        const portrait = this.add.sprite(0, -4, plKey);
+        const tex = this.textures.get(plKey);
+        const frame = tex.get(0);
+        const scale = (portraitR * 2 + 4) / Math.max(frame.width, frame.height);
+        portrait.setScale(scale);
+        // 원형 마스크
+        const maskShape = this.make.graphics({ x: container.x ?? x, y: container.y ?? y });
+        maskShape.fillCircle(0, -4, portraitR);
+        portrait.setMask(maskShape.createGeometryMask());
+        container.add(portrait);
+      } else if (hasUnitImage(this, cls, unit.data.faction ?? 'player')) {
         const imgKey = `unit_img_${cls}_${unit.data.faction ?? 'player'}`;
         const portrait = this.add.sprite(0, -4, imgKey);
         const tex = this.textures.get(imgKey);
@@ -1242,27 +1255,7 @@ export class PvPArenaScene extends Phaser.Scene {
         // 스킬 사용 시도
         const skillResult = this.tryUseSkill(unit, this.battleUnits);
         if (skillResult) {
-          // ── Skill cut-in effect ──
-          const skillOverlay = this.add.graphics();
-          skillOverlay.fillStyle(0x000000, 0.3);
-          skillOverlay.fillRect(0, 0, GW, GH);
-          skillOverlay.setDepth(190);
-
-          const skillNameText = this.add.text(GW / 2, GH / 2 - 40, skillResult.skillName, {
-            fontSize: '20px', color: '#ffd700', fontStyle: 'bold',
-            stroke: '#000000', strokeThickness: 4,
-          }).setOrigin(0.5).setDepth(191).setScale(0.5);
-
-          this.tweens.add({
-            targets: skillNameText, scaleX: 1, scaleY: 1, duration: 200, ease: 'Back.easeOut',
-          });
-
-          this.time.delayedCall(300 / this.battleSpeed, () => {
-            this.tweens.add({
-              targets: [skillOverlay, skillNameText], alpha: 0, duration: 200,
-              onComplete: () => { skillOverlay.destroy(); skillNameText.destroy(); },
-            });
-
+          const applySkillEffect = () => {
             attackAnim(unit, skillResult.target);
             this.time.delayedCall(400 / this.battleSpeed, () => {
               showLabel(unit, `${skillResult.skillName}`, '#cc88ff');
@@ -1324,7 +1317,15 @@ export class PvPArenaScene extends Phaser.Scene {
               updateHpBars();
               this.time.delayedCall(600 / this.battleSpeed, doAction);
             });
-          });
+          };
+
+          // Always show duel close-up for skills
+          this.showDuelCloseUp(
+            unit, skillResult.target, skillResult.value,
+            true, skillResult.skillName,
+            skillResult.type === 'heal',
+            applySkillEffect,
+          );
           return;
         }
 
@@ -1366,46 +1367,192 @@ export class PvPArenaScene extends Phaser.Scene {
         let damage = missed ? 0 : Math.max(1, Math.floor(rawDmg * typeBonus.mult * critMult));
         if (isDouble && !missed) damage = Math.floor(damage * 1.5);
 
-        // 애니메이션
-        attackAnim(unit, target);
+        // Check if kill shot (pre-calculate)
+        const isKill = !missed && (target.hp - damage) <= 0;
 
-        this.time.delayedCall(400 / this.battleSpeed, () => {
-          if (missed) {
-            showLabel(target, 'MISS', '#888888');
-            addLog(`${unit.data.name} → ${target.data.name} (빗나감!)`);
+        // Show duel close-up for crits, kills, or 30% random chance
+        const showCloseUp = !missed && (isCrit || isKill || Math.random() < 0.3);
+
+        const applyNormalAttack = () => {
+          attackAnim(unit, target);
+
+          this.time.delayedCall(400 / this.battleSpeed, () => {
+            if (missed) {
+              showLabel(target, 'MISS', '#888888');
+              addLog(`${unit.data.name} → ${target.data.name} (빗나감!)`);
+              this.time.delayedCall(500 / this.battleSpeed, doAction);
+              return;
+            }
+
+            target.hp -= damage;
+            showDamagePopup(target, damage, isCrit ? '#ffaa00' : '#ff4444');
+            shakeUnit(target);
+
+            if (isCrit) showLabel(unit, '크리티컬!', '#ffaa00');
+            if (isDouble) showLabel(unit, '2회 공격!', '#44aaff');
+            if (typeBonus.label) {
+              showLabel(unit, typeBonus.label, typeBonus.mult > 1 ? '#44ff44' : '#ff6666');
+            }
+
+            let logMsg = `${unit.data.name} → ${target.data.name} (${damage}${isCrit ? ' 크리!' : ''}${isDouble ? ' 2연격' : ''})`;
+
+            if (target.hp <= 0) {
+              target.hp = 0;
+              target.alive = false;
+              logMsg += ' 격파!';
+            }
+
+            addLog(logMsg);
+            updateHpBars();
+
             this.time.delayedCall(500 / this.battleSpeed, doAction);
-            return;
-          }
+          });
+        };
 
-          target.hp -= damage;
-          showDamagePopup(target, damage, isCrit ? '#ffaa00' : '#ff4444');
-          shakeUnit(target);
-
-          if (isCrit) showLabel(unit, '크리티컬!', '#ffaa00');
-          if (isDouble) showLabel(unit, '2회 공격!', '#44aaff');
-          if (typeBonus.label) {
-            showLabel(unit, typeBonus.label, typeBonus.mult > 1 ? '#44ff44' : '#ff6666');
-          }
-
-          let logMsg = `${unit.data.name} → ${target.data.name} (${damage}${isCrit ? ' 크리!' : ''}${isDouble ? ' 2연격' : ''})`;
-
-          if (target.hp <= 0) {
-            target.hp = 0;
-            target.alive = false;
-            logMsg += ' 격파!';
-          }
-
-          addLog(logMsg);
-          updateHpBars();
-
-          this.time.delayedCall(500 / this.battleSpeed, doAction);
-        });
+        if (showCloseUp) {
+          this.showDuelCloseUp(
+            unit, target, damage,
+            false, undefined,
+            false,
+            applyNormalAttack,
+          );
+        } else {
+          applyNormalAttack();
+        }
       };
 
       doAction();
     };
 
     this.time.delayedCall(800, doTurn);
+  }
+
+  /** 유닛의 PixelLab 텍스처 키를 가져옴 (방향별) */
+  private getUnitTextureKey(unit: ArenaUnit, direction: string): string {
+    // 장수 ID로 PixelLab 텍스처 확인
+    const heroId = unit.data.id;
+    const heroKeys: Record<string, string> = { p1: 'pl_lubu', p2: 'pl_zhangliao' };
+    const heroKey = heroKeys[heroId];
+    if (heroKey) {
+      const key = `${heroKey}_idle_${direction}_0`;
+      if (this.textures.exists(key)) return key;
+    }
+
+    // 병종 기반 PixelLab 텍스처 확인
+    const cls = unit.data.unitClass ?? 'infantry';
+    const classKey = `pl_${cls}_idle_${direction}_0`;
+    if (this.textures.exists(classKey)) return classKey;
+
+    // 유닛 이미지 폴백
+    const imgKey = `unit_img_${cls}_${unit.side === 'player' ? 'player' : 'enemy'}`;
+    if (this.textures.exists(imgKey)) return imgKey;
+
+    return '__DEFAULT';
+  }
+
+  /** 전투 클로즈업 듀얼 연출 */
+  private showDuelCloseUp(
+    attacker: ArenaUnit,
+    defender: ArenaUnit,
+    damage: number,
+    _isSkill: boolean,
+    skillName: string | undefined,
+    isHeal: boolean,
+    onComplete: () => void,
+  ): void {
+    const gw = GW;
+    const gh = GH;
+    const centerY = gh * 0.4;
+
+    // Dark overlay
+    const overlay = this.add.graphics().setDepth(200);
+    overlay.fillStyle(0x000000, 0.6);
+    overlay.fillRect(0, 0, gw, gh);
+
+    // Get attacker sprite texture (east facing for attacker, west for defender)
+    const atkKey = this.getUnitTextureKey(attacker, 'east');
+    const defKey = this.getUnitTextureKey(defender, 'west');
+
+    const atkSprite = this.add.sprite(gw * 0.25, centerY, atkKey).setScale(2.5).setDepth(201);
+    const defSprite = this.add.sprite(gw * 0.75, centerY, defKey).setScale(2.5).setDepth(201);
+
+    // Attacker name label
+    const atkName = this.add.text(gw * 0.25, centerY + 50, attacker.data.name, {
+      fontSize: '14px', color: '#88ccff', fontStyle: 'bold',
+      stroke: '#000000', strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(202);
+
+    // Defender name label
+    const defName = this.add.text(gw * 0.75, centerY + 50, defender.data.name, {
+      fontSize: '14px', color: '#ff8888', fontStyle: 'bold',
+      stroke: '#000000', strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(202);
+
+    // Slash/impact after brief pause
+    this.time.delayedCall(300 / this.battleSpeed, () => {
+      // Attacker dashes right toward defender
+      this.tweens.add({
+        targets: atkSprite, x: gw * 0.55, duration: 200 / this.battleSpeed,
+        ease: 'Power2',
+        onComplete: () => {
+          // Impact
+          this.cameras.main.shake(100, 0.01);
+
+          // Impact flash
+          const flash = this.add.graphics().setDepth(203);
+          flash.fillStyle(0xffffff, 0.6);
+          flash.fillCircle(gw * 0.65, centerY, 30);
+          this.tweens.add({
+            targets: flash, alpha: 0, duration: 150,
+            onComplete: () => flash.destroy(),
+          });
+
+          // Damage popup
+          const dmgColor = isHeal ? '#44ff44' : '#ff4444';
+          const dmgPrefix = isHeal ? '+' : '-';
+          const dmgText = this.add.text(gw * 0.75, centerY - 40, `${dmgPrefix}${damage}`, {
+            fontSize: '28px', color: dmgColor, fontStyle: 'bold',
+            stroke: '#000000', strokeThickness: 4,
+          }).setOrigin(0.5).setDepth(202);
+
+          // Damage float up
+          this.tweens.add({
+            targets: dmgText, y: centerY - 65, duration: 600,
+          });
+
+          // Skill name above attacker
+          let skillText: Phaser.GameObjects.Text | null = null;
+          if (skillName) {
+            skillText = this.add.text(gw * 0.25, centerY - 50, skillName, {
+              fontSize: '18px', color: '#ffd700', fontStyle: 'bold',
+              stroke: '#000000', strokeThickness: 3,
+            }).setOrigin(0.5).setDepth(202);
+            this.tweens.add({
+              targets: skillText, alpha: 0, y: centerY - 70, duration: 600, delay: 400,
+            });
+          }
+
+          // Defender shake
+          this.tweens.add({
+            targets: defSprite, x: gw * 0.78, duration: 50, yoyo: true, repeat: 2,
+          });
+
+          // Cleanup after showing
+          this.time.delayedCall(600 / this.battleSpeed, () => {
+            const allObjs: Phaser.GameObjects.GameObject[] = [overlay, atkSprite, defSprite, dmgText, atkName, defName];
+            if (skillText) allObjs.push(skillText);
+            this.tweens.add({
+              targets: allObjs,
+              alpha: 0, duration: 200,
+              onComplete: () => {
+                for (const obj of allObjs) obj.destroy();
+                onComplete();
+              },
+            });
+          });
+        },
+      });
+    });
   }
 
   private endBattle(result: 'win' | 'lose' | 'timeout'): void {
