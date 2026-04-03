@@ -55,4 +55,9 @@ export interface CampaignProgress {
   loginBonus?: LoginBonusState;
   heroFragments?: Record<string, number>;  // 장수 조각 { heroBaseId: count }
   shopDailyPurchases?: { date: string; counts: Record<string, number> };
+  pvpElo?: number;
+  pvpWins?: number;
+  pvpLosses?: number;
+  pvpTicketsDate?: string;               // 일일 티켓 리셋 날짜
+  pvpTicketsUsed?: number;
 }

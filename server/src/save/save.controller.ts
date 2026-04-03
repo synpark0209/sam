@@ -13,9 +13,12 @@ export class SaveController {
     await this.saveService.migrateGold(req.user.userId);
     const save = await this.saveService.getSave(req.user.userId);
     if (!save) return null;
-    // 클라이언트에 gold/gems를 JSONB와 함께 전달
+    // 클라이언트에 서버 관리 데이터를 JSONB와 함께 전달
     const progress = save.campaignProgress as Record<string, unknown>;
     progress.gold = save.gold;
+    progress.pvpElo = save.pvpElo;
+    progress.pvpWins = save.pvpWins;
+    progress.pvpLosses = save.pvpLosses;
     return progress;
   }
 

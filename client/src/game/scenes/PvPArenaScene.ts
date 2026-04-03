@@ -71,9 +71,23 @@ export class PvPArenaScene extends Phaser.Scene {
     (this.registry.get('audioManager') as AudioManager)?.playBgm('battle');
     this.playerSlots = Array(GRID_COLS * GRID_ROWS).fill(null);
     this.deployedCount = 0;
-    this.ticketsUsed = 0;
-    // ELO/전적은 서버에서 로드 (세이브 데이터에 포함)
     createSpriteSheetAnimations(this);
+
+    // 서버에서 PvP 데이터 로드
+    const progress = this.campaignManager.getProgress();
+    this.playerElo = progress.pvpElo ?? 1000;
+    this.pvpWins = progress.pvpWins ?? 0;
+    this.pvpLosses = progress.pvpLosses ?? 0;
+
+    // 일일 티켓 리셋
+    const today = new Date().toISOString().split('T')[0];
+    if (progress.pvpTicketsDate !== today) {
+      progress.pvpTicketsDate = today;
+      progress.pvpTicketsUsed = 0;
+      this.campaignManager.save();
+    }
+    this.ticketsUsed = progress.pvpTicketsUsed ?? 0;
+
     this.showArenaHome();
   }
 
@@ -1614,14 +1628,22 @@ export class PvPArenaScene extends Phaser.Scene {
   private endBattle(result: 'win' | 'lose' | 'timeout'): void {
     // result phase
     this.ticketsUsed++;
+    // PvP 데이터 저장
+    const progress = this.campaignManager.getProgress();
+    progress.pvpTicketsUsed = this.ticketsUsed;
     const won = result === 'win';
     const eloChange = calculateEloChange(this.playerElo, this.playerElo, won); // 상대 ELO는 동급으로 가정
     this.playerElo = Math.max(0, this.playerElo + eloChange);
     if (won) this.pvpWins++;
     else this.pvpLosses++;
-
-    // 서버에 결과 기록
-    pvpRecordResult(0, won).catch(() => {});
+    // 서버에 결과 기록 (ELO/전적은 서버에서 관리)
+    pvpRecordResult(0, won).then(() => {
+      this.campaignManager.loadFromServer();
+    }).catch(() => {});
+    // 티켓 사용량 저장
+    const prog2 = this.campaignManager.getProgress();
+    prog2.pvpTicketsUsed = this.ticketsUsed;
+    this.campaignManager.save();
 
     this.campaignManager.incrementMission('battle_3');
     this.campaignManager.incrementMission('pvp_1');
