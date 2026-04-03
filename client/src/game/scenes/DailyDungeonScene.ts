@@ -3,6 +3,8 @@ import { GAME_WIDTH, GAME_HEIGHT } from '@shared/constants.ts';
 import type { UnitData } from '@shared/types/index.ts';
 import { UNIT_CLASS_DEFS } from '@shared/data/unitClassDefs.ts';
 import { SKILL_DEFS } from '@shared/data/skillDefs.ts';
+import { SkillEffectType } from '@shared/types/index.ts';
+import { getClassSkillId } from '@shared/data/classSkillDefs.ts';
 import type { CampaignManager } from '../systems/CampaignManager.ts';
 import type { AudioManager } from '../systems/AudioManager.ts';
 import { getGradeColor } from '@shared/data/gachaDefs.ts';
@@ -952,6 +954,77 @@ export class DailyDungeonScene extends Phaser.Scene {
     }
   }
 
+  private tryUseDungeonSkill(unit: DungeonUnit, allUnits: DungeonUnit[]): { target: DungeonUnit; skillName: string; value: number; type: 'damage' | 'heal' } | null {
+    // Collect unit's skill IDs
+    const skillIds: string[] = [];
+    if (unit.data.unitClass) {
+      skillIds.push(unit.data.classSkillId ?? getClassSkillId(unit.data.unitClass, unit.data.promotionLevel ?? 0));
+    }
+    if (unit.data.uniqueSkill && (unit.data.uniqueSkillUnlocked || (unit.data.level ?? 1) >= 20)) {
+      skillIds.push(unit.data.uniqueSkill);
+    }
+    if (unit.data.equippedSkills) skillIds.push(...unit.data.equippedSkills);
+
+    const enemySide = unit.side === 'player' ? 'enemy' : 'player';
+    const allies = allUnits.filter(u => u.side === unit.side && u.alive);
+    const enemies = allUnits.filter(u => u.side === enemySide && u.alive);
+
+    for (const skillId of skillIds) {
+      const skill = SKILL_DEFS[skillId];
+      if (!skill) continue;
+      if (skill.mpCost > unit.mp) continue;
+      if ((unit.skillCooldowns[skillId] ?? 0) > 0) continue;
+
+      // Heal skill: use on wounded ally (HP < 50%)
+      if (skill.effectType === SkillEffectType.HEAL) {
+        const wounded = allies.filter(u => u.hp < u.maxHp * 0.5).sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp));
+        if (wounded.length > 0) {
+          const healAmount = Math.floor(skill.power + unit.spirit * 0.5);
+          unit.mp -= skill.mpCost;
+          unit.skillCooldowns[skillId] = skill.cooldown;
+          return { target: wounded[0], skillName: skill.name, value: healAmount, type: 'heal' };
+        }
+      }
+
+      // Damage skill: use on weakest enemy
+      if (skill.effectType === SkillEffectType.DAMAGE && enemies.length > 0) {
+        const target = enemies.sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp))[0];
+        const cls = unit.data.unitClass ?? 'infantry';
+        const isMagic = cls === 'strategist';
+        const atkStat = isMagic ? unit.spirit : unit.attack;
+        const defStat = isMagic ? (target.data.stats.spirit ?? 10) : target.defense;
+        const skillDamage = Math.floor(skill.power + atkStat * 0.8 - defStat * 0.3);
+        const finalDamage = Math.max(1, skillDamage);
+        unit.mp -= skill.mpCost;
+        unit.skillCooldowns[skillId] = skill.cooldown;
+        return { target, skillName: skill.name, value: finalDamage, type: 'damage' };
+      }
+
+      // Buff: simplified as self-heal
+      if (skill.effectType === SkillEffectType.BUFF && allies.length > 0) {
+        const healAmount = Math.floor(skill.power * 0.5 + unit.spirit * 0.3);
+        if (healAmount > 0) {
+          unit.mp -= skill.mpCost;
+          unit.skillCooldowns[skillId] = skill.cooldown;
+          return { target: unit, skillName: skill.name, value: healAmount, type: 'heal' };
+        }
+      }
+
+      // Debuff: simplified as damage
+      if (skill.effectType === SkillEffectType.DEBUFF && enemies.length > 0) {
+        const target = enemies[0];
+        const cls = unit.data.unitClass ?? 'infantry';
+        const isMagic = cls === 'strategist';
+        const debufDmg = Math.max(1, Math.floor(skill.power + (isMagic ? unit.spirit : unit.attack) * 0.5));
+        unit.mp -= skill.mpCost;
+        unit.skillCooldowns[skillId] = skill.cooldown;
+        return { target, skillName: skill.name, value: debufDmg, type: 'damage' };
+      }
+    }
+
+    return null;
+  }
+
   private executeWaveBattle(waveNum: number, logTexts: Phaser.GameObjects.Text[]): void {
     const logs: string[] = [];
     const addLog = (msg: string) => {
@@ -995,6 +1068,106 @@ export class DailyDungeonScene extends Phaser.Scene {
         const unit = sorted[idx];
         idx++;
         if (!unit.alive) { doAction(); return; }
+
+        // Try skill first
+        const skillResult = this.tryUseDungeonSkill(unit, this.battleUnits);
+        if (skillResult) {
+          const atkContainer = this.unitContainers.get(unit.data.id);
+          const tgtContainer = this.unitContainers.get(skillResult.target.data.id);
+
+          // Play attack animation on attacker sprite
+          if (atkContainer) {
+            const atkChild = atkContainer.getAt(1);
+            if (atkChild instanceof Phaser.GameObjects.Sprite) {
+              const atkDir = unit.side === 'player' ? 'north' : 'south';
+              const atkAnimKey = this.getDungeonAnimKey(unit, 'attack', atkDir);
+              if (atkAnimKey) {
+                atkChild.play(atkAnimKey);
+                atkChild.once('animationcomplete', () => {
+                  const idleKey = this.getDungeonAnimKey(unit, 'idle', atkDir);
+                  if (idleKey) atkChild.play(idleKey);
+                });
+              }
+            }
+
+            // Show skill name in gold above attacker
+            const skillLabel = this.add.text(atkContainer.x, atkContainer.y - 55, `✨ ${skillResult.skillName}`, {
+              fontSize: '14px', color: '#ffd700', fontStyle: 'bold',
+              stroke: '#000000', strokeThickness: 3,
+            }).setOrigin(0.5).setDepth(101);
+            this.tweens.add({
+              targets: skillLabel, y: skillLabel.y - 25, alpha: 0,
+              duration: 1200, onComplete: () => skillLabel.destroy(),
+            });
+          }
+
+          this.time.delayedCall(500 / this.battleSpeed, () => {
+            if (skillResult.type === 'heal') {
+              skillResult.target.hp = Math.min(skillResult.target.maxHp, skillResult.target.hp + skillResult.value);
+              addLog(`${unit.data.name} → ${skillResult.target.data.name} (+${skillResult.value} ${skillResult.skillName})`);
+
+              if (tgtContainer) {
+                const healText = this.add.text(tgtContainer.x, tgtContainer.y - 40, `+${skillResult.value}`, {
+                  fontSize: '18px', color: '#44ff88', fontStyle: 'bold',
+                  stroke: '#000000', strokeThickness: 3,
+                }).setOrigin(0.5).setDepth(100);
+                this.tweens.add({
+                  targets: healText, y: healText.y - 35, alpha: 0,
+                  duration: 900, onComplete: () => healText.destroy(),
+                });
+              }
+            } else {
+              skillResult.target.hp -= skillResult.value;
+              let msg = `${unit.data.name} → ${skillResult.target.data.name} (${skillResult.value} ${skillResult.skillName})`;
+              if (skillResult.target.hp <= 0) { skillResult.target.hp = 0; skillResult.target.alive = false; msg += ' 격파!'; }
+              addLog(msg);
+
+              if (tgtContainer) {
+                this.cameras.main.shake(80 / this.battleSpeed, 0.005);
+
+                const flashCircle = this.add.graphics().setDepth(99);
+                flashCircle.fillStyle(0xff44ff, 0.7);
+                flashCircle.fillCircle(tgtContainer.x, tgtContainer.y - 10, 20);
+                this.tweens.add({
+                  targets: flashCircle, alpha: 0,
+                  duration: 300 / this.battleSpeed,
+                  onComplete: () => flashCircle.destroy(),
+                });
+
+                const dmgText = this.add.text(tgtContainer.x, tgtContainer.y - 40, `-${skillResult.value}`, {
+                  fontSize: '20px', color: '#ff44ff', fontStyle: 'bold',
+                  stroke: '#000000', strokeThickness: 3,
+                }).setOrigin(0.5).setDepth(100);
+                this.tweens.add({
+                  targets: dmgText, y: dmgText.y - 35, alpha: 0,
+                  duration: 900, onComplete: () => dmgText.destroy(),
+                });
+
+                // Death handling
+                if (!skillResult.target.alive) {
+                  const defChild = tgtContainer.getAt(1);
+                  const defDir = skillResult.target.side === 'player' ? 'north' : 'south';
+                  if (defChild instanceof Phaser.GameObjects.Sprite) {
+                    const dieKey = this.getDungeonAnimKey(skillResult.target, 'die', defDir);
+                    if (dieKey) {
+                      defChild.play(dieKey);
+                      defChild.once('animationcomplete', () => {
+                        this.tweens.add({ targets: tgtContainer, alpha: 0, duration: 300 / this.battleSpeed, ease: 'Power2' });
+                      });
+                    } else {
+                      this.tweens.add({ targets: tgtContainer, alpha: 0, angle: skillResult.target.side === 'player' ? -15 : 15, duration: 500 / this.battleSpeed, ease: 'Power2' });
+                    }
+                  } else {
+                    this.tweens.add({ targets: tgtContainer, alpha: 0, angle: skillResult.target.side === 'player' ? -15 : 15, duration: 500 / this.battleSpeed, ease: 'Power2' });
+                  }
+                }
+              }
+            }
+            this.updateDungeonCards();
+            this.time.delayedCall(600 / this.battleSpeed, doAction);
+          });
+          return;
+        }
 
         const targets = this.battleUnits.filter(u => u.side !== unit.side && u.alive);
         if (targets.length === 0) { doAction(); return; }
