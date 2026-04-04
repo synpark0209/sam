@@ -2,18 +2,18 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { GameSave } from './save.entity';
-import { SHOP_ITEMS } from '../../../shared/data/shopDefs.js';
-import type { ShopItem } from '../../../shared/data/shopDefs.js';
-import { canPromote, PROMOTION_PATHS } from '../../../shared/data/promotionDefs.js';
-import { getClassSkillId } from '../../../shared/data/classSkillDefs.js';
-import { getNextAwakening, getHeroBaseId, AWAKENING_TIERS } from '../../../shared/data/awakeningDefs.js';
-import { getEnhanceTier, MAX_SKILL_LEVEL } from '../../../shared/data/skillEnhanceDefs.js';
-import type { UnitData } from '../../../shared/types/unit.js';
-import { DUNGEONS, generateReward, DUNGEON_DAILY_LIMIT } from '../../../shared/data/dungeonDefs.js';
-import type { DungeonReward } from '../../../shared/data/dungeonDefs.js';
-import { ALL_CHAPTERS } from '../../../shared/data/campaign/chapters.js';
-import { DAILY_MISSIONS, ALL_COMPLETE_BONUS, areAllMissionsComplete, LOGIN_BONUS_TABLE } from '../../../shared/data/dailyMissionDefs.js';
-import type { DailyMissionId, DailyMissionState, LoginBonusState } from '../../../shared/types/dailyMission.js';
+import { SHOP_ITEMS } from '../../../shared/data/shopDefs.ts';
+import type { ShopItem } from '../../../shared/data/shopDefs.ts';
+import { canPromote, PROMOTION_PATHS } from '../../../shared/data/promotionDefs.ts';
+import { getClassSkillId } from '../../../shared/data/classSkillDefs.ts';
+import { getNextAwakening, getHeroBaseId, AWAKENING_TIERS } from '../../../shared/data/awakeningDefs.ts';
+import { getEnhanceTier, MAX_SKILL_LEVEL } from '../../../shared/data/skillEnhanceDefs.ts';
+import type { UnitData } from '../../../shared/types/unit.ts';
+import { DUNGEONS, generateReward, DUNGEON_DAILY_LIMIT } from '../../../shared/data/dungeonDefs.ts';
+import type { DungeonReward } from '../../../shared/data/dungeonDefs.ts';
+import { ALL_CHAPTERS } from '../../../shared/data/campaign/chapters.ts';
+import { DAILY_MISSIONS, ALL_COMPLETE_BONUS, areAllMissionsComplete, LOGIN_BONUS_TABLE } from '../../../shared/data/dailyMissionDefs.ts';
+import type { DailyMissionId, DailyMissionState, LoginBonusState } from '../../../shared/types/dailyMission.ts';
 
 /** 클라이언트가 덮어쓸 수 없는 서버 관리 필드 */
 const SERVER_MANAGED_FIELDS = ['gold', 'gems', 'stamina'];
@@ -371,7 +371,7 @@ export class SaveService {
     if (reward.materials) {
       const matBag = (progress.materialBag ?? {}) as Record<string, number>;
       for (const [k, v] of Object.entries(reward.materials)) {
-        matBag[k] = (matBag[k] ?? 0) + v;
+        matBag[k] = (matBag[k] ?? 0) + (v as number);
       }
       progress.materialBag = matBag;
     }
