@@ -173,8 +173,9 @@ export class GachaService {
         const frag = FRAGMENT_MAP[hero.grade];
         // 조각 저장 (각성 시스템용)
         if (!progress.heroFragments) progress.heroFragments = {};
+        const heroFragments = progress.heroFragments as Record<string, number>;
         const baseId = hero.id;
-        progress.heroFragments[baseId] = (progress.heroFragments[baseId] ?? 0) + frag;
+        heroFragments[baseId] = (heroFragments[baseId] ?? 0) + frag;
         // 추가로 금화도 소량 지급
         gold += frag * 5;
         progress.gold = gold;
