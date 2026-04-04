@@ -13,8 +13,8 @@ COPY server/ ./server/
 RUN cd server && npm run build
 
 FROM node:20-slim
-WORKDIR /app/server
-COPY server/package*.json ./
+WORKDIR /app
+COPY server/package*.json ./package.json
 RUN npm ci --omit=dev
 COPY --from=builder /app/server/dist ./dist
 ENV NODE_ENV=production
