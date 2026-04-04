@@ -5,7 +5,7 @@ export class GameSave {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ unique: true })
   userId: number;
 
   @Column({ type: 'jsonb' })

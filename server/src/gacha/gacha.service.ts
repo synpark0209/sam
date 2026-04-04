@@ -126,7 +126,7 @@ export class GachaService {
   ) {}
 
   async pull(userId: number, type: 'normal' | 'premium', count: 1 | 10) {
-    let save = await this.saveRepo.findOne({ where: { userId } });
+    let save = await this.saveRepo.findOne({ where: { userId }, order: { updatedAt: 'DESC' } });
     if (!save) {
       // 세이브가 없으면 자동 생성
       save = this.saveRepo.create({
@@ -207,7 +207,7 @@ export class GachaService {
   }
 
   async getStatus(userId: number) {
-    let save = await this.saveRepo.findOne({ where: { userId } });
+    let save = await this.saveRepo.findOne({ where: { userId }, order: { updatedAt: 'DESC' } });
     if (!save) {
       save = this.saveRepo.create({
         userId,

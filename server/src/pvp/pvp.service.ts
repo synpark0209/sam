@@ -16,7 +16,7 @@ export class PvpService {
   ) {}
 
   async findMatch(userId: number) {
-    const mySave = await this.saveRepo.findOne({ where: { userId } });
+    const mySave = await this.saveRepo.findOne({ where: { userId }, order: { updatedAt: 'DESC' } });
     if (!mySave) throw new NotFoundException('No save data found. Play campaign first.');
 
     const myElo = mySave.pvpElo ?? 1000;
@@ -57,7 +57,7 @@ export class PvpService {
   }
 
   async recordResult(userId: number, opponentId: number, won: boolean) {
-    const mySave = await this.saveRepo.findOne({ where: { userId } });
+    const mySave = await this.saveRepo.findOne({ where: { userId }, order: { updatedAt: 'DESC' } });
     const oppSave = await this.saveRepo.findOne({ where: { userId: opponentId } });
     if (!mySave || !oppSave) throw new NotFoundException('Save not found');
 

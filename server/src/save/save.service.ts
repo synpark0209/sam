@@ -30,7 +30,7 @@ export class SaveService {
   }
 
   async upsertSave(userId: number, data: Record<string, unknown>): Promise<GameSave> {
-    let save = await this.saveRepo.findOne({ where: { userId } });
+    let save = await this.saveRepo.findOne({ where: { userId }, order: { updatedAt: 'DESC' } });
 
     // 서버 관리 필드 제거 (클라이언트 조작 방지)
     const sanitized = { ...data };
@@ -73,7 +73,7 @@ export class SaveService {
   // ── 금화 (서버 권위적) ──
 
   async addGold(userId: number, amount: number, _reason: string): Promise<number> {
-    const save = await this.saveRepo.findOne({ where: { userId } });
+    const save = await this.saveRepo.findOne({ where: { userId }, order: { updatedAt: 'DESC' } });
     if (!save) throw new Error('Save not found');
     if (amount <= 0) throw new Error('Invalid amount');
     save.gold += amount;
@@ -86,7 +86,7 @@ export class SaveService {
   }
 
   async spendGold(userId: number, amount: number, _reason: string): Promise<number> {
-    const save = await this.saveRepo.findOne({ where: { userId } });
+    const save = await this.saveRepo.findOne({ where: { userId }, order: { updatedAt: 'DESC' } });
     if (!save) throw new Error('Save not found');
     if (amount <= 0) throw new Error('Invalid amount');
     if (save.gold < amount) throw new Error('Not enough gold');
@@ -101,7 +101,7 @@ export class SaveService {
   // ── 보석 (서버 권위적) ──
 
   async spendGems(userId: number, amount: number, _reason: string): Promise<number> {
-    const save = await this.saveRepo.findOne({ where: { userId } });
+    const save = await this.saveRepo.findOne({ where: { userId }, order: { updatedAt: 'DESC' } });
     if (!save) throw new Error('Save not found');
     if (save.gems < amount) throw new Error('Not enough gems');
     save.gems -= amount;
@@ -112,7 +112,7 @@ export class SaveService {
   // ── 재화 조회 ──
 
   async getCurrencies(userId: number): Promise<{ gold: number; gems: number }> {
-    const save = await this.saveRepo.findOne({ where: { userId } });
+    const save = await this.saveRepo.findOne({ where: { userId }, order: { updatedAt: 'DESC' } });
     if (!save) return { gold: 0, gems: 0 };
     return { gold: save.gold, gems: save.gems };
   }
@@ -120,7 +120,7 @@ export class SaveService {
   // ── 기존 세이브의 gold 마이그레이션 ──
 
   async migrateGold(userId: number): Promise<void> {
-    const save = await this.saveRepo.findOne({ where: { userId } });
+    const save = await this.saveRepo.findOne({ where: { userId }, order: { updatedAt: 'DESC' } });
     if (!save) return;
     if (save.gold > 0) return; // 이미 마이그레이션 됨
     const progress = save.campaignProgress as Record<string, unknown>;
@@ -137,7 +137,7 @@ export class SaveService {
     const item: ShopItem | undefined = SHOP_ITEMS.find(i => i.id === itemId);
     if (!item) throw new BadRequestException('Invalid item id');
 
-    const save = await this.saveRepo.findOne({ where: { userId } });
+    const save = await this.saveRepo.findOne({ where: { userId }, order: { updatedAt: 'DESC' } });
     if (!save) throw new BadRequestException('Save not found');
 
     const progress = save.campaignProgress as Record<string, unknown>;
@@ -221,7 +221,7 @@ export class SaveService {
   // ── 승급 (서버 권위적) ──
 
   async promoteUnit(userId: number, unitId: string): Promise<{ success: boolean; promotionName?: string }> {
-    const save = await this.saveRepo.findOne({ where: { userId } });
+    const save = await this.saveRepo.findOne({ where: { userId }, order: { updatedAt: 'DESC' } });
     if (!save) throw new BadRequestException('Save not found');
 
     const progress = save.campaignProgress as Record<string, unknown>;
@@ -273,7 +273,7 @@ export class SaveService {
   // ── 각성 (서버 권위적) ──
 
   async awakenUnit(userId: number, unitId: string): Promise<{ success: boolean; awakeningLevel?: number }> {
-    const save = await this.saveRepo.findOne({ where: { userId } });
+    const save = await this.saveRepo.findOne({ where: { userId }, order: { updatedAt: 'DESC' } });
     if (!save) throw new BadRequestException('Save not found');
 
     const progress = save.campaignProgress as Record<string, unknown>;
@@ -317,7 +317,7 @@ export class SaveService {
 
     if (stars < 0 || stars > 3) throw new BadRequestException('Invalid stars');
 
-    const save = await this.saveRepo.findOne({ where: { userId } });
+    const save = await this.saveRepo.findOne({ where: { userId }, order: { updatedAt: 'DESC' } });
     if (!save) throw new BadRequestException('Save not found');
 
     const progress = save.campaignProgress as Record<string, unknown>;
@@ -409,7 +409,7 @@ export class SaveService {
     }
     if (stageGold <= 0) throw new BadRequestException('Invalid stage or no gold reward');
 
-    const save = await this.saveRepo.findOne({ where: { userId } });
+    const save = await this.saveRepo.findOne({ where: { userId }, order: { updatedAt: 'DESC' } });
     if (!save) throw new BadRequestException('Save not found');
 
     save.gold += stageGold;
@@ -428,7 +428,7 @@ export class SaveService {
     missionId?: string,
     type?: string,
   ): Promise<{ success: boolean; gold: number; gems: number }> {
-    const save = await this.saveRepo.findOne({ where: { userId } });
+    const save = await this.saveRepo.findOne({ where: { userId }, order: { updatedAt: 'DESC' } });
     if (!save) throw new BadRequestException('Save not found');
 
     const progress = save.campaignProgress as Record<string, unknown>;
@@ -490,7 +490,7 @@ export class SaveService {
     userId: number,
     day: number,
   ): Promise<{ success: boolean; gold: number; gems: number }> {
-    const save = await this.saveRepo.findOne({ where: { userId } });
+    const save = await this.saveRepo.findOne({ where: { userId }, order: { updatedAt: 'DESC' } });
     if (!save) throw new BadRequestException('Save not found');
 
     const progress = save.campaignProgress as Record<string, unknown>;
@@ -536,7 +536,7 @@ export class SaveService {
     unitId: string,
     skillId: string,
   ): Promise<{ success: boolean; newLevel: number; gold: number }> {
-    const save = await this.saveRepo.findOne({ where: { userId } });
+    const save = await this.saveRepo.findOne({ where: { userId }, order: { updatedAt: 'DESC' } });
     if (!save) throw new BadRequestException('Save not found');
 
     const progress = save.campaignProgress as Record<string, unknown>;
