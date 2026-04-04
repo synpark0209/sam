@@ -6,12 +6,14 @@ RUN npm ci
 COPY . .
 COPY shared-deploy/ /app/shared/
 RUN npm run build
+RUN ls -la dist/ && ls dist/main.js
 
 FROM node:20-slim
 WORKDIR /app/server
 COPY --from=builder /app/server/package*.json ./
 RUN npm ci --omit=dev
 COPY --from=builder /app/server/dist ./dist
+RUN ls -la dist/
 ENV NODE_ENV=production
 EXPOSE 3001
 CMD ["node", "dist/main"]
