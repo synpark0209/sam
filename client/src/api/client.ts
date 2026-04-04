@@ -86,7 +86,8 @@ export function logout() {
 export async function loadServerSave(): Promise<Record<string, unknown> | null> {
   try {
     return await apiRequest<Record<string, unknown>>('/save');
-  } catch {
+  } catch (e) {
+    console.error('[SAVE] loadServerSave failed:', e);
     return null;
   }
 }
@@ -94,7 +95,9 @@ export async function loadServerSave(): Promise<Record<string, unknown> | null> 
 export async function saveToServer(data: Record<string, unknown>): Promise<void> {
   try {
     await apiRequest('/save', { method: 'POST', body: JSON.stringify(data) });
-  } catch { /* 서버 저장 실패 시 무시 (로컬에 이미 저장됨) */ }
+  } catch (e) {
+    console.error('[SAVE] saveToServer failed:', e);
+  }
 }
 
 // ── Ranking API ──
