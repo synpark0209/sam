@@ -10,7 +10,19 @@ async function bootstrap() {
     : ['http://localhost:5173', 'http://localhost:3000'];
 
   app.enableCors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      // 텔레그램 미니앱, Vercel 배포, localhost 모두 허용
+      if (!origin
+        || allowedOrigins.includes(origin)
+        || origin.includes('vercel.app')
+        || origin.includes('telegram')
+        || origin.includes('localhost')
+      ) {
+        callback(null, true);
+      } else {
+        callback(null, true); // 개발 중에는 모두 허용 (프로덕션에서 제한 필요)
+      }
+    },
     credentials: true,
   });
 
