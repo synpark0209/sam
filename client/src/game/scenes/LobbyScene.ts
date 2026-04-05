@@ -34,6 +34,11 @@ export class LobbyScene extends Phaser.Scene {
     this.campaignManager = data.campaignManager;
   }
 
+  /** 화면 전환 시 기존 UI와 입력 리스너 정리 */
+  private clearScreen(): void {
+    this.clearScreen();
+  }
+
   create(): void {
     (this.registry.get('audioManager') as AudioManager)?.playBgm('title');
     this.showMainMenu();
@@ -42,7 +47,7 @@ export class LobbyScene extends Phaser.Scene {
   // ── 메인 메뉴 ──
 
   private showMainMenu(): void {
-    this.children.removeAll();
+    this.clearScreen();
     const progress = this.campaignManager.getProgress();
 
     // 배경 그라데이션
@@ -213,7 +218,7 @@ export class LobbyScene extends Phaser.Scene {
   // ── 일일 임무 ──
 
   private showDailyMissions(tab: 'missions' | 'login' = 'missions'): void {
-    this.children.removeAll();
+    this.clearScreen();
 
     // 배경 그라데이션
     const bg = this.add.graphics();
@@ -494,7 +499,7 @@ export class LobbyScene extends Phaser.Scene {
   // ── 장수 관리 ──
 
   private showHeroes(): void {
-    this.children.removeAll();
+    this.clearScreen();
     this.campaignManager.incrementMission('heroes_1');
 
     const bg = this.add.graphics();
@@ -619,7 +624,7 @@ export class LobbyScene extends Phaser.Scene {
   // ── 장수 상세 정보 ──
 
   private showHeroDetail(unit: UnitData): void {
-    this.children.removeAll();
+    this.clearScreen();
 
     const bg = this.add.graphics();
     bg.fillGradientStyle(0x0c1220, 0x0c1220, 0x1a1a30, 0x1a1a30, 1);
@@ -1058,7 +1063,7 @@ export class LobbyScene extends Phaser.Scene {
   // ── 인벤토리 ──
 
   private showInventory(tab: 'equipment' | 'skill' | 'material'): void {
-    this.children.removeAll();
+    this.clearScreen();
     const bg = this.add.graphics();
     bg.fillGradientStyle(0x0c1220, 0x0c1220, 0x1a1a30, 0x1a1a30, 1);
     bg.fillRect(0, 0, GW, GH);
@@ -1310,7 +1315,7 @@ export class LobbyScene extends Phaser.Scene {
 
   /** 장비 장착 대상 장수 선택 */
   private showEquipTarget(bag: string[], bagIdx: number, itemId: string): void {
-    this.children.removeAll();
+    this.clearScreen();
     const eqBg = this.add.graphics();
     eqBg.fillGradientStyle(0x0c1220, 0x0c1220, 0x1a1a30, 0x1a1a30, 1);
     eqBg.fillRect(0, 0, GW, GH);
@@ -1350,7 +1355,7 @@ export class LobbyScene extends Phaser.Scene {
 
   /** 스킬 장착 대상 장수 선택 */
   private showSkillTarget(bag: string[], bagIdx: number, skillId: string): void {
-    this.children.removeAll();
+    this.clearScreen();
     const skBg = this.add.graphics();
     skBg.fillGradientStyle(0x0c1220, 0x0c1220, 0x1a1a30, 0x1a1a30, 1);
     skBg.fillRect(0, 0, GW, GH);
@@ -1389,7 +1394,7 @@ export class LobbyScene extends Phaser.Scene {
   // ── 가챠 ──
 
   private showGacha(): void {
-    this.children.removeAll();
+    this.clearScreen();
 
     // Dark purple gradient background
     const bg = this.add.graphics();
@@ -1631,7 +1636,7 @@ export class LobbyScene extends Phaser.Scene {
   }
 
   private showGachaPool(): void {
-    this.children.removeAll();
+    this.clearScreen();
     const poolBgG = this.add.graphics();
     poolBgG.fillGradientStyle(0x0c1220, 0x0c1220, 0x1a1a30, 0x1a1a30, 1);
     poolBgG.fillRect(0, 0, GW, GH);
@@ -1710,7 +1715,7 @@ export class LobbyScene extends Phaser.Scene {
   }
 
   private showGachaResults(result: GachaPullResult): void {
-    this.children.removeAll();
+    this.clearScreen();
     const resBg = this.add.graphics();
     resBg.fillGradientStyle(0x0c1220, 0x0c1220, 0x1a1a30, 0x1a1a30, 1);
     resBg.fillRect(0, 0, GW, GH);
@@ -1780,8 +1785,7 @@ export class LobbyScene extends Phaser.Scene {
   private shopScrollY = 0;
 
   private showShop(tab: 'general' | 'premium' | 'daily' = 'general', keepScroll = false): void {
-    this.input.removeAllListeners();
-    this.children.removeAll();
+    this.clearScreen();
     if (!keepScroll) this.shopScrollY = 0;
     const progress = this.campaignManager.getProgress();
 
