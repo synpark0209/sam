@@ -1125,8 +1125,20 @@ export class LobbyScene extends Phaser.Scene {
     }
   }
 
+  private static readonly MATERIAL_NAMES: Record<string, { name: string; icon: string }> = {
+    exp_book_s: { name: '소경험서', icon: '📗' },
+    exp_book_m: { name: '중경험서', icon: '📘' },
+    exp_book_l: { name: '대경험서', icon: '📙' },
+    promotion_seal_1: { name: '하급 인수', icon: '🔖' },
+    promotion_seal_2: { name: '상급 인수', icon: '📜' },
+    skill_book_basic: { name: '초급 스킬서', icon: '📕' },
+    skill_book_mid: { name: '중급 스킬서', icon: '📕' },
+    skill_book_high: { name: '고급 스킬서', icon: '📕' },
+    awakening_frag: { name: '각성 파편', icon: '💎' },
+  };
+
   private renderMaterialBag(bag: Record<string, number>, startY: number): void {
-    const entries = Object.entries(bag);
+    const entries = Object.entries(bag).filter(([, v]) => v > 0);
     if (entries.length === 0) {
       this.add.text(GW / 2, startY + 40, '보유 소재가 없습니다', {
         fontSize: '14px', color: '#555555',
@@ -1135,8 +1147,15 @@ export class LobbyScene extends Phaser.Scene {
     }
     for (let i = 0; i < entries.length; i++) {
       const [id, count] = entries[i];
-      this.add.text(30, startY + i * 28, `${id}: ${count}개`, {
-        fontSize: '13px', color: '#ffffff',
+      const mat = LobbyScene.MATERIAL_NAMES[id];
+      const label = mat ? `${mat.icon} ${mat.name}` : id;
+      const y = startY + i * 44;
+
+      const cardBg = this.add.graphics();
+      cardBg.fillStyle(0x1a2a1a, 1).fillRoundedRect(15, y, GW - 30, 38, 6);
+
+      this.add.text(25, y + 9, `${label}  x${count}`, {
+        fontSize: '14px', color: '#ffffff',
       });
     }
   }
