@@ -179,6 +179,14 @@ export class WorldMapScene extends Phaser.Scene {
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     noneBtn.on('pointerdown', () => this.launchBattle(stage, undefined));
 
+    // 최근 선택 장수 맨 앞 + 레벨 내림차순 정렬
+    const lastGuestId = this.campaignManager.getProgress().lastGuestId;
+    guests.sort((a, b) => {
+      if (a.id === lastGuestId) return -1;
+      if (b.id === lastGuestId) return 1;
+      return (b.level ?? 1) - (a.level ?? 1);
+    });
+
     // 게스트 그리드
     const cols = 4;
     const pad = 12;
@@ -200,9 +208,10 @@ export class WorldMapScene extends Phaser.Scene {
       const gradeColorHex = getGradeColor(grade as HeroGrade);
       const gradeColorNum = Phaser.Display.Color.HexStringToColor(gradeColorHex).color;
 
+      const isLast = unit.id === lastGuestId;
       const card = this.add.graphics();
-      card.fillStyle(0x141428, 1).fillRoundedRect(x, y, cellW, cellH, 6);
-      card.lineStyle(2, gradeColorNum, 0.8).strokeRoundedRect(x, y, cellW, cellH, 6);
+      card.fillStyle(isLast ? 0x1a2840 : 0x141428, 1).fillRoundedRect(x, y, cellW, cellH, 6);
+      card.lineStyle(2, isLast ? 0xffd700 : gradeColorNum, 0.8).strokeRoundedRect(x, y, cellW, cellH, 6);
 
       const cls = unit.unitClass ?? 'infantry';
       this.add.text(x + cellW / 2, y + cellW * 0.30, clsIcons[cls] ?? '⚔️', {
@@ -233,6 +242,10 @@ export class WorldMapScene extends Phaser.Scene {
   }
 
   private launchBattle(stage: import('@shared/types/campaign.ts').Stage, guestUnitId?: string): void {
+    if (guestUnitId) {
+      this.campaignManager.getProgress().lastGuestId = guestUnitId;
+      this.campaignManager.save();
+    }
     const playerUnits = this.campaignManager.prepareBattle(stage.battleConfig, guestUnitId);
     this.registry.set('pendingBattle', {
       campaignMode: true,
