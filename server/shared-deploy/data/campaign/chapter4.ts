@@ -124,7 +124,7 @@ export const CHAPTER_4: Chapter = {
           { speaker: '여포', text: '예상대로군. 맞아 싸운다! 방어를 준비하라!', speakerSide: 'left' },
         ],
       },
-      rewards: { gold: 500 },
+      rewards: { gold: 500, items: ['dragon_spear', 'iron_fist'] },
     },
     {
       id: 'ch4_s2', name: '복양성 공방전', description: '돌아온 조조 대군과 복양성에서 격돌하라',
@@ -146,7 +146,7 @@ export const CHAPTER_4: Chapter = {
           { speaker: '여포(내심)', text: '(역사에서도 결국 연주를 빼앗겼지... 다른 방도를 생각해야 해.)', speakerSide: 'left' },
         ],
       },
-      rewards: { gold: 800 },
+      rewards: { gold: 800, items: ['cavalry_plate', 'speed_boots'] },
     },
   ],
 };

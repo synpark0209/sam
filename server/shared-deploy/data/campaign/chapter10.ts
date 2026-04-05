@@ -154,7 +154,7 @@ export const CHAPTER_10: Chapter = {
           { speaker: '여포', text: '이것이 첫걸음이다. 다음은 조조를 쓰러뜨린다.', speakerSide: 'left' },
         ],
       },
-      rewards: { gold: 1000 },
+      rewards: { gold: 1000, items: ['celestial_scroll', 'hex_mark'] },
     },
     {
       id: 'ch10_s2', name: '조조와의 최종 결전', description: '숙적 조조를 격파하라',
@@ -175,7 +175,7 @@ export const CHAPTER_10: Chapter = {
           { speaker: '여포', text: '(여기까지 왔다... 이제 마지막이다.)', speakerSide: 'left' },
         ],
       },
-      rewards: { gold: 3000 },
+      rewards: { gold: 3000, items: ['phoenix_feather', 'mana_crystal'] },
     },
     {
       id: 'ch10_s3', name: '천하통일 최종전', description: '천하의 영웅들을 모두 꺾고 천하를 통일하라',
@@ -201,7 +201,7 @@ export const CHAPTER_10: Chapter = {
           { speaker: '여포', text: '(THE END - 방구석 여포뎐)', speakerSide: 'left' },
         ],
       },
-      rewards: { gold: 10000 },
+      rewards: { gold: 10000, items: ['sky_piercer', 'red_hare'] },
     },
   ],
 };

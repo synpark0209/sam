@@ -121,7 +121,7 @@ export const CHAPTER_2: Chapter = {
           { speaker: '여포', text: '동탁을 추격한다! 놓쳐서는 안 된다!', speakerSide: 'left' },
         ],
       },
-      rewards: { gold: 200 },
+      rewards: { gold: 200, items: ['short_bow'] },
     },
     {
       id: 'ch2_s2', name: '장안 공방전', description: '이각과 곽사의 반격을 막아라',
@@ -146,7 +146,21 @@ export const CHAPTER_2: Chapter = {
           { speaker: '여포', text: '(조조... 역사에서 나를 처형한 그 자. 언젠가 마주치게 되겠지.)', speakerSide: 'left' },
         ],
       },
-      rewards: { gold: 250 },
+      rewards: {
+        gold: 250, items: ['steel_sword', 'iron_armor'],
+        recruitUnits: [{
+          id: 'p4', name: '진궁', faction: 'player', unitClass: UnitClass.STRATEGIST,
+          grade: 'R', isScenarioUnit: true,
+          level: 3, exp: 0, mp: 20, maxMp: 20,
+          classSkillId: 'class_strategist_1',
+          uniqueSkill: 'strategem', uniqueSkillUnlocked: false,
+          equippedSkills: [], promotionLevel: 0,
+          equipment: { weapon: 'sage_staff' },
+          position: { x: 0, y: 0 },
+          stats: { maxHp: 120, hp: 120, attack: 25, defense: 15, spirit: 35, agility: 22, critical: 20, morale: 40, speed: 4, penetration: 5, resist: 30, moveRange: 4, attackRange: 3 },
+          hasActed: false, isAlive: true,
+        }],
+      },
     },
   ],
 };

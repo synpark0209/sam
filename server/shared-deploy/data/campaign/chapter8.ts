@@ -129,7 +129,7 @@ export const CHAPTER_8: Chapter = {
           { speaker: '여포(내심)', text: '(역사의 분기점이다! 제방을 지키면 역사를 바꿀 수 있어!)', speakerSide: 'left' },
         ],
       },
-      rewards: { gold: 800 },
+      rewards: { gold: 800, items: ['warhorse_armor', 'night_garb'] },
     },
     {
       id: 'ch8_s2', name: '제방 사수전', description: '조조의 공병대를 막고 제방을 사수하라',
@@ -150,7 +150,7 @@ export const CHAPTER_8: Chapter = {
           { speaker: '여포', text: '이것은 시작에 불과하다. 조조는 반드시 다시 올 것이다. 그때까지 힘을 키워야 한다!', speakerSide: 'left' },
         ],
       },
-      rewards: { gold: 1000 },
+      rewards: { gold: 1000, items: ['heaven_bow', 'dragon_gauntlet'] },
     },
   ],
 };

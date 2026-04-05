@@ -109,7 +109,7 @@ export const CHAPTER_6: Chapter = {
           { speaker: '여포(내심)', text: '(이제 원문사격으로 결판을 낸다!)', speakerSide: 'left' },
         ],
       },
-      rewards: { gold: 600 },
+      rewards: { gold: 600, items: ['rapid_bow', 'tiger_gauntlet'] },
     },
     {
       id: 'ch6_s2', name: '원술군 본대 격파', description: '원술의 본대를 격파하라',
@@ -128,7 +128,7 @@ export const CHAPTER_6: Chapter = {
           { speaker: '여포(내심)', text: '(원술을 물리쳤다. 하지만 다음은... 유비와 조조, 더 큰 적들이 기다리고 있어.)', speakerSide: 'left' },
         ],
       },
-      rewards: { gold: 800 },
+      rewards: { gold: 800, items: ['fine_blade', 'quiver'] },
     },
   ],
 };

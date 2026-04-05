@@ -87,7 +87,7 @@ export const PROLOGUE: Chapter = {
           { speaker: '여포', text: '알겠습니다, 의부. 낙양으로 가시죠.', speakerSide: 'left' },
         ],
       },
-      rewards: { gold: 100 },
+      rewards: { gold: 100, items: ['bronze_sword', 'leather_armor'] },
     },
   ],
 };

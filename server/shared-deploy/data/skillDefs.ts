@@ -173,6 +173,41 @@ export const SKILL_DEFS: Record<string, SkillDef> = {
     ],
   },
 
+  // ── 시나리오 보상 장수 고유 스킬 ──
+  zhang_volley: {
+    id: 'zhang_volley', name: '연주일제', description: '범위 화살 사격 + 속도 감소 (장패 전용)',
+    mpCost: 14, range: 3, aoeRadius: 1,
+    targetType: SkillTargetType.AREA_ENEMY,
+    effectType: SkillEffectType.DAMAGE, power: 40,
+    cooldown: 2,
+    effects: [
+      { type: 'damage', scaling: 'attack', power: 40 },
+      { type: 'debuff', statusEffect: 'speed_down', statusDuration: 2, statusMagnitude: 3 },
+    ],
+  },
+  chenglian_guard: {
+    id: 'chenglian_guard', name: '철벽수비', description: '자신 방어 대폭 증가 + 도발 (성렴 전용)',
+    mpCost: 12, range: 0, aoeRadius: 0,
+    targetType: SkillTargetType.SELF,
+    effectType: SkillEffectType.BUFF, power: 0,
+    cooldown: 3,
+    effects: [
+      { type: 'buff', statusEffect: 'defense_up', statusDuration: 3, statusMagnitude: 20 },
+      { type: 'buff', statusEffect: 'taunt', statusDuration: 2, statusMagnitude: 0 },
+    ],
+  },
+  housheng_ambush: {
+    id: 'housheng_ambush', name: '기습', description: '고확률 치명타 + 독 (후성 전용)',
+    mpCost: 13, range: 1, aoeRadius: 0,
+    targetType: SkillTargetType.SINGLE_ENEMY,
+    effectType: SkillEffectType.DAMAGE, power: 50,
+    cooldown: 2,
+    effects: [
+      { type: 'damage', scaling: 'attack', power: 50 },
+      { type: 'status', statusEffect: 'poison', statusDuration: 3, statusMagnitude: 8 },
+    ],
+  },
+
   // ═══════════════════════════════════════
   // 가챠 장수 고유 스킬
   // ═══════════════════════════════════════
@@ -473,7 +508,9 @@ export const HERO_UNIQUE_SKILLS: Record<string, string> = {
   p1: 'musou',           // 여포
   p2: 'hebi_fury',       // 장료
   p3: 'hamjin_charge',   // 고순
-  // 이후 추가
-  // 진궁: 'strategem'
-  // 초선: 'beauty'
+  p4: 'strategem',       // 진궁
+  p5: 'beauty',          // 초선
+  p6: 'zhang_volley',    // 장패
+  p7: 'chenglian_guard', // 성렴
+  p8: 'housheng_ambush', // 후성
 };
