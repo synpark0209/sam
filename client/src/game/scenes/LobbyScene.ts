@@ -517,10 +517,11 @@ export class LobbyScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // 아이콘 그리드 레이아웃
-    const cols = 4;
-    const pad = 12;
-    const cellW = (GW - pad * 2 - (cols - 1) * 8) / cols;
-    const cellH = cellW + 28; // 정사각 아이콘 + 이름/레벨 텍스트
+    const cols = 3;
+    const pad = 14;
+    const gap = 10;
+    const cellW = (GW - pad * 2 - (cols - 1) * gap) / cols;
+    const cellH = cellW + 36;
     const startY = 58;
     const clsIcons: Record<string, string> = {
       cavalry: '🐎', infantry: '🛡️', archer: '🏹',
@@ -530,53 +531,53 @@ export class LobbyScene extends Phaser.Scene {
     // 스크롤 컨테이너
     const container = this.add.container(0, 0);
     const scrollableH = GH - startY - 10;
-    const totalH = Math.ceil(units.length / cols) * (cellH + 8);
+    const totalH = Math.ceil(units.length / cols) * (cellH + gap);
 
     for (let i = 0; i < units.length; i++) {
       const unit = units[i];
       const col = i % cols;
       const row = Math.floor(i / cols);
-      const x = pad + col * (cellW + 8);
-      const y = startY + row * (cellH + 8);
+      const x = pad + col * (cellW + gap);
+      const y = startY + row * (cellH + gap);
       const grade = unit.grade ?? 'N';
       const gradeColorHex = getGradeColor(grade as HeroGrade);
       const gradeColorNum = Phaser.Display.Color.HexStringToColor(gradeColorHex).color;
 
       // 카드 배경 + 등급 테두리
       const card = this.add.graphics();
-      card.fillStyle(0x141428, 1).fillRoundedRect(x, y, cellW, cellH, 6);
-      card.lineStyle(2, gradeColorNum, 0.8).strokeRoundedRect(x, y, cellW, cellH, 6);
+      card.fillStyle(0x141428, 1).fillRoundedRect(x, y, cellW, cellH, 8);
+      card.lineStyle(2, gradeColorNum, 0.8).strokeRoundedRect(x, y, cellW, cellH, 8);
       container.add(card);
 
       // 병종 아이콘 (중앙 크게)
       const cls = unit.unitClass ?? 'infantry';
-      const iconText = this.add.text(x + cellW / 2, y + cellW * 0.35, clsIcons[cls] ?? '⚔️', {
-        fontSize: '28px',
+      const iconText = this.add.text(x + cellW / 2, y + cellW * 0.30, clsIcons[cls] ?? '⚔️', {
+        fontSize: '34px',
       }).setOrigin(0.5);
       container.add(iconText);
 
       // 등급 배지 (좌상단)
-      const gradeBadge = this.add.text(x + 4, y + 2, grade, {
-        fontSize: '11px', color: gradeColorHex, fontStyle: 'bold',
+      const gradeBadge = this.add.text(x + 6, y + 4, grade, {
+        fontSize: '13px', color: gradeColorHex, fontStyle: 'bold',
       });
       container.add(gradeBadge);
 
       // Lv (우상단)
-      const lvText = this.add.text(x + cellW - 4, y + 2, `${unit.level ?? 1}`, {
-        fontSize: '10px', color: '#88aacc',
+      const lvText = this.add.text(x + cellW - 6, y + 4, `Lv.${unit.level ?? 1}`, {
+        fontSize: '12px', color: '#88aacc',
       }).setOrigin(1, 0);
       container.add(lvText);
 
       // 이름 (하단)
-      const nameText = this.add.text(x + cellW / 2, y + cellW * 0.7 + 2, unit.name, {
-        fontSize: '11px', color: '#ffffff', fontStyle: 'bold',
+      const nameText = this.add.text(x + cellW / 2, y + cellW * 0.62, unit.name, {
+        fontSize: '14px', color: '#ffffff', fontStyle: 'bold',
       }).setOrigin(0.5);
       container.add(nameText);
 
       // 병종명 (이름 아래)
       const className = unit.promotionClass ?? UNIT_CLASS_DEFS[unit.unitClass ?? 'infantry']?.name ?? '';
-      const classText = this.add.text(x + cellW / 2, y + cellW * 0.7 + 18, className, {
-        fontSize: '9px', color: '#666688',
+      const classText = this.add.text(x + cellW / 2, y + cellW * 0.62 + 18, className, {
+        fontSize: '11px', color: '#666688',
       }).setOrigin(0.5);
       container.add(classText);
 
@@ -1213,10 +1214,11 @@ export class LobbyScene extends Phaser.Scene {
     onSelect: (u: UnitData) => void,
     isEnabled?: (u: UnitData) => boolean,
   ): void {
-    const cols = 4;
-    const pad = 12;
-    const cellW = (GW - pad * 2 - (cols - 1) * 8) / cols;
-    const cellH = cellW + 30;
+    const cols = 3;
+    const pad = 14;
+    const gap = 10;
+    const cellW = (GW - pad * 2 - (cols - 1) * gap) / cols;
+    const cellH = cellW + 36;
     const clsIcons: Record<string, string> = {
       cavalry: '\u{1F40E}', infantry: '\u{1F6E1}\uFE0F', archer: '\u{1F3F9}',
       strategist: '\u{1F4DC}', martial_artist: '\u{1F44A}', bandit: '\u{1F5E1}\uFE0F',
@@ -1224,14 +1226,14 @@ export class LobbyScene extends Phaser.Scene {
 
     const container = this.add.container(0, 0);
     const scrollableH = GH - startY - 10;
-    const totalH = Math.ceil(units.length / cols) * (cellH + 8);
+    const totalH = Math.ceil(units.length / cols) * (cellH + gap);
 
     for (let i = 0; i < units.length; i++) {
       const unit = units[i];
       const col = i % cols;
       const row = Math.floor(i / cols);
-      const x = pad + col * (cellW + 8);
-      const y = startY + row * (cellH + 8);
+      const x = pad + col * (cellW + gap);
+      const y = startY + row * (cellH + gap);
       const grade = unit.grade ?? 'N';
       const gradeColorHex = getGradeColor(grade as HeroGrade);
       const gradeColorNum = Phaser.Display.Color.HexStringToColor(gradeColorHex).color;
@@ -1239,26 +1241,26 @@ export class LobbyScene extends Phaser.Scene {
       const alpha = enabled ? 1 : 0.4;
 
       const card = this.add.graphics();
-      card.fillStyle(0x141428, alpha).fillRoundedRect(x, y, cellW, cellH, 6);
-      card.lineStyle(2, gradeColorNum, enabled ? 0.8 : 0.3).strokeRoundedRect(x, y, cellW, cellH, 6);
+      card.fillStyle(0x141428, alpha).fillRoundedRect(x, y, cellW, cellH, 8);
+      card.lineStyle(2, gradeColorNum, enabled ? 0.8 : 0.3).strokeRoundedRect(x, y, cellW, cellH, 8);
       container.add(card);
 
       const cls = unit.unitClass ?? 'infantry';
       container.add(this.add.text(x + cellW / 2, y + cellW * 0.30, clsIcons[cls] ?? '\u2694\uFE0F', {
-        fontSize: '26px',
+        fontSize: '34px',
       }).setOrigin(0.5).setAlpha(alpha));
 
-      container.add(this.add.text(x + 4, y + 2, grade, {
-        fontSize: '10px', color: gradeColorHex, fontStyle: 'bold',
+      container.add(this.add.text(x + 6, y + 4, grade, {
+        fontSize: '13px', color: gradeColorHex, fontStyle: 'bold',
       }).setAlpha(alpha));
 
       container.add(this.add.text(x + cellW / 2, y + cellW * 0.62, unit.name, {
-        fontSize: '11px', color: '#ffffff', fontStyle: 'bold',
+        fontSize: '14px', color: '#ffffff', fontStyle: 'bold',
       }).setOrigin(0.5).setAlpha(alpha));
 
       const sub = subLabel(unit);
-      container.add(this.add.text(x + cellW / 2, y + cellW * 0.62 + 14, sub, {
-        fontSize: '9px', color: enabled ? '#88aa88' : '#555555',
+      container.add(this.add.text(x + cellW / 2, y + cellW * 0.62 + 18, sub, {
+        fontSize: '11px', color: enabled ? '#88aa88' : '#555555',
       }).setOrigin(0.5));
 
       if (enabled) {

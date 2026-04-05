@@ -188,10 +188,11 @@ export class WorldMapScene extends Phaser.Scene {
     });
 
     // 게스트 그리드
-    const cols = 4;
-    const pad = 12;
-    const cellW = (GW - pad * 2 - (cols - 1) * 8) / cols;
-    const cellH = cellW + 30;
+    const cols = 3;
+    const pad = 14;
+    const gap = 10;
+    const cellW = (GW - pad * 2 - (cols - 1) * gap) / cols;
+    const cellH = cellW + 36;
     const startY = 105;
     const clsIcons: Record<string, string> = {
       cavalry: '🐎', infantry: '🛡️', archer: '🏹',
@@ -202,38 +203,44 @@ export class WorldMapScene extends Phaser.Scene {
       const unit = guests[i];
       const col = i % cols;
       const row = Math.floor(i / cols);
-      const x = pad + col * (cellW + 8);
-      const y = startY + row * (cellH + 8);
+      const x = pad + col * (cellW + gap);
+      const y = startY + row * (cellH + gap);
       const grade = unit.grade ?? 'N';
       const gradeColorHex = getGradeColor(grade as HeroGrade);
       const gradeColorNum = Phaser.Display.Color.HexStringToColor(gradeColorHex).color;
 
       const isLast = unit.id === lastGuestId;
       const card = this.add.graphics();
-      card.fillStyle(isLast ? 0x1a2840 : 0x141428, 1).fillRoundedRect(x, y, cellW, cellH, 6);
-      card.lineStyle(2, isLast ? 0xffd700 : gradeColorNum, 0.8).strokeRoundedRect(x, y, cellW, cellH, 6);
+      card.fillStyle(isLast ? 0x1a2840 : 0x141428, 1).fillRoundedRect(x, y, cellW, cellH, 8);
+      card.lineStyle(2, isLast ? 0xffd700 : gradeColorNum, 0.8).strokeRoundedRect(x, y, cellW, cellH, 8);
 
       const cls = unit.unitClass ?? 'infantry';
       this.add.text(x + cellW / 2, y + cellW * 0.30, clsIcons[cls] ?? '⚔️', {
-        fontSize: '26px',
+        fontSize: '34px',
       }).setOrigin(0.5);
 
-      this.add.text(x + 4, y + 2, grade, {
-        fontSize: '10px', color: gradeColorHex, fontStyle: 'bold',
+      this.add.text(x + 6, y + 4, grade, {
+        fontSize: '13px', color: gradeColorHex, fontStyle: 'bold',
       });
 
-      this.add.text(x + cellW - 4, y + 2, `${unit.level ?? 1}`, {
-        fontSize: '10px', color: '#88aacc',
+      this.add.text(x + cellW - 6, y + 4, `Lv.${unit.level ?? 1}`, {
+        fontSize: '12px', color: '#88aacc',
       }).setOrigin(1, 0);
 
       this.add.text(x + cellW / 2, y + cellW * 0.62, unit.name, {
-        fontSize: '11px', color: '#ffffff', fontStyle: 'bold',
+        fontSize: '14px', color: '#ffffff', fontStyle: 'bold',
       }).setOrigin(0.5);
 
       const clsName = unit.unitClass ? (UNIT_CLASS_DEFS[unit.unitClass]?.name ?? '') : '';
-      this.add.text(x + cellW / 2, y + cellW * 0.62 + 14, clsName, {
-        fontSize: '9px', color: '#88aacc',
+      this.add.text(x + cellW / 2, y + cellW * 0.62 + 18, clsName, {
+        fontSize: '11px', color: '#88aacc',
       }).setOrigin(0.5);
+
+      if (isLast) {
+        this.add.text(x + cellW / 2, y + cellH - 8, '최근 선택', {
+          fontSize: '9px', color: '#ffd700',
+        }).setOrigin(0.5);
+      }
 
       const hit = this.add.rectangle(x + cellW / 2, y + cellH / 2, cellW, cellH, 0x000000, 0)
         .setInteractive({ useHandCursor: true });
