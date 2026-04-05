@@ -1999,17 +1999,83 @@ export class LobbyScene extends Phaser.Scene {
 
   private purchaseShopItem(item: ShopItem, category: 'general' | 'premium' | 'daily'): void {
     const progress = this.campaignManager.getProgress();
-
-    // Quick client-side pre-check (server is authoritative)
     if (item.currency === 'gold' && progress.gold < item.price) return;
-
-    // 중복 클릭 방지
     if (this.shopBuying) return;
+
+    // 구매 확인 다이얼로그
+    const overlay = this.add.graphics().setDepth(500);
+    overlay.fillStyle(0x000000, 0.7).fillRect(0, 0, GW, GH);
+    overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, GW, GH), Phaser.Geom.Rectangle.Contains);
+
+    const dialogW = 300;
+    const dialogH = 160;
+    const dx = (GW - dialogW) / 2;
+    const dy = (GH - dialogH) / 2;
+
+    const dialogBg = this.add.graphics().setDepth(501);
+    dialogBg.fillStyle(0x1a1a30, 1).fillRoundedRect(dx, dy, dialogW, dialogH, 10);
+    dialogBg.lineStyle(2, 0xffd700, 0.6).strokeRoundedRect(dx, dy, dialogW, dialogH, 10);
+
+    const currIcon = item.currency === 'gold' ? '💰' : '💎';
+    const titleText = this.add.text(GW / 2, dy + 25, '구매 확인', {
+      fontSize: '18px', color: '#ffd700', fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(502);
+
+    const itemText = this.add.text(GW / 2, dy + 55, `${item.icon} ${item.name}`, {
+      fontSize: '16px', color: '#ffffff', fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(502);
+
+    const priceText = this.add.text(GW / 2, dy + 80, `${currIcon} ${item.price.toLocaleString()} 사용`, {
+      fontSize: '14px', color: '#ffcc44',
+    }).setOrigin(0.5).setDepth(502);
+
+    const destroyDialog = () => {
+      overlay.destroy(); dialogBg.destroy(); titleText.destroy();
+      itemText.destroy(); priceText.destroy();
+      confirmBtn.destroy(); cancelBtn.destroy();
+      confirmHit.destroy(); cancelHit.destroy();
+    };
+
+    // 확인 버튼
+    const confirmBtn = this.add.text(GW / 2 - 70, dy + 115, '구매', {
+      fontSize: '15px', color: '#ffffff', fontStyle: 'bold',
+      backgroundColor: '#228833', padding: { x: 20, y: 8 },
+    }).setOrigin(0.5).setDepth(502);
+    const confirmHit = this.add.rectangle(GW / 2 - 70, dy + 115, 80, 34, 0x000000, 0)
+      .setInteractive({ useHandCursor: true }).setDepth(503);
+    confirmHit.on('pointerdown', () => {
+      destroyDialog();
+      this.executePurchase(item, category);
+    });
+
+    // 취소 버튼
+    const cancelBtn = this.add.text(GW / 2 + 70, dy + 115, '취소', {
+      fontSize: '15px', color: '#aaaaaa', fontStyle: 'bold',
+      backgroundColor: '#333344', padding: { x: 20, y: 8 },
+    }).setOrigin(0.5).setDepth(502);
+    const cancelHit = this.add.rectangle(GW / 2 + 70, dy + 115, 80, 34, 0x000000, 0)
+      .setInteractive({ useHandCursor: true }).setDepth(503);
+    cancelHit.on('pointerdown', () => destroyDialog());
+  }
+
+  private executePurchase(item: ShopItem, category: 'general' | 'premium' | 'daily'): void {
     this.shopBuying = true;
 
     shopBuy(item.id).then(async () => {
       await this.campaignManager.loadFromServer();
       this.shopBuying = false;
+
+      // 구매 성공 알림
+      const toast = this.add.text(GW / 2, GH * 0.4, `${item.icon} ${item.name} 구매 완료!`, {
+        fontSize: '16px', color: '#44ff44', fontStyle: 'bold',
+        backgroundColor: '#1a2a1a', padding: { x: 16, y: 10 },
+        stroke: '#000000', strokeThickness: 2,
+      }).setOrigin(0.5).setDepth(999);
+      this.tweens.add({
+        targets: toast, alpha: 0, y: toast.y - 40,
+        duration: 1200, delay: 800, onComplete: () => toast.destroy(),
+      });
+
       this.showShop(category, true);
     }).catch((err: Error) => {
       this.shopBuying = false;
