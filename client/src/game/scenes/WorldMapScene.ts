@@ -179,38 +179,54 @@ export class WorldMapScene extends Phaser.Scene {
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     noneBtn.on('pointerdown', () => this.launchBattle(stage, undefined));
 
-    // 게스트 목록
+    // 게스트 그리드
+    const cols = 4;
+    const pad = 12;
+    const cellW = (GW - pad * 2 - (cols - 1) * 8) / cols;
+    const cellH = cellW + 30;
     const startY = 105;
-    const cardH = 52;
+    const clsIcons: Record<string, string> = {
+      cavalry: '🐎', infantry: '🛡️', archer: '🏹',
+      strategist: '📜', martial_artist: '👊', bandit: '🗡️',
+    };
 
     for (let i = 0; i < guests.length; i++) {
       const unit = guests[i];
-      const y = startY + i * cardH;
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const x = pad + col * (cellW + 8);
+      const y = startY + row * (cellH + 8);
       const grade = unit.grade ?? 'N';
-      const gradeColor = getGradeColor(grade as HeroGrade);
+      const gradeColorHex = getGradeColor(grade as HeroGrade);
+      const gradeColorNum = Phaser.Display.Color.HexStringToColor(gradeColorHex).color;
 
-      const cardBg = this.add.graphics();
-      cardBg.fillStyle(0x1a2a3a, 1).fillRoundedRect(15, y, GW - 30, cardH - 5, 6);
-      cardBg.lineStyle(1, 0x3366aa, 0.6).strokeRoundedRect(15, y, GW - 30, cardH - 5, 6);
+      const card = this.add.graphics();
+      card.fillStyle(0x141428, 1).fillRoundedRect(x, y, cellW, cellH, 6);
+      card.lineStyle(2, gradeColorNum, 0.8).strokeRoundedRect(x, y, cellW, cellH, 6);
 
-      this.add.text(25, y + 8, `[${grade}]`, {
-        fontSize: '12px', color: gradeColor, fontStyle: 'bold',
-      });
-      this.add.text(52, y + 6, unit.name, {
-        fontSize: '14px', color: '#ffffff', fontStyle: 'bold',
-      });
-
-      const cls = unit.unitClass ? (UNIT_CLASS_DEFS[unit.unitClass]?.name ?? '') : '';
-      this.add.text(52, y + 24, `${cls} Lv.${unit.level ?? 1}  ATK:${unit.stats.attack}`, {
-        fontSize: '12px', color: '#88aacc',
-      });
-
-      const selBg = this.add.graphics();
-      selBg.fillStyle(0x3366aa, 1).fillRoundedRect(GW - 80, y + 8, 60, 36, 5);
-      this.add.text(GW - 50, y + 26, '선택', {
-        fontSize: '13px', color: '#ffffff', fontStyle: 'bold',
+      const cls = unit.unitClass ?? 'infantry';
+      this.add.text(x + cellW / 2, y + cellW * 0.30, clsIcons[cls] ?? '⚔️', {
+        fontSize: '26px',
       }).setOrigin(0.5);
-      const hit = this.add.rectangle(GW - 50, y + 26, 60, 36, 0x000000, 0)
+
+      this.add.text(x + 4, y + 2, grade, {
+        fontSize: '10px', color: gradeColorHex, fontStyle: 'bold',
+      });
+
+      this.add.text(x + cellW - 4, y + 2, `${unit.level ?? 1}`, {
+        fontSize: '10px', color: '#88aacc',
+      }).setOrigin(1, 0);
+
+      this.add.text(x + cellW / 2, y + cellW * 0.62, unit.name, {
+        fontSize: '11px', color: '#ffffff', fontStyle: 'bold',
+      }).setOrigin(0.5);
+
+      const clsName = unit.unitClass ? (UNIT_CLASS_DEFS[unit.unitClass]?.name ?? '') : '';
+      this.add.text(x + cellW / 2, y + cellW * 0.62 + 14, clsName, {
+        fontSize: '9px', color: '#88aacc',
+      }).setOrigin(0.5);
+
+      const hit = this.add.rectangle(x + cellW / 2, y + cellH / 2, cellW, cellH, 0x000000, 0)
         .setInteractive({ useHandCursor: true });
       hit.on('pointerdown', () => this.launchBattle(stage, unit.id));
     }

@@ -1205,6 +1205,93 @@ export class LobbyScene extends Phaser.Scene {
     }
   }
 
+  /** 공통 장수 그리드 렌더링 */
+  private renderUnitGrid(
+    units: UnitData[],
+    startY: number,
+    subLabel: (u: UnitData) => string,
+    onSelect: (u: UnitData) => void,
+    isEnabled?: (u: UnitData) => boolean,
+  ): void {
+    const cols = 4;
+    const pad = 12;
+    const cellW = (GW - pad * 2 - (cols - 1) * 8) / cols;
+    const cellH = cellW + 30;
+    const clsIcons: Record<string, string> = {
+      cavalry: '\u{1F40E}', infantry: '\u{1F6E1}\uFE0F', archer: '\u{1F3F9}',
+      strategist: '\u{1F4DC}', martial_artist: '\u{1F44A}', bandit: '\u{1F5E1}\uFE0F',
+    };
+
+    const container = this.add.container(0, 0);
+    const scrollableH = GH - startY - 10;
+    const totalH = Math.ceil(units.length / cols) * (cellH + 8);
+
+    for (let i = 0; i < units.length; i++) {
+      const unit = units[i];
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const x = pad + col * (cellW + 8);
+      const y = startY + row * (cellH + 8);
+      const grade = unit.grade ?? 'N';
+      const gradeColorHex = getGradeColor(grade as HeroGrade);
+      const gradeColorNum = Phaser.Display.Color.HexStringToColor(gradeColorHex).color;
+      const enabled = isEnabled ? isEnabled(unit) : true;
+      const alpha = enabled ? 1 : 0.4;
+
+      const card = this.add.graphics();
+      card.fillStyle(0x141428, alpha).fillRoundedRect(x, y, cellW, cellH, 6);
+      card.lineStyle(2, gradeColorNum, enabled ? 0.8 : 0.3).strokeRoundedRect(x, y, cellW, cellH, 6);
+      container.add(card);
+
+      const cls = unit.unitClass ?? 'infantry';
+      container.add(this.add.text(x + cellW / 2, y + cellW * 0.30, clsIcons[cls] ?? '\u2694\uFE0F', {
+        fontSize: '26px',
+      }).setOrigin(0.5).setAlpha(alpha));
+
+      container.add(this.add.text(x + 4, y + 2, grade, {
+        fontSize: '10px', color: gradeColorHex, fontStyle: 'bold',
+      }).setAlpha(alpha));
+
+      container.add(this.add.text(x + cellW / 2, y + cellW * 0.62, unit.name, {
+        fontSize: '11px', color: '#ffffff', fontStyle: 'bold',
+      }).setOrigin(0.5).setAlpha(alpha));
+
+      const sub = subLabel(unit);
+      container.add(this.add.text(x + cellW / 2, y + cellW * 0.62 + 14, sub, {
+        fontSize: '9px', color: enabled ? '#88aa88' : '#555555',
+      }).setOrigin(0.5));
+
+      if (enabled) {
+        const hit = this.add.rectangle(x + cellW / 2, y + cellH / 2, cellW, cellH, 0x000000, 0)
+          .setInteractive({ useHandCursor: true });
+        hit.on('pointerdown', () => onSelect(unit));
+        container.add(hit);
+      }
+    }
+
+    if (totalH > scrollableH) {
+      const mask = this.add.graphics();
+      mask.fillRect(0, startY, GW, scrollableH);
+      container.setMask(new Phaser.Display.Masks.GeometryMask(this, mask));
+      let scrollY = 0;
+      const maxScroll = totalH - scrollableH;
+      this.input.on('wheel', (_p: unknown, _gx: unknown, _gy: unknown, _gz: unknown, dy: number) => {
+        scrollY = Phaser.Math.Clamp(scrollY + dy * 0.5, 0, maxScroll);
+        container.y = -scrollY;
+      });
+      let dragStartY = 0, dragScrollY = 0;
+      this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+        if (p.y >= startY) { dragStartY = p.y; dragScrollY = scrollY; }
+      });
+      this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
+        if (p.isDown && p.y >= startY) {
+          scrollY = Phaser.Math.Clamp(dragScrollY + (dragStartY - p.y), 0, maxScroll);
+          container.y = -scrollY;
+        }
+      });
+    }
+  }
+
   /** 장비 장착 대상 장수 선택 */
   private showEquipTarget(bag: string[], bagIdx: number, itemId: string): void {
     this.children.removeAll();
@@ -1222,40 +1309,25 @@ export class LobbyScene extends Phaser.Scene {
     }).setInteractive({ useHandCursor: true });
     backBtn.on('pointerdown', () => this.showInventory('equipment'));
 
-    this.add.text(GW / 2, 50, '장착할 장수를 선택하세요', {
+    this.add.text(GW / 2, 48, '장착할 장수를 선택하세요', {
       fontSize: '12px', color: '#aaaaaa',
     }).setOrigin(0.5);
 
     const units = this.campaignManager.getProgress().playerUnits;
-    for (let i = 0; i < units.length; i++) {
-      const unit = units[i];
-      const y = 75 + i * 50;
-
-      const slotKey = itemDef?.slot === 'weapon' ? 'weapon' : itemDef?.slot === 'armor' ? 'armor' : 'accessory';
-      const currentItem = unit.equipment?.[slotKey as 'weapon' | 'armor' | 'accessory'];
-      const currentName = currentItem ? EQUIPMENT_DEFS[currentItem]?.name ?? '?' : '없음';
-
-      this.add.text(25, y + 6, `${unit.name} (${slotKey}: ${currentName})`, {
-        fontSize: '13px', color: '#ffffff',
-      });
-
-      const selectBtn = this.add.text(GW - 70, y + 6, '선택', {
-        fontSize: '12px', color: '#ffffff', backgroundColor: '#3366aa', padding: { x: 10, y: 4 },
-      }).setInteractive({ useHandCursor: true });
-      selectBtn.on('pointerdown', () => {
-        // 기존 장비��� 있으면 인벤토리로
-        if (unit.equipment?.[slotKey as 'weapon' | 'armor' | 'accessory']) {
-          bag.push(unit.equipment[slotKey as 'weapon' | 'armor' | 'accessory']!);
-        }
-        // 장착
-        if (!unit.equipment) unit.equipment = {};
-        (unit.equipment as Record<string, string | undefined>)[slotKey] = itemId;
-        // 인벤토리에서 제거
-        bag.splice(bagIdx, 1);
-        this.campaignManager.save();
-        this.showInventory('equipment');
-      });
-    }
+    const slotKey = itemDef?.slot === 'weapon' ? 'weapon' : itemDef?.slot === 'armor' ? 'armor' : 'accessory';
+    this.renderUnitGrid(units, 65, (unit) => {
+      const cur = unit.equipment?.[slotKey as 'weapon' | 'armor' | 'accessory'];
+      return cur ? EQUIPMENT_DEFS[cur]?.name ?? '?' : '-';
+    }, (unit) => {
+      if (unit.equipment?.[slotKey as 'weapon' | 'armor' | 'accessory']) {
+        bag.push(unit.equipment[slotKey as 'weapon' | 'armor' | 'accessory']!);
+      }
+      if (!unit.equipment) unit.equipment = {};
+      (unit.equipment as Record<string, string | undefined>)[slotKey] = itemId;
+      bag.splice(bagIdx, 1);
+      this.campaignManager.save();
+      this.showInventory('equipment');
+    });
   }
 
   /** 스킬 장착 대상 장수 선택 */
@@ -1275,40 +1347,25 @@ export class LobbyScene extends Phaser.Scene {
     }).setInteractive({ useHandCursor: true });
     backBtn.on('pointerdown', () => this.showInventory('skill'));
 
-    this.add.text(GW / 2, 50, '장착할 장수를 선택하세요', {
+    this.add.text(GW / 2, 48, '장착할 장수를 선택하세요', {
       fontSize: '12px', color: '#aaaaaa',
     }).setOrigin(0.5);
 
     const units = this.campaignManager.getProgress().playerUnits;
-    for (let i = 0; i < units.length; i++) {
-      const unit = units[i];
-      const y = 75 + i * 50;
+    this.renderUnitGrid(units, 65, (unit) => {
       const maxSlots = (unit.level ?? 1) >= 10 ? 2 : 1;
-      const currentSkills = unit.equippedSkills ?? [];
-      const hasRoom = currentSkills.length < maxSlots;
-
-      const skillNames = currentSkills.map(s => SKILL_DEFS[s]?.name ?? s).join(', ') || '없음';
-      this.add.text(25, y + 6, `${unit.name} (${skillNames}) [${currentSkills.length}/${maxSlots}]`, {
-        fontSize: '12px', color: hasRoom ? '#ffffff' : '#555555',
-      });
-
-      if (hasRoom) {
-        const selectBtn = this.add.text(GW - 70, y + 6, '선택', {
-          fontSize: '12px', color: '#ffffff', backgroundColor: '#6644aa', padding: { x: 10, y: 4 },
-        }).setInteractive({ useHandCursor: true });
-        selectBtn.on('pointerdown', () => {
-          if (!unit.equippedSkills) unit.equippedSkills = [];
-          unit.equippedSkills.push(skillId);
-          bag.splice(bagIdx, 1);
-          this.campaignManager.save();
-          this.showInventory('skill');
-        });
-      } else {
-        this.add.text(GW - 70, y + 6, '가득', {
-          fontSize: '12px', color: '#555555',
-        });
-      }
-    }
+      const cur = unit.equippedSkills ?? [];
+      return `${cur.length}/${maxSlots}`;
+    }, (unit) => {
+      if (!unit.equippedSkills) unit.equippedSkills = [];
+      unit.equippedSkills.push(skillId);
+      bag.splice(bagIdx, 1);
+      this.campaignManager.save();
+      this.showInventory('skill');
+    }, (unit) => {
+      const maxSlots = (unit.level ?? 1) >= 10 ? 2 : 1;
+      return (unit.equippedSkills ?? []).length < maxSlots;
+    });
   }
 
   // ── 가챠 ──
