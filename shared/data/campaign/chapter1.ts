@@ -108,7 +108,7 @@ export const CHAPTER_1: Chapter = {
           { speaker: '여포', text: '(왔군... 역사대로야. 적토마와 금은보화... 어떻게 해야 하지?)', speakerSide: 'left' },
         ],
       },
-      rewards: { gold: 150 },
+      rewards: { gold: 150, items: ['iron_spear', 'sun_amulet'] },
     },
     {
       id: 'ch1_s2', name: '낙양 쟁탈전', description: '동탁의 이유를 물리치고 낙양을 지켜라',
@@ -132,7 +132,7 @@ export const CHAPTER_1: Chapter = {
           { speaker: '여포', text: '(호뢰관 전투... 거기서 유비, 관우, 장비와 싸우게 되겠군. 이번에는 내가 아군 편이지만...)', speakerSide: 'left' },
         ],
       },
-      rewards: { gold: 200 },
+      rewards: { gold: 200, items: ['iron_shield'] },
     },
   ],
 };

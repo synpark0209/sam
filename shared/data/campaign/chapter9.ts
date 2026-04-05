@@ -132,7 +132,7 @@ export const CHAPTER_9: Chapter = {
           { speaker: '여포', text: '(역사에서는 이 성에서 잡혀 죽었지... 탈출해야 한다!)', speakerSide: 'left' },
         ],
       },
-      rewards: { gold: 1000 },
+      rewards: { gold: 1000, items: ['heavenly_sword', 'mystic_robe'] },
     },
     {
       id: 'ch9_s2', name: '하비성 탈출전', description: '조조의 포위망을 뚫고 탈출하라',
@@ -152,7 +152,7 @@ export const CHAPTER_9: Chapter = {
           { speaker: '여포', text: '천하를 향해 간다. 더 이상 쫓기는 여포가 아니다!', speakerSide: 'left' },
         ],
       },
-      rewards: { gold: 1500 },
+      rewards: { gold: 1500, items: ['serpent_spear', 'dragon_armor'] },
     },
   ],
 };

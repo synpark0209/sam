@@ -147,7 +147,7 @@ export class CampaignManager {
     this.progress.gold += stage.rewards.gold ?? 0; // optimistic UI update
     if ((stage.rewards.gold ?? 0) > 0) battleComplete(stage.id).catch(() => {}); // server sync
     if (stage.rewards.items) {
-      this.progress.inventory.push(...stage.rewards.items);
+      this.progress.equipmentBag.push(...stage.rewards.items);
     }
     if (stage.rewards.recruitUnits) {
       this.progress.playerUnits.push(...stage.rewards.recruitUnits);

@@ -138,7 +138,7 @@ export const CHAPTER_7: Chapter = {
           { speaker: '여포(내심)', text: '(고순과 하후돈의 일기토... 역사에서 하후돈이 눈에 화살을 맞은 그 싸움이군!)', speakerSide: 'left' },
         ],
       },
-      rewards: { gold: 700 },
+      rewards: { gold: 700, items: ['crescent_blade'] },
     },
     {
       id: 'ch7_s2', name: '조조 선봉대 격퇴', description: '하후돈이 이끄는 조조의 선봉대를 격퇴하라',
@@ -157,7 +157,7 @@ export const CHAPTER_7: Chapter = {
           { speaker: '여포(내심)', text: '(조조 본대와의 전면전... 이번에는 지지 않는다!)', speakerSide: 'left' },
         ],
       },
-      rewards: { gold: 800 },
+      rewards: { gold: 800, items: ['ancient_tome', 'martial_garb'] },
     },
     {
       id: 'ch7_s3', name: '장료의 야간 기습', description: '야간 기습으로 조조의 보급을 차단하라',
@@ -176,7 +176,7 @@ export const CHAPTER_7: Chapter = {
           { speaker: '여포(내심)', text: '(하지만 조조는 쉽게 물러날 인물이 아니다. 다음 수를 준비해야 해.)', speakerSide: 'left' },
         ],
       },
-      rewards: { gold: 900 },
+      rewards: { gold: 900, items: ['shadow_blade', 'tiger_talisman'] },
     },
   ],
 };

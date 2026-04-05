@@ -145,7 +145,7 @@ export const CHAPTER_3: Chapter = {
           { speaker: '여포', text: '(역시... 원소는 나를 이용만 하고 버릴 생각이군.)', speakerSide: 'left' },
         ],
       },
-      rewards: { gold: 300 },
+      rewards: { gold: 300, items: ['throwing_knife'] },
     },
     {
       id: 'ch3_s2', name: '원소군 매복 탈출', description: '원소의 매복을 뚫고 탈출하라',
@@ -167,7 +167,7 @@ export const CHAPTER_3: Chapter = {
           { speaker: '여포', text: '진궁 선생, 잘 부탁하오.', speakerSide: 'left' },
         ],
       },
-      rewards: { gold: 400 },
+      rewards: { gold: 400, items: ['sage_staff'] },
     },
     {
       id: 'ch3_s3', name: '장막 합류', description: '장막 태수에게 합류하기 위해 도적을 소탕하라',
@@ -188,7 +188,7 @@ export const CHAPTER_3: Chapter = {
           { speaker: '여포(내심)', text: '(연주... 조조의 근거지. 역사대로라면 이제 연주를 기습할 차례지.)', speakerSide: 'left' },
         ],
       },
-      rewards: { gold: 500 },
+      rewards: { gold: 500, items: ['life_gem'] },
     },
   ],
 };

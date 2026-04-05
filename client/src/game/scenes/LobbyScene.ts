@@ -4,13 +4,13 @@ import type { CampaignManager } from '../systems/CampaignManager.ts';
 import type { AudioManager } from '../systems/AudioManager.ts';
 import type { UnitData } from '@shared/types/index.ts';
 import { UnitClass } from '@shared/types/index.ts';
-import { logout as doLogout, gachaPull, getGachaStatus, getAuthToken, promoteUnit, awakenUnit, enhanceSkill } from '../../api/client.ts';
+import { logout as doLogout, gachaPull, getGachaStatus, promoteUnit, awakenUnit, enhanceSkill } from '../../api/client.ts';
 import type { GachaPullResult } from '../../api/client.ts';
 import { getGradeColor, GACHA_HERO_POOL } from '@shared/data/gachaDefs.ts';
 import type { HeroGrade } from '@shared/data/gachaDefs.ts';
 import { UNIT_CLASS_DEFS } from '@shared/data/unitClassDefs.ts';
 import { SKILL_DEFS } from '@shared/data/skillDefs.ts';
-import { EQUIPMENT_DEFS } from '@shared/data/equipmentDefs.ts';
+import { EQUIPMENT_DEFS, EQUIPMENT_GRADE_COLORS } from '@shared/data/equipmentDefs.ts';
 import { DAILY_MISSIONS, ALL_COMPLETE_BONUS, areAllMissionsComplete, LOGIN_BONUS_TABLE } from '@shared/data/dailyMissionDefs.ts';
 import { getNextAwakening, AWAKENING_TIERS } from '@shared/data/awakeningDefs.ts';
 import { PROMOTION_PATHS } from '@shared/data/promotionDefs.ts';
@@ -1079,8 +1079,9 @@ export class LobbyScene extends Phaser.Scene {
       cardBg.fillStyle(0x1a2a3a, 1).fillRoundedRect(15, y, GW - 30, 45, 6);
 
       const slotLabel = itemDef.slot === 'weapon' ? '⚔️' : itemDef.slot === 'armor' ? '🛡️' : '💍';
+      const gradeColor = EQUIPMENT_GRADE_COLORS[itemDef.grade] ?? '#ffffff';
       this.add.text(25, y + 6, `${slotLabel} ${itemDef.name}`, {
-        fontSize: '14px', color: '#ffffff', fontStyle: 'bold',
+        fontSize: '14px', color: gradeColor, fontStyle: 'bold',
       });
       const bonus = Object.entries(itemDef.statModifiers).map(([k, v]) => `${k}${(v as number) > 0 ? '+' : ''}${v}`).join('  ');
       this.add.text(25, y + 26, bonus, { fontSize: '10px', color: '#88aa88' });
@@ -1299,26 +1300,16 @@ export class LobbyScene extends Phaser.Scene {
       fontSize: '18px', color: '#888888',
     }).setOrigin(0.5);
 
-    // 디버그: API 연결 상태 표시
-    const token = getAuthToken();
-    const debugInfo = `API: ${import.meta.env.VITE_API_URL || '(localhost)'}\nToken: ${token ? 'O' : 'X'}`;
-    const debugText = this.add.text(10, GH - 60, debugInfo, {
-      fontSize: '10px', color: '#666666',
-    }).setDepth(100);
-
     getGachaStatus().then(status => {
       loadingText.destroy();
-      debugText.destroy();
       this.renderGachaUI(status.gems, status.gold, status.pity);
     }).catch((err: unknown) => {
       const msg = err instanceof Error ? err.message : String(err);
-      const errType = err instanceof TypeError ? 'Network' : 'Server';
       console.error('[GACHA] getGachaStatus failed:', msg, err);
-      loadingText.setText(`연결 실패 (${errType}): ${msg}`);
+      loadingText.setText(`연결 실패: ${msg}`);
       loadingText.setColor('#ff6666');
-      loadingText.setFontSize(13);
+      loadingText.setFontSize(14);
       loadingText.setWordWrapWidth(350);
-      debugText.setText(debugInfo + `\nErr: ${msg}`);
     });
   }
 

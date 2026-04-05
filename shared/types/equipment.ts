@@ -16,10 +16,13 @@ export interface StatModifier {
   maxMp?: number;
 }
 
+export type EquipmentGrade = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+
 export interface EquipmentDef {
   id: string;
   name: string;
   slot: EquipmentSlot;
+  grade: EquipmentGrade;
   statModifiers: StatModifier;
   requiredClasses?: UnitClass[];
   description: string;

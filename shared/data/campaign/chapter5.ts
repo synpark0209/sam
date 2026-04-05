@@ -115,7 +115,7 @@ export const CHAPTER_5: Chapter = {
           { speaker: '여포(내심)', text: '(장료의 말이 맞아. 유비는 좋은 사람이야. 하지만 난세에서 좋기만 해서는...)', speakerSide: 'left' },
         ],
       },
-      rewards: { gold: 500 },
+      rewards: { gold: 500, items: ['twin_daggers', 'shadow_cloak'] },
     },
     {
       id: 'ch5_s2', name: '원술군 선봉 격퇴', description: '원술의 3만 대군 선봉을 강 건너에서 격퇴하라',
@@ -137,7 +137,7 @@ export const CHAPTER_5: Chapter = {
           { speaker: '여포(내심)', text: '(서주의 주인... 그 자리가 축복일지 저주일지, 아직은 모르겠다.)', speakerSide: 'left' },
         ],
       },
-      rewards: { gold: 600 },
+      rewards: { gold: 600, items: ['phoenix_fan', 'scale_armor'] },
     },
   ],
 };

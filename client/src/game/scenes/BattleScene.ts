@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT } from '@shared/constants.ts';
 import type { Position, UnitData, BattleState, Faction } from '@shared/types/index.ts';
 import { UnitClass } from '@shared/types/index.ts';
+import { getEquipmentDef } from '@shared/data/equipmentDefs.ts';
 import type { SkillDef } from '@shared/types/skill.ts';
 import { SkillEffectType } from '@shared/types/skill.ts';
 import { GridSystem } from '../systems/GridSystem.ts';
@@ -1728,7 +1729,22 @@ export class BattleScene extends Phaser.Scene {
 
     if (this.campaignMode && this.campaignManager && this.campaignStage) {
       this.time.delayedCall(1500, () => {
-        this.gameOverText.setText(message + '\n\n(클릭하여 계속)');
+        if (winner === 'player') {
+          // 보상 정보 표시
+          const rewards = this.campaignStage!.rewards;
+          let rewardText = `${message}\n\n── 보상 ──\n💰 ${rewards.gold ?? 0} 금화`;
+          if (rewards.items && rewards.items.length > 0) {
+            const itemNames = rewards.items.map((id: string) => {
+              const def = getEquipmentDef(id);
+              return def ? def.name : id;
+            });
+            rewardText += `\n🎁 ${itemNames.join(', ')}`;
+          }
+          rewardText += '\n\n(클릭하여 계속)';
+          this.gameOverText.setText(rewardText);
+        } else {
+          this.gameOverText.setText(message + '\n\n(클릭하여 계속)');
+        }
         this.input.once('pointerdown', () => {
           if (winner === 'player') {
             const survivors = this.battleState.units.filter(u => u.faction === 'player' && u.isAlive);

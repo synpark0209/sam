@@ -1,7 +1,5 @@
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-console.log('[API] API_BASE:', API_BASE);
-
 let authToken: string | null = null;
 
 export function setAuthToken(token: string | null) {
@@ -31,7 +29,6 @@ export async function apiRequest<T>(
   };
 
   const url = `${API_BASE}${path}`;
-  console.log(`[API] ${options.method || 'GET'} ${url}`);
 
   const res = await fetch(url, {
     ...options,
@@ -40,7 +37,6 @@ export async function apiRequest<T>(
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({ message: res.statusText }));
-    console.error(`[API] Error ${res.status}:`, error);
 
     // 401 → 토큰 만료/무효 → 자동 재로그인 시도
     if (res.status === 401 && !path.startsWith('/auth/')) {
