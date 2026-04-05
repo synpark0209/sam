@@ -201,7 +201,6 @@ export class CampaignManager {
       // spirit이 0이거나 undefined면 기본 스탯 정의에서 가져옴
       if (!stats.spirit) {
         // 가챠 장수면 정의에서 찾기
-        const baseId = unit.id.split('_')[0] + '_' + unit.id.split('_')[1]; // gacha_pangtong_xxx → gacha_pangtong
         const def = GACHA_HERO_POOL.find(d => unit.id.startsWith(d.id));
         if (def?.baseStats.spirit) {
           stats.spirit = def.baseStats.spirit;
