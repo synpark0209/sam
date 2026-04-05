@@ -41,10 +41,58 @@ export async function apiRequest<T>(
   if (!res.ok) {
     const error = await res.json().catch(() => ({ message: res.statusText }));
     console.error(`[API] Error ${res.status}:`, error);
+
+    // 401 → 토큰 만료/무효 → 자동 재로그인 시도
+    if (res.status === 401 && !path.startsWith('/auth/')) {
+      console.log('[API] Token expired, attempting re-login...');
+      setAuthToken(null);
+      const refreshed = await tryAutoRelogin();
+      if (refreshed) {
+        // 새 토큰으로 원래 요청 재시도
+        const retryHeaders: Record<string, string> = {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getAuthToken()}`,
+        };
+        const retryRes = await fetch(url, {
+          ...options,
+          headers: { ...retryHeaders, ...(options.headers as Record<string, string> ?? {}) },
+        });
+        if (retryRes.ok) return retryRes.json();
+      }
+    }
+
     throw new Error(error.message ?? `HTTP ${res.status}`);
   }
 
   return res.json();
+}
+
+// ── Auto Re-login ──
+
+async function tryAutoRelogin(): Promise<boolean> {
+  try {
+    // 텔레그램 환경이면 initData로 재로그인
+    const tg = (window as unknown as { Telegram?: { WebApp?: { initData?: string } } }).Telegram?.WebApp;
+    if (tg?.initData) {
+      console.log('[API] Re-login via Telegram initData');
+      const res = await fetch(`${API_BASE}/auth/telegram`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ initData: tg.initData }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAuthToken(data.accessToken);
+        return true;
+      }
+    }
+
+    // 일반 환경: 저장된 자격증명 없으므로 실패
+    return false;
+  } catch (e) {
+    console.error('[API] Auto re-login failed:', e);
+    return false;
+  }
 }
 
 // ── Auth API ──
