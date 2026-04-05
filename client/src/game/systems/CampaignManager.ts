@@ -7,6 +7,7 @@ import { createDailyMissionState, DAILY_MISSIONS } from '@shared/data/dailyMissi
 import { canPromote } from '@shared/data/promotionDefs.ts';
 import { getClassSkillId } from '@shared/data/classSkillDefs.ts';
 import { saveToServer, loadServerSave, battleComplete } from '../../api/client.ts';
+import { GACHA_HERO_POOL } from '@shared/data/gachaDefs.ts';
 
 function createDefaultPlayerUnits(): UnitData[] {
   return [
@@ -185,10 +186,45 @@ export class CampaignManager {
       if (data) {
         this.progress = data as unknown as CampaignProgress;
         this._hasSave = true;
+        this.migrateUnitStats();
         return true;
       }
     } catch { /* 서버 로드 실패 */ }
     return false;
+  }
+
+  /** 기존 세이브 장수의 누락된 스탯을 보정 */
+  private migrateUnitStats(): void {
+    let changed = false;
+    for (const unit of this.progress.playerUnits) {
+      const stats = unit.stats;
+      // spirit이 0이거나 undefined면 기본 스탯 정의에서 가져옴
+      if (!stats.spirit) {
+        // 가챠 장수면 정의에서 찾기
+        const baseId = unit.id.split('_')[0] + '_' + unit.id.split('_')[1]; // gacha_pangtong_xxx → gacha_pangtong
+        const def = GACHA_HERO_POOL.find(d => unit.id.startsWith(d.id));
+        if (def?.baseStats.spirit) {
+          stats.spirit = def.baseStats.spirit;
+          stats.agility = stats.agility || def.baseStats.agility || 20;
+          stats.critical = stats.critical || def.baseStats.critical || 20;
+          stats.morale = stats.morale || def.baseStats.morale || 25;
+          stats.penetration = stats.penetration || def.baseStats.penetration || 5;
+          stats.resist = stats.resist || def.baseStats.resist || 10;
+          changed = true;
+        } else {
+          // 시나리오 장수나 매칭 안 되면 병종 기반 기본값
+          const isStrategist = unit.unitClass === UnitClass.STRATEGIST;
+          stats.spirit = isStrategist ? 30 : 10;
+          stats.agility = stats.agility || 20;
+          stats.critical = stats.critical || 20;
+          stats.morale = stats.morale || 25;
+          stats.penetration = stats.penetration || 5;
+          stats.resist = stats.resist || 10;
+          changed = true;
+        }
+      }
+    }
+    if (changed) this.save();
   }
 
   hasSave(): boolean {

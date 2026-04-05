@@ -10,19 +10,23 @@ export const EQUIPMENT_DEFS: Record<string, EquipmentDef> = {
   // ── 공통 검 (보병·기병·도적·무도가) ──
   bronze_sword: {
     id: 'bronze_sword', name: '청동검', slot: EquipmentSlot.WEAPON, grade: 'common',
-    statModifiers: { attack: 3 }, description: '기본적인 청동 검',
+    statModifiers: { attack: 3 }, requiredClasses: [UnitClass.INFANTRY, UnitClass.CAVALRY, UnitClass.BANDIT, UnitClass.MARTIAL_ARTIST],
+    description: '기본적인 청동 검',
   },
   steel_sword: {
     id: 'steel_sword', name: '강철검', slot: EquipmentSlot.WEAPON, grade: 'uncommon',
-    statModifiers: { attack: 6 }, description: '튼튼한 강철 검',
+    statModifiers: { attack: 6 }, requiredClasses: [UnitClass.INFANTRY, UnitClass.CAVALRY, UnitClass.BANDIT, UnitClass.MARTIAL_ARTIST],
+    description: '튼튼한 강철 검',
   },
   fine_blade: {
     id: 'fine_blade', name: '명도', slot: EquipmentSlot.WEAPON, grade: 'rare',
-    statModifiers: { attack: 10 }, description: '날카롭게 벼린 명검',
+    statModifiers: { attack: 10 }, requiredClasses: [UnitClass.INFANTRY, UnitClass.CAVALRY, UnitClass.BANDIT, UnitClass.MARTIAL_ARTIST],
+    description: '날카롭게 벼린 명검',
   },
   heavenly_sword: {
     id: 'heavenly_sword', name: '천자검', slot: EquipmentSlot.WEAPON, grade: 'epic',
-    statModifiers: { attack: 15, speed: 1 }, description: '천자가 하사한 보검',
+    statModifiers: { attack: 15, speed: 1 }, requiredClasses: [UnitClass.INFANTRY, UnitClass.CAVALRY, UnitClass.BANDIT, UnitClass.MARTIAL_ARTIST],
+    description: '천자가 하사한 보검',
   },
   sky_piercer: {
     id: 'sky_piercer', name: '방천화극', slot: EquipmentSlot.WEAPON, grade: 'legendary',
@@ -134,22 +138,26 @@ export const EQUIPMENT_DEFS: Record<string, EquipmentDef> = {
   //  방어구 (ARMOR) — 공통 + 병종 전용
   // ══════════════════════════════════════════
 
-  // ── 공통 ──
+  // ── 공통 갑옷 (보병·기병·무도가) ──
   leather_armor: {
     id: 'leather_armor', name: '가죽갑', slot: EquipmentSlot.ARMOR, grade: 'common',
-    statModifiers: { defense: 3 }, description: '기본적인 가죽 갑옷',
+    statModifiers: { defense: 3 }, requiredClasses: [UnitClass.INFANTRY, UnitClass.CAVALRY, UnitClass.ARCHER, UnitClass.MARTIAL_ARTIST, UnitClass.BANDIT],
+    description: '기본적인 가죽 갑옷',
   },
   iron_armor: {
     id: 'iron_armor', name: '철갑', slot: EquipmentSlot.ARMOR, grade: 'uncommon',
-    statModifiers: { defense: 6, speed: -1 }, description: '무겁지만 튼튼한 갑옷',
+    statModifiers: { defense: 6, speed: -1 }, requiredClasses: [UnitClass.INFANTRY, UnitClass.CAVALRY, UnitClass.MARTIAL_ARTIST],
+    description: '무겁지만 튼튼한 갑옷',
   },
   scale_armor: {
     id: 'scale_armor', name: '어린갑', slot: EquipmentSlot.ARMOR, grade: 'rare',
-    statModifiers: { defense: 10 }, description: '비늘 모양으로 엮은 고급 갑옷',
+    statModifiers: { defense: 10 }, requiredClasses: [UnitClass.INFANTRY, UnitClass.CAVALRY, UnitClass.MARTIAL_ARTIST],
+    description: '비늘 모양으로 엮은 고급 갑옷',
   },
   dragon_armor: {
     id: 'dragon_armor', name: '용린갑', slot: EquipmentSlot.ARMOR, grade: 'epic',
-    statModifiers: { defense: 15, maxHp: 20 }, description: '용의 비늘로 만든 전설의 갑옷',
+    statModifiers: { defense: 15, maxHp: 20 }, requiredClasses: [UnitClass.INFANTRY, UnitClass.CAVALRY, UnitClass.MARTIAL_ARTIST],
+    description: '용의 비늘로 만든 전설의 갑옷',
   },
 
   // ── 기병 전용 ──

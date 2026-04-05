@@ -1317,7 +1317,9 @@ export class LobbyScene extends Phaser.Scene {
 
     const units = this.campaignManager.getProgress().playerUnits;
     const slotKey = itemDef?.slot === 'weapon' ? 'weapon' : itemDef?.slot === 'armor' ? 'armor' : 'accessory';
+    const canEquipItem = (u: UnitData) => !itemDef?.requiredClasses || (!!u.unitClass && itemDef.requiredClasses.includes(u.unitClass));
     this.renderUnitGrid(units, 65, (unit) => {
+      if (!canEquipItem(unit)) return '착용불가';
       const cur = unit.equipment?.[slotKey as 'weapon' | 'armor' | 'accessory'];
       return cur ? EQUIPMENT_DEFS[cur]?.name ?? '?' : '-';
     }, (unit) => {
@@ -1329,7 +1331,7 @@ export class LobbyScene extends Phaser.Scene {
       bag.splice(bagIdx, 1);
       this.campaignManager.save();
       this.showInventory('equipment');
-    });
+    }, canEquipItem);
   }
 
   /** 스킬 장착 대상 장수 선택 */
