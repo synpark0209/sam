@@ -10,7 +10,7 @@ import { getGradeColor, GACHA_HERO_POOL } from '@shared/data/gachaDefs.ts';
 import type { HeroGrade } from '@shared/data/gachaDefs.ts';
 import { UNIT_CLASS_DEFS } from '@shared/data/unitClassDefs.ts';
 import { SKILL_DEFS } from '@shared/data/skillDefs.ts';
-import { EQUIPMENT_DEFS, EQUIPMENT_GRADE_COLORS } from '@shared/data/equipmentDefs.ts';
+import { EQUIPMENT_DEFS, EQUIPMENT_GRADE_COLORS, EQUIPMENT_SELL_PRICE } from '@shared/data/equipmentDefs.ts';
 import { DAILY_MISSIONS, ALL_COMPLETE_BONUS, areAllMissionsComplete, LOGIN_BONUS_TABLE } from '@shared/data/dailyMissionDefs.ts';
 import { getNextAwakening, AWAKENING_TIERS } from '@shared/data/awakeningDefs.ts';
 import { PROMOTION_PATHS } from '@shared/data/promotionDefs.ts';
@@ -1131,6 +1131,19 @@ export class LobbyScene extends Phaser.Scene {
       });
       const bonus = Object.entries(itemDef.statModifiers).map(([k, v]) => `${k}${(v as number) > 0 ? '+' : ''}${v}`).join('  ');
       this.add.text(25, y + 26, bonus, { fontSize: '10px', color: '#88aa88' });
+
+      // 판매 버튼
+      const sellPrice = EQUIPMENT_SELL_PRICE[itemDef.grade] ?? 50;
+      const sellBtn = this.add.text(GW - 130, y + 12, `${sellPrice}G`, {
+        fontSize: '11px', color: '#ffcc44', backgroundColor: '#3a2a1a', padding: { x: 6, y: 5 },
+      }).setInteractive({ useHandCursor: true });
+      const sellIdx = i;
+      sellBtn.on('pointerdown', () => {
+        this.campaignManager.getProgress().gold += sellPrice;
+        bag.splice(sellIdx, 1);
+        this.campaignManager.save();
+        this.showInventory('equipment');
+      });
 
       const equipBtn = this.add.text(GW - 70, y + 12, '장착', {
         fontSize: '12px', color: '#ffffff', backgroundColor: '#3366aa', padding: { x: 10, y: 5 },

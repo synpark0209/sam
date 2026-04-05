@@ -280,3 +280,12 @@ export const EQUIPMENT_GRADE_COLORS: Record<string, string> = {
   epic: '#cc55ff',
   legendary: '#ffaa00',
 };
+
+/** 등급별 판매 가격 */
+export const EQUIPMENT_SELL_PRICE: Record<string, number> = {
+  common: 50,
+  uncommon: 150,
+  rare: 500,
+  epic: 1500,
+  legendary: 5000,
+};
