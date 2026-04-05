@@ -137,7 +137,21 @@ export const CHAPTER_5: Chapter = {
           { speaker: '여포(내심)', text: '(서주의 주인... 그 자리가 축복일지 저주일지, 아직은 모르겠다.)', speakerSide: 'left' },
         ],
       },
-      rewards: { gold: 600, items: ['phoenix_fan', 'scale_armor'] },
+      rewards: {
+        gold: 600, items: ['phoenix_fan', 'scale_armor'],
+        recruitUnits: [{
+          id: 'p6', name: '장패', faction: 'player', unitClass: UnitClass.ARCHER,
+          grade: 'R', isScenarioUnit: true,
+          level: 8, exp: 0, mp: 15, maxMp: 15,
+          classSkillId: 'class_archer_1',
+          uniqueSkill: 'zhang_volley', uniqueSkillUnlocked: false,
+          equippedSkills: [], promotionLevel: 0,
+          equipment: { weapon: 'longbow' },
+          position: { x: 0, y: 0 },
+          stats: { maxHp: 130, hp: 130, attack: 35, defense: 14, spirit: 18, agility: 30, critical: 35, morale: 30, speed: 5, penetration: 8, resist: 15, moveRange: 4, attackRange: 3 },
+          hasActed: false, isAlive: true,
+        }],
+      },
     },
   ],
 };

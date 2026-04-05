@@ -188,7 +188,21 @@ export const CHAPTER_3: Chapter = {
           { speaker: '여포(내심)', text: '(연주... 조조의 근거지. 역사대로라면 이제 연주를 기습할 차례지.)', speakerSide: 'left' },
         ],
       },
-      rewards: { gold: 500, items: ['life_gem'] },
+      rewards: {
+        gold: 500, items: ['life_gem'],
+        recruitUnits: [{
+          id: 'p5', name: '초선', faction: 'player', unitClass: UnitClass.STRATEGIST,
+          grade: 'SR', isScenarioUnit: true,
+          level: 5, exp: 0, mp: 25, maxMp: 25,
+          classSkillId: 'class_strategist_1',
+          uniqueSkill: 'beauty', uniqueSkillUnlocked: false,
+          equippedSkills: [], promotionLevel: 0,
+          equipment: { weapon: 'phoenix_fan', armor: 'sage_robe' },
+          position: { x: 0, y: 0 },
+          stats: { maxHp: 110, hp: 110, attack: 20, defense: 12, spirit: 40, agility: 25, critical: 15, morale: 50, speed: 5, penetration: 3, resist: 35, moveRange: 4, attackRange: 3 },
+          hasActed: false, isAlive: true,
+        }],
+      },
     },
   ],
 };

@@ -1740,6 +1740,10 @@ export class BattleScene extends Phaser.Scene {
             });
             rewardText += `\n🎁 ${itemNames.join(', ')}`;
           }
+          if (rewards.recruitUnits && rewards.recruitUnits.length > 0) {
+            const names = rewards.recruitUnits.map(u => u.name).join(', ');
+            rewardText += `\n⚔️ ${names} 합류!`;
+          }
           rewardText += '\n\n(클릭하여 계속)';
           this.gameOverText.setText(rewardText);
         } else {

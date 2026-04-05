@@ -150,7 +150,11 @@ export class CampaignManager {
       this.progress.equipmentBag.push(...stage.rewards.items);
     }
     if (stage.rewards.recruitUnits) {
-      this.progress.playerUnits.push(...stage.rewards.recruitUnits);
+      for (const recruit of stage.rewards.recruitUnits) {
+        if (!this.progress.playerUnits.some(u => u.id === recruit.id)) {
+          this.progress.playerUnits.push(recruit);
+        }
+      }
     }
 
     if (!this.progress.completedStages.includes(stage.id)) {

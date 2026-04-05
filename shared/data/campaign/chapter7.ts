@@ -176,7 +176,21 @@ export const CHAPTER_7: Chapter = {
           { speaker: '여포(내심)', text: '(하지만 조조는 쉽게 물러날 인물이 아니다. 다음 수를 준비해야 해.)', speakerSide: 'left' },
         ],
       },
-      rewards: { gold: 900, items: ['shadow_blade', 'tiger_talisman'] },
+      rewards: {
+        gold: 900, items: ['shadow_blade', 'tiger_talisman'],
+        recruitUnits: [{
+          id: 'p7', name: '성렴', faction: 'player', unitClass: UnitClass.INFANTRY,
+          grade: 'R', isScenarioUnit: true,
+          level: 12, exp: 0, mp: 15, maxMp: 15,
+          classSkillId: 'class_infantry_1',
+          uniqueSkill: 'chenglian_guard', uniqueSkillUnlocked: false,
+          equippedSkills: [], promotionLevel: 0,
+          equipment: { weapon: 'fine_blade', armor: 'scale_armor' },
+          position: { x: 0, y: 0 },
+          stats: { maxHp: 200, hp: 200, attack: 32, defense: 35, spirit: 10, agility: 18, critical: 15, morale: 45, speed: 3, penetration: 10, resist: 25, moveRange: 4, attackRange: 1 },
+          hasActed: false, isAlive: true,
+        }],
+      },
     },
   ],
 };
