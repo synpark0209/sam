@@ -1776,8 +1776,12 @@ export class LobbyScene extends Phaser.Scene {
 
   // ── 상점 ──
 
-  private showShop(tab: 'general' | 'premium' | 'daily' = 'general'): void {
+  private shopScrollY = 0;
+
+  private showShop(tab: 'general' | 'premium' | 'daily' = 'general', keepScroll = false): void {
+    this.input.removeAllListeners();
     this.children.removeAll();
+    if (!keepScroll) this.shopScrollY = 0;
     const progress = this.campaignManager.getProgress();
 
     // 배경 그라데이션
@@ -1958,23 +1962,34 @@ export class LobbyScene extends Phaser.Scene {
       maskShape.fillRect(0, contentY, GW, visibleH);
       container.setMask(new Phaser.Display.Masks.GeometryMask(this, maskShape));
 
-      let scrollY = 0;
       const maxScroll = totalH - visibleH;
+      this.shopScrollY = Phaser.Math.Clamp(this.shopScrollY, 0, maxScroll);
+      container.y = -this.shopScrollY;
 
       this.input.on('wheel', (_p: unknown, _gx: unknown, _gy: unknown, _gz: unknown, dy: number) => {
-        scrollY = Phaser.Math.Clamp(scrollY + dy * 0.5, 0, maxScroll);
-        container.y = -scrollY;
+        this.shopScrollY = Phaser.Math.Clamp(this.shopScrollY + dy * 0.5, 0, maxScroll);
+        container.y = -this.shopScrollY;
       });
 
       let dragStartY = 0;
       let dragScrollY = 0;
-      this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
-        if (p.y >= contentY) { dragStartY = p.y; dragScrollY = scrollY; }
+      let isDragging = false;
+
+      // 스크롤 전용 영역 (구매 버튼과 충돌 방지)
+      const scrollZone = this.add.rectangle(GW / 2, contentY + visibleH / 2, GW, visibleH, 0x000000, 0)
+        .setInteractive().setDepth(-1);
+
+      scrollZone.on('pointerdown', (p: Phaser.Input.Pointer) => {
+        dragStartY = p.y; dragScrollY = this.shopScrollY; isDragging = false;
       });
       this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
         if (p.isDown && p.y >= contentY) {
-          scrollY = Phaser.Math.Clamp(dragScrollY + (dragStartY - p.y), 0, maxScroll);
-          container.y = -scrollY;
+          const delta = Math.abs(p.y - dragStartY);
+          if (delta > 5) isDragging = true;
+          if (isDragging) {
+            this.shopScrollY = Phaser.Math.Clamp(dragScrollY + (dragStartY - p.y), 0, maxScroll);
+            container.y = -this.shopScrollY;
+          }
         }
       });
     }
@@ -1987,11 +2002,9 @@ export class LobbyScene extends Phaser.Scene {
     if (item.currency === 'gold' && progress.gold < item.price) return;
 
     shopBuy(item.id).then(({ gold, gems: _gems }) => {
-      // Update gold from server response
       progress.gold = gold;
-      // Reload save to get updated campaignProgress (rewards applied server-side)
       this.campaignManager.save();
-      this.showShop(category);
+      this.showShop(category, true);
     }).catch((err: Error) => {
       const msg = err.message || '구매에 실패했습니다';
       const errText = this.add.text(GW / 2, GH - 40, msg, {
