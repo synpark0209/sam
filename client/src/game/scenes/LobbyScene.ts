@@ -516,56 +516,101 @@ export class LobbyScene extends Phaser.Scene {
       fontSize: '12px', color: '#888888',
     }).setOrigin(0.5);
 
-    const startY = 55;
-    const cardH = 58;
+    // 아이콘 그리드 레이아웃
+    const cols = 4;
+    const pad = 12;
+    const cellW = (GW - pad * 2 - (cols - 1) * 8) / cols;
+    const cellH = cellW + 28; // 정사각 아이콘 + 이름/레벨 텍스트
+    const startY = 58;
+    const clsIcons: Record<string, string> = {
+      cavalry: '🐎', infantry: '🛡️', archer: '🏹',
+      strategist: '📜', martial_artist: '👊', bandit: '🗡️',
+    };
+
+    // 스크롤 컨테이너
+    const container = this.add.container(0, 0);
+    const scrollableH = GH - startY - 10;
+    const totalH = Math.ceil(units.length / cols) * (cellH + 8);
 
     for (let i = 0; i < units.length; i++) {
       const unit = units[i];
-      const y = startY + i * cardH;
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const x = pad + col * (cellW + 8);
+      const y = startY + row * (cellH + 8);
       const grade = unit.grade ?? 'N';
-      const gradeColor = Phaser.Display.Color.HexStringToColor(getGradeColor(grade as HeroGrade)).color;
+      const gradeColorHex = getGradeColor(grade as HeroGrade);
+      const gradeColorNum = Phaser.Display.Color.HexStringToColor(gradeColorHex).color;
 
-      // 카드 + 등급 색상 왼쪽 바
+      // 카드 배경 + 등급 테두리
       const card = this.add.graphics();
-      card.fillStyle(0x141428, 1).fillRoundedRect(15, y, GW - 30, cardH - 4, 6);
-      card.fillStyle(gradeColor, 1).fillRect(15, y + 6, 4, cardH - 16);
-      card.lineStyle(1, 0x2a2a44, 0.6).strokeRoundedRect(15, y, GW - 30, cardH - 4, 6);
+      card.fillStyle(0x141428, 1).fillRoundedRect(x, y, cellW, cellH, 6);
+      card.lineStyle(2, gradeColorNum, 0.8).strokeRoundedRect(x, y, cellW, cellH, 6);
+      container.add(card);
 
-      // 병종 아이콘
-      const clsIcons: Record<string, string> = {
-        cavalry: '🐎', infantry: '🛡️', archer: '🏹',
-        strategist: '📜', martial_artist: '👊', bandit: '🗡️',
-      };
+      // 병종 아이콘 (중앙 크게)
       const cls = unit.unitClass ?? 'infantry';
-      this.add.text(28, y + (cardH - 4) / 2, clsIcons[cls] ?? '⚔️', {
-        fontSize: '18px',
-      }).setOrigin(0, 0.5);
-
-      // 등급 + 이름
-      this.add.text(50, y + 10, `[${grade}] ${unit.name}`, {
-        fontSize: '13px', color: '#ffffff', fontStyle: 'bold',
-      });
-
-      // 병종 + 레벨
-      const className = unit.promotionClass ?? UNIT_CLASS_DEFS[unit.unitClass ?? 'infantry']?.name ?? '';
-      this.add.text(50, y + 28, `${className}  Lv.${unit.level ?? 1}`, {
-        fontSize: '12px', color: '#88aacc',
-      });
-
-      // 간략 스탯
-      this.add.text(50, y + 42, `ATK:${unit.stats.attack}  DEF:${unit.stats.defense}  HP:${unit.stats.maxHp}`, {
-        fontSize: '12px', color: '#666688',
-      });
-
-      // 상세 버튼
-      const detBg = this.add.graphics();
-      detBg.fillStyle(0x2a3a5a, 1).fillRoundedRect(GW - 75, y + 10, 54, 36, 5);
-      this.add.text(GW - 48, y + 28, '상세', {
-        fontSize: '13px', color: '#88ccff', fontStyle: 'bold',
+      const iconText = this.add.text(x + cellW / 2, y + cellW * 0.35, clsIcons[cls] ?? '⚔️', {
+        fontSize: '28px',
       }).setOrigin(0.5);
-      const hit = this.add.rectangle(GW - 48, y + 28, 54, 36, 0x000000, 0)
+      container.add(iconText);
+
+      // 등급 배지 (좌상단)
+      const gradeBadge = this.add.text(x + 4, y + 2, grade, {
+        fontSize: '11px', color: gradeColorHex, fontStyle: 'bold',
+      });
+      container.add(gradeBadge);
+
+      // Lv (우상단)
+      const lvText = this.add.text(x + cellW - 4, y + 2, `${unit.level ?? 1}`, {
+        fontSize: '10px', color: '#88aacc',
+      }).setOrigin(1, 0);
+      container.add(lvText);
+
+      // 이름 (하단)
+      const nameText = this.add.text(x + cellW / 2, y + cellW * 0.7 + 2, unit.name, {
+        fontSize: '11px', color: '#ffffff', fontStyle: 'bold',
+      }).setOrigin(0.5);
+      container.add(nameText);
+
+      // 병종명 (이름 아래)
+      const className = unit.promotionClass ?? UNIT_CLASS_DEFS[unit.unitClass ?? 'infantry']?.name ?? '';
+      const classText = this.add.text(x + cellW / 2, y + cellW * 0.7 + 18, className, {
+        fontSize: '9px', color: '#666688',
+      }).setOrigin(0.5);
+      container.add(classText);
+
+      // 터치 영역
+      const hit = this.add.rectangle(x + cellW / 2, y + cellH / 2, cellW, cellH, 0x000000, 0)
         .setInteractive({ useHandCursor: true });
       hit.on('pointerdown', () => this.showHeroDetail(unit));
+      container.add(hit);
+    }
+
+    // 스크롤 처리
+    if (totalH > scrollableH) {
+      const mask = this.add.graphics();
+      mask.fillRect(0, startY, GW, scrollableH);
+      container.setMask(new Phaser.Display.Masks.GeometryMask(this, mask));
+
+      let scrollY = 0;
+      const maxScroll = totalH - scrollableH;
+      this.input.on('wheel', (_p: unknown, _gx: unknown, _gy: unknown, _gz: unknown, dy: number) => {
+        scrollY = Phaser.Math.Clamp(scrollY + dy * 0.5, 0, maxScroll);
+        container.y = -scrollY;
+      });
+
+      let dragStartY = 0;
+      let dragScrollY = 0;
+      this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+        if (p.y >= startY) { dragStartY = p.y; dragScrollY = scrollY; }
+      });
+      this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
+        if (p.isDown && p.y >= startY) {
+          scrollY = Phaser.Math.Clamp(dragScrollY + (dragStartY - p.y), 0, maxScroll);
+          container.y = -scrollY;
+        }
+      });
     }
   }
 
