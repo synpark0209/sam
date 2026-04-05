@@ -24,6 +24,7 @@ const GH = GAME_HEIGHT;
 
 export class LobbyScene extends Phaser.Scene {
   private campaignManager!: CampaignManager;
+  private shopBuying = false;
 
   constructor() {
     super('LobbyScene');
@@ -2001,10 +2002,16 @@ export class LobbyScene extends Phaser.Scene {
     // Quick client-side pre-check (server is authoritative)
     if (item.currency === 'gold' && progress.gold < item.price) return;
 
+    // 중복 클릭 방지
+    if (this.shopBuying) return;
+    this.shopBuying = true;
+
     shopBuy(item.id).then(async () => {
       await this.campaignManager.loadFromServer();
+      this.shopBuying = false;
       this.showShop(category, true);
     }).catch((err: Error) => {
+      this.shopBuying = false;
       const msg = err.message || '구매에 실패했습니다';
       const errText = this.add.text(GW / 2, GH - 40, msg, {
         fontSize: '14px', color: '#ff4444', backgroundColor: '#1a1a2e',
