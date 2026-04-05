@@ -2001,9 +2001,8 @@ export class LobbyScene extends Phaser.Scene {
     // Quick client-side pre-check (server is authoritative)
     if (item.currency === 'gold' && progress.gold < item.price) return;
 
-    shopBuy(item.id).then(({ gold, gems: _gems }) => {
-      progress.gold = gold;
-      this.campaignManager.save();
+    shopBuy(item.id).then(async () => {
+      await this.campaignManager.loadFromServer();
       this.showShop(category, true);
     }).catch((err: Error) => {
       const msg = err.message || '구매에 실패했습니다';
