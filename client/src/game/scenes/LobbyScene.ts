@@ -1952,26 +1952,30 @@ export class LobbyScene extends Phaser.Scene {
       }
     }
 
-    // 스크롤 지원 (드래그)
+    // 스크롤 지원 (터치 드래그 + 마우스 휠)
     if (totalH > visibleH) {
       const maskShape = this.make.graphics({});
       maskShape.fillRect(0, contentY, GW, visibleH);
       container.setMask(new Phaser.Display.Masks.GeometryMask(this, maskShape));
 
-      let dragStartY = 0;
-      let containerStartY = 0;
-      const minY = -(totalH - visibleH);
+      let scrollY = 0;
+      const maxScroll = totalH - visibleH;
 
-      const dragZone = this.add.rectangle(GW / 2, contentY + visibleH / 2, GW, visibleH, 0x000000, 0)
-        .setInteractive({ useHandCursor: false, draggable: true });
-
-      dragZone.on('dragstart', (_p: Phaser.Input.Pointer, _dx: number, dy: number) => {
-        dragStartY = dy;
-        containerStartY = container.y;
+      this.input.on('wheel', (_p: unknown, _gx: unknown, _gy: unknown, _gz: unknown, dy: number) => {
+        scrollY = Phaser.Math.Clamp(scrollY + dy * 0.5, 0, maxScroll);
+        container.y = -scrollY;
       });
-      dragZone.on('drag', (_p: Phaser.Input.Pointer, _dx: number, dy: number) => {
-        const newY = containerStartY + (dy - dragStartY);
-        container.y = Phaser.Math.Clamp(newY, minY, 0);
+
+      let dragStartY = 0;
+      let dragScrollY = 0;
+      this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+        if (p.y >= contentY) { dragStartY = p.y; dragScrollY = scrollY; }
+      });
+      this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
+        if (p.isDown && p.y >= contentY) {
+          scrollY = Phaser.Math.Clamp(dragScrollY + (dragStartY - p.y), 0, maxScroll);
+          container.y = -scrollY;
+        }
       });
     }
   }
