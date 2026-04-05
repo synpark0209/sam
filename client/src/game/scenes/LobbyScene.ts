@@ -4,7 +4,7 @@ import type { CampaignManager } from '../systems/CampaignManager.ts';
 import type { AudioManager } from '../systems/AudioManager.ts';
 import type { UnitData } from '@shared/types/index.ts';
 import { UnitClass } from '@shared/types/index.ts';
-import { logout as doLogout, gachaPull, getGachaStatus, promoteUnit, awakenUnit, enhanceSkill } from '../../api/client.ts';
+import { logout as doLogout, gachaPull, getGachaStatus, getAuthToken, promoteUnit, awakenUnit, enhanceSkill } from '../../api/client.ts';
 import type { GachaPullResult } from '../../api/client.ts';
 import { getGradeColor, GACHA_HERO_POOL } from '@shared/data/gachaDefs.ts';
 import type { HeroGrade } from '@shared/data/gachaDefs.ts';
@@ -1299,13 +1299,26 @@ export class LobbyScene extends Phaser.Scene {
       fontSize: '18px', color: '#888888',
     }).setOrigin(0.5);
 
+    // 디버그: API 연결 상태 표시
+    const token = getAuthToken();
+    const debugInfo = `API: ${import.meta.env.VITE_API_URL || '(localhost)'}\nToken: ${token ? 'O' : 'X'}`;
+    const debugText = this.add.text(10, GH - 60, debugInfo, {
+      fontSize: '10px', color: '#666666',
+    }).setDepth(100);
+
     getGachaStatus().then(status => {
       loadingText.destroy();
+      debugText.destroy();
       this.renderGachaUI(status.gems, status.gold, status.pity);
     }).catch((err: unknown) => {
-      console.error('[GACHA] getGachaStatus failed:', err);
-      loadingText.setText('서버 연결 실패');
+      const msg = err instanceof Error ? err.message : String(err);
+      const errType = err instanceof TypeError ? 'Network' : 'Server';
+      console.error('[GACHA] getGachaStatus failed:', msg, err);
+      loadingText.setText(`연결 실패 (${errType}): ${msg}`);
       loadingText.setColor('#ff6666');
+      loadingText.setFontSize(13);
+      loadingText.setWordWrapWidth(350);
+      debugText.setText(debugInfo + `\nErr: ${msg}`);
     });
   }
 
