@@ -1302,7 +1302,8 @@ export class LobbyScene extends Phaser.Scene {
     getGachaStatus().then(status => {
       loadingText.destroy();
       this.renderGachaUI(status.gems, status.gold, status.pity);
-    }).catch(() => {
+    }).catch((err: unknown) => {
+      console.error('[GACHA] getGachaStatus failed:', err);
       loadingText.setText('서버 연결 실패');
       loadingText.setColor('#ff6666');
     });
