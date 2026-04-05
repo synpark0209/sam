@@ -1938,8 +1938,9 @@ export class LobbyScene extends Phaser.Scene {
         buyBg.fillRoundedRect(buyBtnX, buyBtnY, buyBtnW, buyBtnH, 5);
         container.add(buyBg);
 
-        const buyText = this.add.text(buyBtnX + buyBtnW / 2, buyBtnY + buyBtnH / 2, '구매', {
-          fontSize: '13px', color: canAfford ? '#ffffff' : '#888888', fontStyle: 'bold',
+        const buyLabel = canAfford ? '구매' : '부족';
+        const buyText = this.add.text(buyBtnX + buyBtnW / 2, buyBtnY + buyBtnH / 2, buyLabel, {
+          fontSize: '13px', color: canAfford ? '#ffffff' : '#aa4444', fontStyle: 'bold',
         }).setOrigin(0.5);
         container.add(buyText);
 
