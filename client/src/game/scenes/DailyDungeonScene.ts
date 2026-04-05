@@ -391,7 +391,7 @@ export class DailyDungeonScene extends Phaser.Scene {
 
   private getDungeonSpriteKey(unit: DungeonUnit, direction: string): string {
     const heroId = unit.data.id;
-    const heroKeys: Record<string, string> = { p1: 'pl_lubu', p2: 'pl_zhangliao' };
+    const heroKeys: Record<string, string> = { p1: 'pl_lubu', p2: 'pl_zhangliao', p5: 'pl_diaochan' };
     const heroKey = heroKeys[heroId];
     if (heroKey) {
       const key = `${heroKey}_idle_${direction}_0`;
@@ -410,7 +410,7 @@ export class DailyDungeonScene extends Phaser.Scene {
   /** Get a Phaser animation key for a dungeon unit, or null if not registered */
   private getDungeonAnimKey(unit: DungeonUnit, anim: string, direction: string): string | null {
     const heroId = unit.data.id;
-    const heroKeys: Record<string, string> = { p1: 'pl_lubu', p2: 'pl_zhangliao' };
+    const heroKeys: Record<string, string> = { p1: 'pl_lubu', p2: 'pl_zhangliao', p5: 'pl_diaochan' };
     const heroKey = heroKeys[heroId];
     if (heroKey) {
       const key = `${heroKey}_${anim}_${direction}`;

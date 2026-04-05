@@ -96,6 +96,18 @@ const PIXELLAB_CHARACTERS: Record<string, PixelLabCharacterDef> = {
       skill:  { folder: 'charge-skill',       frames: 4, frameRate: 6 },
     },
   },
+  p5: { // 초선
+    key: 'pl_diaochan',
+    basePath: 'assets/characters/diaochan',
+    size: 96,
+    anims: {
+      idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
+      walk:   { folder: 'walking-4-frames',   frames: 4, frameRate: 6 },
+      attack: { folder: 'cross-punch',        frames: 6, frameRate: 8 },
+      hit:    { folder: 'taking-punch',       frames: 6, frameRate: 8 },
+      die:    { folder: 'falling-back-death', frames: 7, frameRate: 5 },
+    },
+  },
 };
 
 /** 병종 → PixelLab 캐릭터 매핑 (장수 ID에 매칭 안 될 때 폴백) */
