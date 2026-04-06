@@ -98,9 +98,15 @@ export const SKILL_DEFS: Record<string, SkillDef> = {
   class_archer_2: { id: 'class_archer_2', name: '정밀사격', description: '급소를 노린 사격', mpCost: 8, range: 3, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 50, cooldown: 0 },
   class_archer_3: { id: 'class_archer_3', name: '백보천양', description: '100보 밖의 버들잎을 꿰뚫는 신궁', mpCost: 12, range: 4, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 70, cooldown: 1 },
   // 책사
-  class_strategist_1: { id: 'class_strategist_1', name: '화진', description: '불로 적을 공격', mpCost: 6, range: 3, aoeRadius: 1, targetType: SkillTargetType.AREA_ENEMY, effectType: SkillEffectType.DAMAGE, power: 30, cooldown: 0 },
-  class_strategist_2: { id: 'class_strategist_2', name: '초열', description: '맹렬한 화염', mpCost: 10, range: 3, aoeRadius: 1, targetType: SkillTargetType.AREA_ENEMY, effectType: SkillEffectType.DAMAGE, power: 45, cooldown: 0 },
-  class_strategist_3: { id: 'class_strategist_3', name: '폭염', description: '모든 것을 태우는 극한의 화염', mpCost: 15, range: 4, aoeRadius: 2, targetType: SkillTargetType.AREA_ENEMY, effectType: SkillEffectType.DAMAGE, power: 65, cooldown: 1 },
+  class_strategist_1: { id: 'class_strategist_1', name: '화진', description: '불로 적을 공격', mpCost: 6, range: 3, aoeRadius: 1, targetType: SkillTargetType.AREA_ENEMY, effectType: SkillEffectType.DAMAGE, power: 30, cooldown: 0,
+    effects: [{ type: 'damage', scaling: 'spirit', power: 30 }],
+  },
+  class_strategist_2: { id: 'class_strategist_2', name: '초열', description: '맹렬한 화염', mpCost: 10, range: 3, aoeRadius: 1, targetType: SkillTargetType.AREA_ENEMY, effectType: SkillEffectType.DAMAGE, power: 45, cooldown: 0,
+    effects: [{ type: 'damage', scaling: 'spirit', power: 45 }],
+  },
+  class_strategist_3: { id: 'class_strategist_3', name: '폭염', description: '모든 것을 태우는 극한의 화염', mpCost: 15, range: 4, aoeRadius: 2, targetType: SkillTargetType.AREA_ENEMY, effectType: SkillEffectType.DAMAGE, power: 65, cooldown: 1,
+    effects: [{ type: 'damage', scaling: 'spirit', power: 65 }],
+  },
   // 무도가
   class_martial_1: { id: 'class_martial_1', name: '강타', description: '강력한 일격', mpCost: 4, range: 1, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 38, cooldown: 0 },
   class_martial_2: { id: 'class_martial_2', name: '연타', description: '연속 타격', mpCost: 7, range: 1, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 52, cooldown: 0 },
