@@ -186,20 +186,20 @@ const PIXELLAB_CLASS_UNITS: Record<string, PixelLabCharacterDef> = {
   },
   // 새 병종: 전용 스프라이트 없으면 유사 병종 스프라이트 재사용
   [UnitClass.DANCER]: {
-    key: 'pl_dancer',
-    basePath: 'assets/characters/diaochan', // 초선 스프라이트 공유
+    key: 'pl_strategist', // 책사 스프라이트 재사용 (초선은 p5로 전용 매핑)
+    basePath: 'assets/characters/strategist',
     size: 96,
     anims: {
       idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
       walk:   { folder: 'walking-4-frames',   frames: 4, frameRate: 6 },
-      attack: { folder: 'cross-punch',        frames: 6, frameRate: 8 },
+      attack: { folder: 'fan-attack',         frames: 4, frameRate: 6 },
       hit:    { folder: 'taking-punch',       frames: 6, frameRate: 8 },
       die:    { folder: 'falling-back-death', frames: 7, frameRate: 5 },
     },
   },
   [UnitClass.TAOIST]: {
-    key: 'pl_taoist',
-    basePath: 'assets/characters/strategist', // 책사 스프라이트 재사용
+    key: 'pl_strategist', // 책사 스프라이트 재사용
+    basePath: 'assets/characters/strategist',
     size: 96,
     anims: {
       idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
@@ -210,7 +210,7 @@ const PIXELLAB_CLASS_UNITS: Record<string, PixelLabCharacterDef> = {
     },
   },
   [UnitClass.GEOMANCER]: {
-    key: 'pl_geomancer',
+    key: 'pl_strategist',
     basePath: 'assets/characters/strategist', // 책사 스프라이트 재사용
     size: 96,
     anims: {
@@ -222,7 +222,7 @@ const PIXELLAB_CLASS_UNITS: Record<string, PixelLabCharacterDef> = {
     },
   },
   [UnitClass.SIEGE]: {
-    key: 'pl_siege',
+    key: 'pl_infantry',
     basePath: 'assets/characters/infantry', // 보병 스프라이트 재사용 (임시)
     size: 96,
     anims: {
@@ -426,7 +426,10 @@ export function createPixelLabSprite(
   if (!def) return null;
 
   const firstFrameKey = `${def.key}_idle_${PL_DEFAULT_DIR}_0`;
-  if (!scene.textures.exists(firstFrameKey)) return null;
+  if (!scene.textures.exists(firstFrameKey)) {
+    console.warn(`[SPRITE] Missing texture: ${firstFrameKey} for hero ${heroId}`);
+    return null;
+  }
 
   const sprite = scene.add.sprite(0, 0, firstFrameKey);
   const scale = TILE_SIZE / def.size * 1.3;
