@@ -22,6 +22,13 @@ import { shopBuy, missionClaim, loginClaim } from '../../api/client.ts';
 const GW = GAME_WIDTH;
 const GH = GAME_HEIGHT;
 
+const STAT_LABELS: Record<string, string> = {
+  maxHp: 'HP', attack: '공격', defense: '방어', speed: '속도',
+  moveRange: '이동', attackRange: '사거리', maxMp: 'MP',
+  spirit: '정신', agility: '민첩', critical: '순발', morale: '사기',
+  penetration: '관통', resist: '저항',
+};
+
 export class LobbyScene extends Phaser.Scene {
   private campaignManager!: CampaignManager;
   private shopBuying = false;
@@ -829,15 +836,25 @@ export class LobbyScene extends Phaser.Scene {
     if (unit.uniqueSkill) {
       const skill = SKILL_DEFS[unit.uniqueSkill];
       if (skill) {
-        const uniqueLevel = unit.equippedSkillLevels?.[unit.uniqueSkill] ?? 1;
-        const uniqueMp = getSkillMpCost(skill.mpCost, uniqueLevel);
-        this.add.text(30, skillY + 22 + skillRow * 38, `★ ${skill.name}`, {
-          fontSize: '13px', color: '#ffaa44', fontStyle: 'bold',
-        });
-        this.add.text(30, skillY + 38 + skillRow * 38, `${skill.description}  (MP${uniqueMp})`, {
-          fontSize: '10px', color: '#999999', wordWrap: { width: GW - 130 },
-        });
-        addEnhanceButton(unit.uniqueSkill, skillY + 22 + skillRow * 38);
+        const unlocked = unit.uniqueSkillUnlocked || (unit.level ?? 1) >= 20;
+        if (unlocked) {
+          const uniqueLevel = unit.equippedSkillLevels?.[unit.uniqueSkill] ?? 1;
+          const uniqueMp = getSkillMpCost(skill.mpCost, uniqueLevel);
+          this.add.text(30, skillY + 22 + skillRow * 38, `★ ${skill.name}`, {
+            fontSize: '13px', color: '#ffaa44', fontStyle: 'bold',
+          });
+          this.add.text(30, skillY + 38 + skillRow * 38, `${skill.description}  (MP${uniqueMp})`, {
+            fontSize: '10px', color: '#999999', wordWrap: { width: GW - 130 },
+          });
+          addEnhanceButton(unit.uniqueSkill, skillY + 22 + skillRow * 38);
+        } else {
+          this.add.text(30, skillY + 22 + skillRow * 38, `🔒 ${skill.name}`, {
+            fontSize: '13px', color: '#555555', fontStyle: 'bold',
+          });
+          this.add.text(30, skillY + 38 + skillRow * 38, `Lv.20 도달 시 해금`, {
+            fontSize: '10px', color: '#555555',
+          });
+        }
         skillRow++;
       }
     }
@@ -898,7 +915,7 @@ export class LobbyScene extends Phaser.Scene {
       const [slotName, itemId, slotKey] = slots[i];
       const itemDef = itemId ? EQUIPMENT_DEFS[itemId] : null;
       const itemName = itemDef?.name ?? '없음';
-      const bonus = itemDef ? Object.entries(itemDef.statModifiers).map(([k, v]) => `${k}+${v}`).join(' ') : '';
+      const bonus = itemDef ? Object.entries(itemDef.statModifiers).map(([k, v]) => `${STAT_LABELS[k] ?? k}${(v as number) > 0 ? '+' : ''}${v}`).join(' ') : '';
       this.add.text(30, equipY + 22 + i * 24, `${slotName}: ${itemName}`, {
         fontSize: '12px', color: itemDef ? '#ffffff' : '#555555',
       });
@@ -1194,7 +1211,7 @@ export class LobbyScene extends Phaser.Scene {
       this.add.text(25, y + 6, `${slotLabel} ${itemDef.name}`, {
         fontSize: '14px', color: gradeColor, fontStyle: 'bold',
       });
-      const bonus = Object.entries(itemDef.statModifiers).map(([k, v]) => `${k}${(v as number) > 0 ? '+' : ''}${v}`).join('  ');
+      const bonus = Object.entries(itemDef.statModifiers).map(([k, v]) => `${STAT_LABELS[k] ?? k}${(v as number) > 0 ? '+' : ''}${v}`).join('  ');
       this.add.text(25, y + 26, bonus, { fontSize: '10px', color: '#88aa88' });
 
       // 판매 버튼

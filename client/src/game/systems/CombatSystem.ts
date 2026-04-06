@@ -87,9 +87,11 @@ export class CombatSystem {
         if (!itemId) continue;
         const def = EQUIPMENT_DEFS[itemId];
         if (!def) continue;
-        if (def.statModifiers.attack) base.attack += def.statModifiers.attack;
-        if (def.statModifiers.defense) base.defense += def.statModifiers.defense;
-        if (def.statModifiers.speed) base.speed += def.statModifiers.speed;
+        for (const [key, value] of Object.entries(def.statModifiers)) {
+          if (value && key in base) {
+            (base as Record<string, number>)[key] += value;
+          }
+        }
       }
     }
 
