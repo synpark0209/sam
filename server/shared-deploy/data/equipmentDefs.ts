@@ -81,22 +81,22 @@ export const EQUIPMENT_DEFS: Record<string, EquipmentDef> = {
   // ── 책사 전용 ──
   sage_staff: {
     id: 'sage_staff', name: '현자의 지팡이', slot: EquipmentSlot.WEAPON, grade: 'common',
-    statModifiers: { attack: 2, maxMp: 10 }, requiredClasses: [UnitClass.STRATEGIST],
-    description: 'MP를 높여주는 지팡이',
+    statModifiers: { spirit: 5, maxMp: 10 }, requiredClasses: [UnitClass.STRATEGIST],
+    description: '정신력을 높여주는 지팡이',
   },
   phoenix_fan: {
     id: 'phoenix_fan', name: '우선', slot: EquipmentSlot.WEAPON, grade: 'uncommon',
-    statModifiers: { attack: 4, maxMp: 15 }, requiredClasses: [UnitClass.STRATEGIST],
+    statModifiers: { spirit: 8, maxMp: 15 }, requiredClasses: [UnitClass.STRATEGIST],
     description: '깃털로 만든 선인의 부채',
   },
   ancient_tome: {
     id: 'ancient_tome', name: '태평요술', slot: EquipmentSlot.WEAPON, grade: 'rare',
-    statModifiers: { attack: 7, maxMp: 25 }, requiredClasses: [UnitClass.STRATEGIST],
+    statModifiers: { spirit: 12, maxMp: 25 }, requiredClasses: [UnitClass.STRATEGIST],
     description: '고대의 술법이 담긴 도서',
   },
   celestial_scroll: {
     id: 'celestial_scroll', name: '천서', slot: EquipmentSlot.WEAPON, grade: 'epic',
-    statModifiers: { attack: 10, maxMp: 40, speed: 1 }, requiredClasses: [UnitClass.STRATEGIST],
+    statModifiers: { spirit: 18, maxMp: 40, speed: 1 }, requiredClasses: [UnitClass.STRATEGIST],
     description: '하늘의 이치가 기록된 두루마리',
   },
 
@@ -263,7 +263,7 @@ export const EQUIPMENT_DEFS: Record<string, EquipmentDef> = {
   // ── 책사 전용 ──
   mana_crystal: {
     id: 'mana_crystal', name: '영석', slot: EquipmentSlot.ACCESSORY, grade: 'rare',
-    statModifiers: { maxMp: 30, attack: 3 }, requiredClasses: [UnitClass.STRATEGIST],
+    statModifiers: { maxMp: 30, spirit: 5 }, requiredClasses: [UnitClass.STRATEGIST],
     description: '마력이 응축된 수정',
   },
 };
