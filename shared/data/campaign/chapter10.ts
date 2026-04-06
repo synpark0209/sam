@@ -66,7 +66,7 @@ const stage1Battle: BattleConfig = {
     enemy('e10_5', '잔적 보병', UnitClass.INFANTRY, 9, 7, 28),
     enemy('e10_6', '잔적 도적', UnitClass.BANDIT, 10, 4, 28),
   ],
-  playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 5 }, { x: 2, y: 3 }, { x: 2, y: 6 }],
+  playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 5 }, { x: 2, y: 3 }, { x: 2, y: 6 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }, { x: 4, y: 2 }],
 };
 
 // 10-2: 조조와의 최종 결전 (대전장, 다양한 지형)
@@ -97,7 +97,7 @@ const stage2Battle: BattleConfig = {
     enemy('e10_13', '조조군 정예궁병', UnitClass.ARCHER, 10, 6, 29),
     enemy('e10_14', '조조군 정예보병', UnitClass.INFANTRY, 8, 2, 28),
   ],
-  playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 5 }, { x: 2, y: 3 }, { x: 2, y: 6 }],
+  playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 5 }, { x: 2, y: 3 }, { x: 2, y: 6 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }, { x: 4, y: 2 }],
 };
 
 // 10-3: 천하통일 최종전 (황궁, 웅장한 배치)
@@ -132,7 +132,7 @@ const stage3Battle: BattleConfig = {
     enemy('e10_21', '주유', UnitClass.STRATEGIST, 9, 7, 33, { maxHp: 390, hp: 390, attack: 52, spirit: 90, defense: 20 }),
     enemy('e10_22', '손책', UnitClass.CAVALRY, 10, 7, 32, { maxHp: 480, hp: 480, attack: 85, defense: 35, agility: 42 }),
   ],
-  playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 5 }, { x: 2, y: 3 }, { x: 2, y: 6 }],
+  playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 5 }, { x: 2, y: 3 }, { x: 2, y: 6 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }, { x: 4, y: 2 }],
 };
 
 export const CHAPTER_10: Chapter = {

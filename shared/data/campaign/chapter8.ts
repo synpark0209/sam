@@ -71,7 +71,7 @@ const stage1Battle: BattleConfig = {
     enemy('e8_5', '조조군 기병', UnitClass.CAVALRY, 1, 7, 22),
     enemy('e8_6', '조조군 궁병', UnitClass.ARCHER, 0, 4, 22),
   ],
-  playerStartPositions: [{ x: 8, y: 4 }, { x: 8, y: 3 }, { x: 8, y: 5 }, { x: 9, y: 4 }],
+  playerStartPositions: [{ x: 8, y: 4 }, { x: 8, y: 3 }, { x: 8, y: 5 }, { x: 9, y: 4 }, { x: 8, y: 2 }, { x: 9, y: 2 }, { x: 10, y: 2 }, { x: 11, y: 2 }],
 };
 
 // 8-2: 제방 사수전
@@ -108,7 +108,7 @@ const stage2Battle: BattleConfig = {
     enemy('e8_11', '조조군 궁병', UnitClass.ARCHER, 0, 3, 23),
     enemy('e8_12', '조조군 궁병', UnitClass.ARCHER, 0, 6, 22),
   ],
-  playerStartPositions: [{ x: 8, y: 4 }, { x: 8, y: 3 }, { x: 8, y: 5 }, { x: 9, y: 4 }],
+  playerStartPositions: [{ x: 8, y: 4 }, { x: 8, y: 3 }, { x: 8, y: 5 }, { x: 9, y: 4 }, { x: 8, y: 2 }, { x: 9, y: 2 }, { x: 10, y: 2 }, { x: 11, y: 2 }],
 };
 
 export const CHAPTER_8: Chapter = {

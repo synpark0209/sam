@@ -69,7 +69,7 @@ const stage1Battle: BattleConfig = {
     enemy('e8_4', '연주 궁수', UnitClass.ARCHER, 9, 3, 12),
     enemy('e8_5', '연주 궁수', UnitClass.ARCHER, 9, 6, 12),
   ],
-  playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 5 }, { x: 2, y: 3 }, { x: 2, y: 6 }],
+  playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 5 }, { x: 2, y: 3 }, { x: 2, y: 6 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }, { x: 4, y: 2 }],
 };
 
 // 4-2: 복양성 공방전
@@ -100,7 +100,7 @@ const stage2Battle: BattleConfig = {
     enemy('e9_4', '하후돈', UnitClass.INFANTRY, 9, 2, 14, { maxHp: 280, hp: 280, attack: 62, defense: 28 }),
     enemy('e9_5', '악진', UnitClass.INFANTRY, 9, 7, 13, { maxHp: 260, hp: 260, attack: 58, defense: 22 }),
   ],
-  playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 5 }, { x: 1, y: 3 }, { x: 1, y: 6 }],
+  playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 5 }, { x: 1, y: 3 }, { x: 1, y: 6 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }, { x: 4, y: 2 }],
 };
 
 export const CHAPTER_4: Chapter = {

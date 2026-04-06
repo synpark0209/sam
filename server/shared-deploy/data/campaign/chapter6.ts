@@ -62,7 +62,7 @@ const stage1Battle: BattleConfig = {
     enemy('e6_5', '원술군 궁병', UnitClass.ARCHER, 11, 3, 16),
     enemy('e6_6', '원술군 궁병', UnitClass.ARCHER, 11, 7, 16),
   ],
-  playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 3 }, { x: 1, y: 5 }, { x: 2, y: 4 }],
+  playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 3 }, { x: 1, y: 5 }, { x: 2, y: 4 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }, { x: 4, y: 2 }],
 };
 
 // 6-2: 원술군 본대 격파
@@ -88,7 +88,7 @@ const stage2Battle: BattleConfig = {
     enemy('e6_11', '원술군 호위기병', UnitClass.CAVALRY, 10, 6, 17),
     enemy('e6_12', '원술군 친위병', UnitClass.INFANTRY, 11, 4, 16),
   ],
-  playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 3 }, { x: 1, y: 5 }, { x: 2, y: 4 }],
+  playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 3 }, { x: 1, y: 5 }, { x: 2, y: 4 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }, { x: 4, y: 2 }],
 };
 
 export const CHAPTER_6: Chapter = {

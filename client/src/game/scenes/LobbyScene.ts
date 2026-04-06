@@ -49,8 +49,14 @@ export class LobbyScene extends Phaser.Scene {
     }
     this.scrollHandlers = [];
     this.cameras.main.scrollY = 0;
-    this.children.each(c => c.destroy());
-    this.children.removeAll();
+    // 모든 인터랙티브 해제 후 제거
+    this.input.clear(undefined as unknown as Phaser.GameObjects.GameObject);
+    const list = [...this.children.list];
+    for (const child of list) {
+      if (child && typeof child.destroy === 'function') {
+        child.destroy();
+      }
+    }
   }
 
   /** 스크롤 이벤트 등록 (clearScreen에서 자동 정리) */

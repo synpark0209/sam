@@ -73,7 +73,7 @@ const stage1Battle: BattleConfig = {
     enemy('e9_5', '반란군 보병', UnitClass.INFANTRY, 6, 6, 25),
     enemy('e9_6', '반란군 보병', UnitClass.INFANTRY, 8, 6, 25),
   ],
-  playerStartPositions: [{ x: 2, y: 4 }, { x: 2, y: 5 }, { x: 1, y: 3 }, { x: 1, y: 6 }],
+  playerStartPositions: [{ x: 2, y: 4 }, { x: 2, y: 5 }, { x: 1, y: 3 }, { x: 1, y: 6 }, { x: 2, y: 2 }, { x: 3, y: 2 }, { x: 4, y: 2 }, { x: 5, y: 2 }],
 };
 
 // 9-2: 하비성 탈출전 (포위된 성, 좁은 탈출구)
@@ -110,7 +110,7 @@ const stage2Battle: BattleConfig = {
     enemy('e9_13', '조조군 보병', UnitClass.INFANTRY, 10, 1, 25),
     enemy('e9_14', '조조군 기병', UnitClass.CAVALRY, 10, 8, 25),
   ],
-  playerStartPositions: [{ x: 2, y: 4 }, { x: 2, y: 5 }, { x: 1, y: 4 }, { x: 1, y: 5 }],
+  playerStartPositions: [{ x: 2, y: 4 }, { x: 2, y: 5 }, { x: 1, y: 4 }, { x: 1, y: 5 }, { x: 2, y: 2 }, { x: 3, y: 2 }, { x: 4, y: 2 }, { x: 5, y: 2 }],
 };
 
 export const CHAPTER_9: Chapter = {

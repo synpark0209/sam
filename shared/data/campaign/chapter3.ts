@@ -70,7 +70,7 @@ const stage1Battle: BattleConfig = {
     enemy('e5_4', '흑산적 졸병', UnitClass.BANDIT, 9, 2, 9),
     enemy('e5_5', '흑산적 도적', UnitClass.BANDIT, 9, 7, 8),
   ],
-  playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 3 }, { x: 1, y: 5 }, { x: 2, y: 4 }],
+  playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 3 }, { x: 1, y: 5 }, { x: 2, y: 4 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }, { x: 4, y: 2 }],
 };
 
 // 3-2: 원소군 매복 탈출
@@ -98,7 +98,7 @@ const stage2Battle: BattleConfig = {
     enemy('e6_4', '원소군 궁병', UnitClass.ARCHER, 8, 6, 9),
     enemy('e6_5', '원소군 매복병', UnitClass.INFANTRY, 4, 1, 9),
   ],
-  playerStartPositions: [{ x: 4, y: 4 }, { x: 5, y: 4 }, { x: 4, y: 5 }, { x: 5, y: 5 }],
+  playerStartPositions: [{ x: 4, y: 4 }, { x: 5, y: 4 }, { x: 4, y: 5 }, { x: 5, y: 5 }, { x: 4, y: 2 }, { x: 5, y: 2 }, { x: 6, y: 2 }, { x: 7, y: 2 }],
 };
 
 // 3-3: 장막 합류 (도적 소탕)
@@ -121,7 +121,7 @@ const stage3Battle: BattleConfig = {
     enemy('e7_3', '도적', UnitClass.BANDIT, 9, 6, 9),
     enemy('e7_4', '도적', UnitClass.BANDIT, 10, 7, 8),
   ],
-  playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 5 }, { x: 2, y: 3 }, { x: 2, y: 6 }],
+  playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 5 }, { x: 2, y: 3 }, { x: 2, y: 6 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }, { x: 4, y: 2 }],
 };
 
 export const CHAPTER_3: Chapter = {
@@ -195,10 +195,10 @@ export const CHAPTER_3: Chapter = {
       rewards: {
         gold: 500, items: ['life_gem'],
         recruitUnits: [{
-          id: 'p5', name: '초선', faction: 'player', unitClass: UnitClass.STRATEGIST,
+          id: 'p5', name: '초선', faction: 'player', unitClass: UnitClass.DANCER,
           grade: 'SR', isScenarioUnit: true,
           level: 5, exp: 0, mp: 25, maxMp: 25,
-          classSkillId: 'class_strategist_1',
+          classSkillId: 'class_dancer_1',
           uniqueSkill: 'beauty', uniqueSkillUnlocked: false,
           equippedSkills: [], promotionLevel: 0,
           equipment: { weapon: 'phoenix_fan', armor: 'sage_robe' },

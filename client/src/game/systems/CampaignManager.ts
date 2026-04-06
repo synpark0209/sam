@@ -116,8 +116,25 @@ export class CampaignManager {
       if (guest) battleUnits.push(guest);
     }
 
+    const usedPositions = new Set<string>();
     return battleUnits.map((u, i) => {
-      const pos = battleConfig.playerStartPositions[i] ?? { x: 0, y: 0 };
+      let pos = battleConfig.playerStartPositions[i];
+      if (!pos || usedPositions.has(`${pos.x},${pos.y}`)) {
+        // 빈 위치 찾기: 기존 위치 주변에서 배치
+        const basePos = battleConfig.playerStartPositions[0] ?? { x: 0, y: 0 };
+        for (let dy = 0; dy < battleConfig.mapHeight; dy++) {
+          for (let dx = 0; dx < battleConfig.mapWidth; dx++) {
+            const key = `${basePos.x + dx},${basePos.y + dy}`;
+            if (!usedPositions.has(key)) {
+              pos = { x: basePos.x + dx, y: basePos.y + dy };
+              break;
+            }
+          }
+          if (pos && !usedPositions.has(`${pos.x},${pos.y}`)) break;
+        }
+        if (!pos) pos = { x: i, y: 0 };
+      }
+      usedPositions.add(`${pos.x},${pos.y}`);
       return {
         ...u,
         position: { ...pos },

@@ -184,6 +184,55 @@ const PIXELLAB_CLASS_UNITS: Record<string, PixelLabCharacterDef> = {
       die:    { folder: 'falling-back-death', frames: 7, frameRate: 5 },
     },
   },
+  // 새 병종: 전용 스프라이트 없으면 유사 병종 스프라이트 재사용
+  [UnitClass.DANCER]: {
+    key: 'pl_dancer',
+    basePath: 'assets/characters/diaochan', // 초선 스프라이트 공유
+    size: 96,
+    anims: {
+      idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
+      walk:   { folder: 'walking-4-frames',   frames: 4, frameRate: 6 },
+      attack: { folder: 'cross-punch',        frames: 6, frameRate: 8 },
+      hit:    { folder: 'taking-punch',       frames: 6, frameRate: 8 },
+      die:    { folder: 'falling-back-death', frames: 7, frameRate: 5 },
+    },
+  },
+  [UnitClass.TAOIST]: {
+    key: 'pl_taoist',
+    basePath: 'assets/characters/strategist', // 책사 스프라이트 재사용
+    size: 96,
+    anims: {
+      idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
+      walk:   { folder: 'walking-4-frames',   frames: 4, frameRate: 6 },
+      attack: { folder: 'fan-attack',         frames: 4, frameRate: 6 },
+      hit:    { folder: 'taking-punch',       frames: 6, frameRate: 8 },
+      die:    { folder: 'falling-back-death', frames: 7, frameRate: 5 },
+    },
+  },
+  [UnitClass.GEOMANCER]: {
+    key: 'pl_geomancer',
+    basePath: 'assets/characters/strategist', // 책사 스프라이트 재사용
+    size: 96,
+    anims: {
+      idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
+      walk:   { folder: 'walking-4-frames',   frames: 4, frameRate: 6 },
+      attack: { folder: 'fan-attack',         frames: 4, frameRate: 6 },
+      hit:    { folder: 'taking-punch',       frames: 6, frameRate: 8 },
+      die:    { folder: 'falling-back-death', frames: 7, frameRate: 5 },
+    },
+  },
+  [UnitClass.SIEGE]: {
+    key: 'pl_siege',
+    basePath: 'assets/characters/infantry', // 보병 스프라이트 재사용 (임시)
+    size: 96,
+    anims: {
+      idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
+      walk:   { folder: 'walking-4-frames',   frames: 4, frameRate: 6 },
+      attack: { folder: 'sword-attack',       frames: 4, frameRate: 6 },
+      hit:    { folder: 'taking-punch',       frames: 6, frameRate: 8 },
+      die:    { folder: 'falling-back-death', frames: 7, frameRate: 5 },
+    },
+  },
 };
 
 /** PixelLab 기본 방향 (남쪽 = 정면) */

@@ -65,7 +65,7 @@ const stage1Battle: BattleConfig = {
     enemy('e7_4', '유비군 궁병', UnitClass.ARCHER, 10, 4, 18),
     enemy('e7_5', '유비군 궁병', UnitClass.ARCHER, 10, 5, 18),
   ],
-  playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 3 }, { x: 1, y: 5 }, { x: 2, y: 4 }],
+  playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 3 }, { x: 1, y: 5 }, { x: 2, y: 4 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }, { x: 4, y: 2 }],
 };
 
 // 7-2: 조조 선봉대 격퇴
@@ -87,7 +87,7 @@ const stage2Battle: BattleConfig = {
     enemy('e7_9', '조조군 선봉기병', UnitClass.CAVALRY, 10, 2, 19),
     enemy('e7_10', '조조군 선봉기병', UnitClass.CAVALRY, 10, 7, 19),
   ],
-  playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 3 }, { x: 1, y: 5 }, { x: 2, y: 4 }],
+  playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 3 }, { x: 1, y: 5 }, { x: 2, y: 4 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }, { x: 4, y: 2 }],
 };
 
 // 7-3: 장료의 야간 기습
@@ -115,7 +115,7 @@ const stage3Battle: BattleConfig = {
     enemy('e7_15', '조조군 야영보병', UnitClass.INFANTRY, 9, 5, 19),
     enemy('e7_16', '곽가', UnitClass.STRATEGIST, 9, 3, 21, { maxHp: 240, hp: 240, spirit: 70, defense: 15 }),
   ],
-  playerStartPositions: [{ x: 0, y: 4 }, { x: 0, y: 3 }, { x: 0, y: 5 }, { x: 1, y: 4 }],
+  playerStartPositions: [{ x: 0, y: 4 }, { x: 0, y: 3 }, { x: 0, y: 5 }, { x: 1, y: 4 }, { x: 0, y: 2 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }],
 };
 
 export const CHAPTER_7: Chapter = {
