@@ -25,6 +25,7 @@ const GH = GAME_HEIGHT;
 export class LobbyScene extends Phaser.Scene {
   private campaignManager!: CampaignManager;
   private shopBuying = false;
+  private scrollHandlers: { event: string; fn: Function }[] = [];
 
   constructor() {
     super('LobbyScene');
@@ -34,12 +35,21 @@ export class LobbyScene extends Phaser.Scene {
     this.campaignManager = data.campaignManager;
   }
 
-  /** 화면 전환 시 기존 UI와 입력 리스너 정리 */
+  /** 화면 전환 시 기존 UI와 스크롤 리스너 정리 */
   private clearScreen(): void {
-    this.input.off('wheel');
-    this.input.off('pointermove');
-    this.input.off('pointerdown');
+    for (const h of this.scrollHandlers) {
+      this.input.off(h.event, h.fn as (...args: unknown[]) => void);
+    }
+    this.scrollHandlers = [];
+    this.cameras.main.scrollY = 0;
     this.children.removeAll();
+  }
+
+  /** 스크롤 이벤트 등록 (clearScreen에서 자동 정리) */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private addScrollListener(event: string, fn: (...args: any[]) => void): void {
+    this.input.on(event, fn);
+    this.scrollHandlers.push({ event, fn });
   }
 
   create(): void {
@@ -605,17 +615,17 @@ export class LobbyScene extends Phaser.Scene {
 
       let scrollY = 0;
       const maxScroll = totalH - scrollableH;
-      this.input.on('wheel', (_p: unknown, _gx: unknown, _gy: unknown, _gz: unknown, dy: number) => {
+      this.addScrollListener('wheel', (_p: unknown, _gx: unknown, _gy: unknown, _gz: unknown, dy: number) => {
         scrollY = Phaser.Math.Clamp(scrollY + dy * 0.5, 0, maxScroll);
         container.y = -scrollY;
       });
 
       let dragStartY = 0;
       let dragScrollY = 0;
-      this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+      this.addScrollListener('pointerdown', (p: Phaser.Input.Pointer) => {
         if (p.y >= startY) { dragStartY = p.y; dragScrollY = scrollY; }
       });
-      this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
+      this.addScrollListener('pointermove', (p: Phaser.Input.Pointer) => {
         if (p.isDown && p.y >= startY) {
           scrollY = Phaser.Math.Clamp(dragScrollY + (dragStartY - p.y), 0, maxScroll);
           container.y = -scrollY;
@@ -633,11 +643,39 @@ export class LobbyScene extends Phaser.Scene {
     bg.fillGradientStyle(0x0c1220, 0x0c1220, 0x1a1a30, 0x1a1a30, 1);
     bg.fillRect(0, 0, GW, GH);
 
-    // 뒤로 버튼
+    // 뒤로 버튼 (고정)
     const backBtn = this.add.text(16, 14, '← 뒤로', {
       fontSize: '15px', color: '#88aacc', backgroundColor: '#1a1a3a', padding: { x: 12, y: 8 },
-    }).setInteractive({ useHandCursor: true });
+    }).setInteractive({ useHandCursor: true }).setDepth(10);
     backBtn.on('pointerdown', () => this.showHeroes());
+
+    // 스크롤 지원: 카메라 스크롤로 구현
+    const contentTop = 40;
+    let scrollY = 0;
+    const maxScroll = 400; // 대략적인 최대 스크롤 (콘텐츠 높이 - 화면 높이)
+
+    this.addScrollListener('wheel', (_p: unknown, _gx: unknown, _gy: unknown, _gz: unknown, dy: number) => {
+      scrollY = Phaser.Math.Clamp(scrollY + dy * 0.5, 0, maxScroll);
+      this.cameras.main.scrollY = scrollY;
+      backBtn.y = 14 + scrollY; // 뒤로 버튼 고정
+      bg.y = scrollY; // 배경 고정
+    });
+
+    let dragStartY = 0, dragScrollY = 0;
+    this.addScrollListener('pointerdown', (p: Phaser.Input.Pointer) => {
+      if (p.y + scrollY >= contentTop) { dragStartY = p.y; dragScrollY = scrollY; }
+    });
+    this.addScrollListener('pointermove', (p: Phaser.Input.Pointer) => {
+      if (p.isDown) {
+        const delta = Math.abs(p.y - dragStartY);
+        if (delta > 5) {
+          scrollY = Phaser.Math.Clamp(dragScrollY + (dragStartY - p.y), 0, maxScroll);
+          this.cameras.main.scrollY = scrollY;
+          backBtn.y = 14 + scrollY;
+          bg.y = scrollY;
+        }
+      }
+    });
 
     // 장수 헤더 카드
     const cls = unit.unitClass ? UNIT_CLASS_DEFS[unit.unitClass] : null;
@@ -1299,15 +1337,15 @@ export class LobbyScene extends Phaser.Scene {
       container.setMask(new Phaser.Display.Masks.GeometryMask(this, mask));
       let scrollY = 0;
       const maxScroll = totalH - scrollableH;
-      this.input.on('wheel', (_p: unknown, _gx: unknown, _gy: unknown, _gz: unknown, dy: number) => {
+      this.addScrollListener('wheel', (_p: unknown, _gx: unknown, _gy: unknown, _gz: unknown, dy: number) => {
         scrollY = Phaser.Math.Clamp(scrollY + dy * 0.5, 0, maxScroll);
         container.y = -scrollY;
       });
       let dragStartY = 0, dragScrollY = 0;
-      this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+      this.addScrollListener('pointerdown', (p: Phaser.Input.Pointer) => {
         if (p.y >= startY) { dragStartY = p.y; dragScrollY = scrollY; }
       });
-      this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
+      this.addScrollListener('pointermove', (p: Phaser.Input.Pointer) => {
         if (p.isDown && p.y >= startY) {
           scrollY = Phaser.Math.Clamp(dragScrollY + (dragStartY - p.y), 0, maxScroll);
           container.y = -scrollY;
@@ -1975,7 +2013,7 @@ export class LobbyScene extends Phaser.Scene {
       this.shopScrollY = Phaser.Math.Clamp(this.shopScrollY, 0, maxScroll);
       container.y = -this.shopScrollY;
 
-      this.input.on('wheel', (_p: unknown, _gx: unknown, _gy: unknown, _gz: unknown, dy: number) => {
+      this.addScrollListener('wheel', (_p: unknown, _gx: unknown, _gy: unknown, _gz: unknown, dy: number) => {
         this.shopScrollY = Phaser.Math.Clamp(this.shopScrollY + dy * 0.5, 0, maxScroll);
         container.y = -this.shopScrollY;
       });
@@ -1991,7 +2029,7 @@ export class LobbyScene extends Phaser.Scene {
       scrollZone.on('pointerdown', (p: Phaser.Input.Pointer) => {
         dragStartY = p.y; dragScrollY = this.shopScrollY; isDragging = false;
       });
-      this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
+      this.addScrollListener('pointermove', (p: Phaser.Input.Pointer) => {
         if (p.isDown && p.y >= contentY) {
           const delta = Math.abs(p.y - dragStartY);
           if (delta > 5) isDragging = true;
