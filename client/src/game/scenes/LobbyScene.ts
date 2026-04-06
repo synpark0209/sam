@@ -49,13 +49,9 @@ export class LobbyScene extends Phaser.Scene {
     }
     this.scrollHandlers = [];
     this.cameras.main.scrollY = 0;
-    // 모든 인터랙티브 해제 후 제거
-    this.input.clear(undefined as unknown as Phaser.GameObjects.GameObject);
     const list = [...this.children.list];
     for (const child of list) {
-      if (child && typeof child.destroy === 'function') {
-        child.destroy();
-      }
+      try { child.destroy(); } catch { /* ignore */ }
     }
   }
 
