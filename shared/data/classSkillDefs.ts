@@ -38,6 +38,21 @@ export const CLASS_SKILL_TIERS: Record<UnitClass, ClassSkillTier[]> = {
     { skillId: 'class_bandit_2', name: '기습', requiredPromotion: 1 },
     { skillId: 'class_bandit_3', name: '급소공격', requiredPromotion: 2 },
   ],
+  [UnitClass.DANCER]: [
+    { skillId: 'class_dancer_1', name: '격무', requiredPromotion: 0 },
+    { skillId: 'class_dancer_2', name: '선무', requiredPromotion: 1 },
+  ],
+  [UnitClass.TAOIST]: [
+    { skillId: 'class_taoist_1', name: '뇌법', requiredPromotion: 0 },
+    { skillId: 'class_taoist_2', name: '천뇌', requiredPromotion: 1 },
+  ],
+  [UnitClass.GEOMANCER]: [
+    { skillId: 'class_geomancer_1', name: '치유', requiredPromotion: 0 },
+    { skillId: 'class_geomancer_2', name: '대치유', requiredPromotion: 1 },
+  ],
+  [UnitClass.SIEGE]: [
+    { skillId: 'class_siege_1', name: '포격', requiredPromotion: 0 },
+  ],
 };
 
 /** 현재 승급 단계에 맞는 병종 기본 스킬 ID 반환 */

@@ -109,6 +109,50 @@ export const SKILL_DEFS: Record<string, SkillDef> = {
   class_bandit_1: { id: 'class_bandit_1', name: '암습', description: '기습 공격', mpCost: 4, range: 1, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 35, statusEffect: 'attack_down', statusDuration: 1, statusMagnitude: 5, cooldown: 0 },
   class_bandit_2: { id: 'class_bandit_2', name: '기습', description: '방심한 틈을 노린 공격', mpCost: 7, range: 1, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 48, statusEffect: 'attack_down', statusDuration: 2, statusMagnitude: 8, cooldown: 0 },
   class_bandit_3: { id: 'class_bandit_3', name: '급소공격', description: '치명적인 급소를 노린다', mpCost: 10, range: 1, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 68, statusEffect: 'defense_down', statusDuration: 2, statusMagnitude: 12, cooldown: 1 },
+  // 무희
+  class_dancer_1: { id: 'class_dancer_1', name: '격무', description: '아군 1인 공격/속도 증가', mpCost: 8, range: 2, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ALLY, effectType: SkillEffectType.BUFF, power: 0, statusEffect: 'attack_up', statusDuration: 3, statusMagnitude: 8, cooldown: 1,
+    effects: [
+      { type: 'buff', statusEffect: 'attack_up', statusDuration: 3, statusMagnitude: 8 },
+      { type: 'buff', statusEffect: 'speed_up', statusDuration: 3, statusMagnitude: 2 },
+    ],
+  },
+  class_dancer_2: { id: 'class_dancer_2', name: '선무', description: '범위 아군 공격/속도 증가', mpCost: 14, range: 2, aoeRadius: 1, targetType: SkillTargetType.AREA_ALLY, effectType: SkillEffectType.BUFF, power: 0, statusEffect: 'attack_up', statusDuration: 3, statusMagnitude: 12, cooldown: 2,
+    effects: [
+      { type: 'buff', statusEffect: 'attack_up', statusDuration: 3, statusMagnitude: 12 },
+      { type: 'buff', statusEffect: 'speed_up', statusDuration: 3, statusMagnitude: 3 },
+    ],
+  },
+  // 도사
+  class_taoist_1: { id: 'class_taoist_1', name: '뇌법', description: '번개로 적을 공격', mpCost: 8, range: 3, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 35, cooldown: 0,
+    effects: [
+      { type: 'damage', scaling: 'spirit', power: 35 },
+      { type: 'status', statusEffect: 'stun', statusDuration: 1, statusMagnitude: 0 },
+    ],
+  },
+  class_taoist_2: { id: 'class_taoist_2', name: '천뇌', description: '범위 번개 + 기절', mpCost: 14, range: 3, aoeRadius: 1, targetType: SkillTargetType.AREA_ENEMY, effectType: SkillEffectType.DAMAGE, power: 50, cooldown: 1,
+    effects: [
+      { type: 'damage', scaling: 'spirit', power: 50 },
+      { type: 'status', statusEffect: 'stun', statusDuration: 1, statusMagnitude: 0 },
+    ],
+  },
+  // 풍수사
+  class_geomancer_1: { id: 'class_geomancer_1', name: '치유', description: '아군 1인 HP 회복', mpCost: 8, range: 3, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ALLY, effectType: SkillEffectType.HEAL, power: 40, cooldown: 0,
+    effects: [
+      { type: 'heal', scaling: 'spirit', power: 40 },
+    ],
+  },
+  class_geomancer_2: { id: 'class_geomancer_2', name: '대치유', description: '범위 아군 HP 회복', mpCost: 16, range: 3, aoeRadius: 1, targetType: SkillTargetType.AREA_ALLY, effectType: SkillEffectType.HEAL, power: 55, cooldown: 2,
+    effects: [
+      { type: 'heal', scaling: 'spirit', power: 55 },
+    ],
+  },
+  // 공성차
+  class_siege_1: { id: 'class_siege_1', name: '포격', description: '넓은 범위 폭격', mpCost: 10, range: 3, aoeRadius: 2, targetType: SkillTargetType.AREA_ENEMY, effectType: SkillEffectType.DAMAGE, power: 45, cooldown: 2,
+    effects: [
+      { type: 'damage', scaling: 'attack', power: 45 },
+      { type: 'debuff', statusEffect: 'defense_down', statusDuration: 2, statusMagnitude: 10 },
+    ],
+  },
 
   // ═══════════════════════════════════════
   // 고유 스킬 (장수 전용, Lv.20 해금)

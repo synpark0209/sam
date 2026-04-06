@@ -563,6 +563,7 @@ export class LobbyScene extends Phaser.Scene {
     const clsIcons: Record<string, string> = {
       cavalry: '🐎', infantry: '🛡️', archer: '🏹',
       strategist: '📜', martial_artist: '👊', bandit: '🗡️',
+      dancer: '💃', taoist: '🔮', geomancer: '🌀', siege: '🏗️',
     };
 
     const container = this.add.container(0, 0);
@@ -1317,6 +1318,7 @@ export class LobbyScene extends Phaser.Scene {
     const clsIcons: Record<string, string> = {
       cavalry: '\u{1F40E}', infantry: '\u{1F6E1}\uFE0F', archer: '\u{1F3F9}',
       strategist: '\u{1F4DC}', martial_artist: '\u{1F44A}', bandit: '\u{1F5E1}\uFE0F',
+      dancer: '\u{1F483}', taoist: '\u{1F52E}', geomancer: '\u{1F300}', siege: '\u{1F3D7}\uFE0F',
     };
 
     const container = this.add.container(0, 0);

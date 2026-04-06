@@ -104,6 +104,28 @@ export const PROMOTION_PATHS: Record<UnitClass, PromotionDef[]> = {
       statBonus: { maxHp: 40, attack: 20, defense: 12, speed: 8, maxMp: 8 },
     },
   ],
+  [UnitClass.DANCER]: [
+    {
+      fromClass: UnitClass.DANCER, toClassName: '선녀', requiredLevel: 15,
+      requiredItem: 'promotion_seal_1', requiredItemName: '하급 인수',
+      statBonus: { maxHp: 15, attack: 3, defense: 5, speed: 3, maxMp: 15 },
+    },
+  ],
+  [UnitClass.TAOIST]: [
+    {
+      fromClass: UnitClass.TAOIST, toClassName: '선인', requiredLevel: 15,
+      requiredItem: 'promotion_seal_1', requiredItemName: '하급 인수',
+      statBonus: { maxHp: 15, attack: 5, defense: 5, speed: 2, maxMp: 12 },
+    },
+  ],
+  [UnitClass.GEOMANCER]: [
+    {
+      fromClass: UnitClass.GEOMANCER, toClassName: '음양사', requiredLevel: 15,
+      requiredItem: 'promotion_seal_1', requiredItemName: '하급 인수',
+      statBonus: { maxHp: 20, attack: 3, defense: 8, speed: 2, maxMp: 15 },
+    },
+  ],
+  [UnitClass.SIEGE]: [],
 };
 
 /** 승급 가능 여부 확인 */

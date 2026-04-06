@@ -71,7 +71,7 @@ export class ExperienceSystem {
       defense: vary(growth.defense),
       speed: vary(growth.speed),
       maxMp: growth.maxMp > 0 ? vary(growth.maxMp) : 0,
-      spirit: (growth as Record<string, number>).spirit > 0 ? vary((growth as Record<string, number>).spirit) : 0,
+      spirit: (growth as unknown as Record<string, number>).spirit > 0 ? vary((growth as unknown as Record<string, number>).spirit) : 0,
     };
   }
 }

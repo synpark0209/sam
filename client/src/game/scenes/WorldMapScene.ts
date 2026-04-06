@@ -197,6 +197,7 @@ export class WorldMapScene extends Phaser.Scene {
     const clsIcons: Record<string, string> = {
       cavalry: '🐎', infantry: '🛡️', archer: '🏹',
       strategist: '📜', martial_artist: '👊', bandit: '🗡️',
+      dancer: '💃', taoist: '🔮', geomancer: '🌀', siege: '🏗️',
     };
 
     for (let i = 0; i < guests.length; i++) {
