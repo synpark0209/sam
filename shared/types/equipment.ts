@@ -14,6 +14,7 @@ export interface StatModifier {
   moveRange?: number;
   attackRange?: number;
   maxMp?: number;
+  spirit?: number;
 }
 
 export type EquipmentGrade = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
