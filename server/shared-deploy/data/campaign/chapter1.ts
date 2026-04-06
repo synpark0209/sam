@@ -35,9 +35,13 @@ function enemy(id: string, name: string, cls: UnitClass, x: number, y: number, l
   stats.defense += (level - 1) * 2;
   const spiritClasses = [UnitClass.STRATEGIST, UnitClass.DANCER, UnitClass.TAOIST, UnitClass.GEOMANCER];
   stats.spirit = (stats.spirit ?? 0) + (level - 1) * (spiritClasses.includes(cls) ? 4 : 1);
+  stats.agility = (stats.agility ?? 0) + (level - 1) * 1;
+  stats.critical = (stats.critical ?? 0) + (level - 1) * 1;
+  stats.morale = (stats.morale ?? 0) + (level - 1) * 1;
+  stats.resist = (stats.resist ?? 0) + (level - 1) * 1;
   return {
     id, name, faction: 'enemy', unitClass: cls,
-    level, exp: 0, mp: cls === UnitClass.STRATEGIST ? 30 : 10, maxMp: cls === UnitClass.STRATEGIST ? 30 : 10,
+    level, exp: 0, mp: spiritClasses.includes(cls) ? 20 + level * 2 : 8 + level, maxMp: spiritClasses.includes(cls) ? 20 + level * 2 : 8 + level,
     skills: cls === UnitClass.STRATEGIST ? ['fire', 'heal'] : cls === UnitClass.ARCHER ? ['arrow_rain'] : [],
     position: { x, y }, stats, hasActed: false, isAlive: true,
   };
