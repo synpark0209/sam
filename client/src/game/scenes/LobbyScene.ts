@@ -36,7 +36,10 @@ export class LobbyScene extends Phaser.Scene {
 
   /** 화면 전환 시 기존 UI와 입력 리스너 정리 */
   private clearScreen(): void {
-    this.clearScreen();
+    this.input.off('wheel');
+    this.input.off('pointermove');
+    this.input.off('pointerdown');
+    this.children.removeAll();
   }
 
   create(): void {
