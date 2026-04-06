@@ -1973,15 +1973,42 @@ export class BattleScene extends Phaser.Scene {
 
     // 상세 스탯 (펼쳤을 때만)
     if (expanded) {
-      const s = unit.stats;
-      addText(15, panelY + 85, `공격:${s.attack}  방어:${s.defense}  속도:${s.speed}  정신:${s.spirit ?? 0}`, {
-        fontSize: '12px', color: '#aaaaaa',
+      const base = unit.stats;
+      const eff = this.combatSystem.getEffectiveStats(unit);
+
+      // 스탯 차이 표시 헬퍼
+      const statStr = (label: string, baseVal: number, effVal: number, suffix = '') => {
+        const diff = effVal - baseVal;
+        if (diff > 0) return `${label}:${effVal}${suffix}(+${diff})`;
+        if (diff < 0) return `${label}:${effVal}${suffix}(${diff})`;
+        return `${label}:${baseVal}${suffix}`;
+      };
+      const statColor = (baseVal: number, effVal: number) => {
+        if (effVal > baseVal) return '#44ff44';
+        if (effVal < baseVal) return '#ff4444';
+        return '#aaaaaa';
+      };
+
+      // 주요 스탯 (버프/디버프 하이라이트)
+      const row1 = [
+        { l: '공격', b: base.attack, e: eff.attack },
+        { l: '방어', b: base.defense, e: eff.defense },
+        { l: '속도', b: base.speed, e: eff.speed },
+        { l: '정신', b: base.spirit ?? 0, e: eff.spirit ?? 0 },
+      ];
+      let xOff = 15;
+      for (const st of row1) {
+        const text = statStr(st.l, st.b, st.e);
+        const color = statColor(st.b, st.e);
+        addText(xOff, panelY + 85, text, { fontSize: '11px', color });
+        xOff += text.length * 7 + 8;
+      }
+
+      addText(15, panelY + 101, `민첩:${eff.agility ?? 0}  순발:${eff.critical ?? 0}  사기:${eff.morale ?? 0}  관통:${eff.penetration ?? 0}%`, {
+        fontSize: '11px', color: '#aaaaaa',
       });
-      addText(15, panelY + 101, `민첩:${s.agility ?? 0}  순발:${s.critical ?? 0}  사기:${s.morale ?? 0}  관통:${s.penetration ?? 0}%`, {
-        fontSize: '12px', color: '#aaaaaa',
-      });
-      addText(15, panelY + 117, `저항:${s.resist ?? 0}%  이동:${s.moveRange}  사거리:${s.attackRange}`, {
-        fontSize: '12px', color: '#aaaaaa',
+      addText(15, panelY + 117, `저항:${eff.resist ?? 0}%  이동:${eff.moveRange}  사거리:${eff.attackRange}`, {
+        fontSize: '11px', color: '#aaaaaa',
       });
 
       // 상태효과 표시
