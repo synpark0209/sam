@@ -42,6 +42,7 @@ export class LobbyScene extends Phaser.Scene {
     }
     this.scrollHandlers = [];
     this.cameras.main.scrollY = 0;
+    this.children.each(c => c.destroy());
     this.children.removeAll();
   }
 
