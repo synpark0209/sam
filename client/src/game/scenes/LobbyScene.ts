@@ -532,81 +532,91 @@ export class LobbyScene extends Phaser.Scene {
     backBtn.on('pointerdown', () => this.showMainMenu());
 
     const units = this.campaignManager.getProgress().playerUnits;
+    // 시나리오/가챠 장수 분리 + 정렬 (여포 맨 앞, 나머지 레벨 내림차순)
+    const scenarioUnits = units.filter(u => u.isScenarioUnit);
+    const gachaUnits = units.filter(u => !u.isScenarioUnit);
+    const sortByLevel = (a: UnitData, b: UnitData) => {
+      if (a.id === 'p1') return -1;
+      if (b.id === 'p1') return 1;
+      return (b.level ?? 1) - (a.level ?? 1);
+    };
+    scenarioUnits.sort(sortByLevel);
+    gachaUnits.sort(sortByLevel);
+
     this.add.text(GW / 2, 40, `보유 장수: ${units.length}명`, {
       fontSize: '12px', color: '#888888',
     }).setOrigin(0.5);
 
-    // 아이콘 그리드 레이아웃
-    const cols = 3;
-    const pad = 14;
-    const gap = 10;
+    // 그리드 설정 (정사각형)
+    const cols = 4;
+    const pad = 12;
+    const gap = 8;
     const cellW = (GW - pad * 2 - (cols - 1) * gap) / cols;
-    const cellH = cellW + 36;
-    const startY = 58;
+    const cellH = cellW; // 정사각형
     const clsIcons: Record<string, string> = {
       cavalry: '🐎', infantry: '🛡️', archer: '🏹',
       strategist: '📜', martial_artist: '👊', bandit: '🗡️',
     };
 
-    // 스크롤 컨테이너
     const container = this.add.container(0, 0);
-    const scrollableH = GH - startY - 10;
-    const totalH = Math.ceil(units.length / cols) * (cellH + gap);
+    let gridIdx = 0;
+    let startY = 58;
 
-    for (let i = 0; i < units.length; i++) {
-      const unit = units[i];
-      const col = i % cols;
-      const row = Math.floor(i / cols);
-      const x = pad + col * (cellW + gap);
-      const y = startY + row * (cellH + gap);
-      const grade = unit.grade ?? 'N';
-      const gradeColorHex = getGradeColor(grade as HeroGrade);
-      const gradeColorNum = Phaser.Display.Color.HexStringToColor(gradeColorHex).color;
-
-      // 카드 배경 + 등급 테두리
-      const card = this.add.graphics();
-      card.fillStyle(0x141428, 1).fillRoundedRect(x, y, cellW, cellH, 8);
-      card.lineStyle(2, gradeColorNum, 0.8).strokeRoundedRect(x, y, cellW, cellH, 8);
-      container.add(card);
-
-      // 병종 아이콘 (중앙 크게)
-      const cls = unit.unitClass ?? 'infantry';
-      const iconText = this.add.text(x + cellW / 2, y + cellW * 0.30, clsIcons[cls] ?? '⚔️', {
-        fontSize: '34px',
-      }).setOrigin(0.5);
-      container.add(iconText);
-
-      // 등급 배지 (좌상단)
-      const gradeBadge = this.add.text(x + 6, y + 4, grade, {
-        fontSize: '13px', color: gradeColorHex, fontStyle: 'bold',
+    // 섹션 렌더링 헬퍼
+    const renderSection = (label: string, unitList: UnitData[], labelColor: string) => {
+      if (unitList.length === 0) return;
+      const sectionLabel = this.add.text(pad, startY, label, {
+        fontSize: '12px', color: labelColor, fontStyle: 'bold',
       });
-      container.add(gradeBadge);
+      container.add(sectionLabel);
+      startY += 20;
 
-      // Lv (우상단)
-      const lvText = this.add.text(x + cellW - 6, y + 4, `Lv.${unit.level ?? 1}`, {
-        fontSize: '12px', color: '#88aacc',
-      }).setOrigin(1, 0);
-      container.add(lvText);
+      for (let i = 0; i < unitList.length; i++) {
+        const unit = unitList[i];
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const x = pad + col * (cellW + gap);
+        const y = startY + row * (cellH + gap);
+        const grade = unit.grade ?? 'N';
+        const gradeColorHex = getGradeColor(grade as HeroGrade);
+        const gradeColorNum = Phaser.Display.Color.HexStringToColor(gradeColorHex).color;
 
-      // 이름 (하단)
-      const nameText = this.add.text(x + cellW / 2, y + cellW * 0.62, unit.name, {
-        fontSize: '14px', color: '#ffffff', fontStyle: 'bold',
-      }).setOrigin(0.5);
-      container.add(nameText);
+        const card = this.add.graphics();
+        card.fillStyle(0x141428, 1).fillRoundedRect(x, y, cellW, cellH, 6);
+        card.lineStyle(2, gradeColorNum, 0.8).strokeRoundedRect(x, y, cellW, cellH, 6);
+        container.add(card);
 
-      // 병종명 (이름 아래)
-      const className = unit.promotionClass ?? UNIT_CLASS_DEFS[unit.unitClass ?? 'infantry']?.name ?? '';
-      const classText = this.add.text(x + cellW / 2, y + cellW * 0.62 + 18, className, {
-        fontSize: '11px', color: '#666688',
-      }).setOrigin(0.5);
-      container.add(classText);
+        const cls = unit.unitClass ?? 'infantry';
+        container.add(this.add.text(x + cellW / 2, y + cellH * 0.28, clsIcons[cls] ?? '⚔️', {
+          fontSize: '24px',
+        }).setOrigin(0.5));
 
-      // 터치 영역
-      const hit = this.add.rectangle(x + cellW / 2, y + cellH / 2, cellW, cellH, 0x000000, 0)
-        .setInteractive({ useHandCursor: true });
-      hit.on('pointerdown', () => this.showHeroDetail(unit));
-      container.add(hit);
-    }
+        container.add(this.add.text(x + 4, y + 3, grade, {
+          fontSize: '10px', color: gradeColorHex, fontStyle: 'bold',
+        }));
+
+        container.add(this.add.text(x + cellW - 4, y + 3, `${unit.level ?? 1}`, {
+          fontSize: '9px', color: '#88aacc',
+        }).setOrigin(1, 0));
+
+        container.add(this.add.text(x + cellW / 2, y + cellH * 0.65, unit.name, {
+          fontSize: '11px', color: '#ffffff', fontStyle: 'bold',
+        }).setOrigin(0.5));
+
+        const hit = this.add.rectangle(x + cellW / 2, y + cellH / 2, cellW, cellH, 0x000000, 0)
+          .setInteractive({ useHandCursor: true });
+        hit.on('pointerdown', () => this.showHeroDetail(unit));
+        container.add(hit);
+        gridIdx++;
+      }
+      startY += Math.ceil(unitList.length / cols) * (cellH + gap) + 8;
+    };
+
+    renderSection('⚔️ 시나리오 장수', scenarioUnits, '#ffd700');
+    renderSection('🎲 가챠 장수', gachaUnits, '#88ccff');
+
+    const scrollableH = GH - 58 - 10;
+    const totalH = startY - 58;
 
     // 스크롤 처리
     if (totalH > scrollableH) {
