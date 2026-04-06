@@ -140,7 +140,9 @@ export class SkillSystem {
           switch (sub.type) {
             case 'damage': {
               const scaling = sub.scaling === 'spirit' ? (caster.stats.spirit ?? 0) : caster.stats.attack;
-              const dmg = Math.max(1, Math.floor(scaling * (sub.power ?? 0) / 100 * powerMult) - target.stats.defense);
+              const defStat = sub.scaling === 'spirit' ? (target.stats.resist ?? 0) : target.stats.defense;
+              const rawDmg = scaling * (sub.power ?? 0) / 100 * powerMult;
+              const dmg = Math.max(1, Math.floor(rawDmg - defStat * 0.3));
               target.stats.hp = Math.max(0, target.stats.hp - dmg);
               effectResult.damageDealt = (effectResult.damageDealt ?? 0) + dmg;
               if (target.stats.hp <= 0) { target.isAlive = false; effectResult.unitDied = true; }
