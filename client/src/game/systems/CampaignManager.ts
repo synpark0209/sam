@@ -193,8 +193,9 @@ export class CampaignManager {
     return false;
   }
 
-  /** 기존 세이브 장수의 누락된 스탯을 보정 */
+  /** 기존 세이브 장수의 누락된 스탯을 보정 (로드 직후 1회 실행) */
   private migrateUnitStats(): void {
+    if (!this.progress.playerUnits?.length) return;
     let changed = false;
     for (const unit of this.progress.playerUnits) {
       const stats = unit.stats;

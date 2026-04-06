@@ -204,6 +204,14 @@ export class TitleScene extends Phaser.Scene {
       this.time.delayedCall(300, () => {
         this.scene.start('LobbyScene', { campaignManager: this.campaignManager });
       });
+    }).catch((err) => {
+      console.error('[TITLE] Load failed:', err);
+      loadTimer.destroy();
+      loadingText.setText('로딩 실패 - 터치하여 계속');
+      loadingText.setColor('#ff6666');
+      this.input.once('pointerdown', () => {
+        this.scene.start('LobbyScene', { campaignManager: this.campaignManager });
+      });
     });
   }
 }
