@@ -12,7 +12,7 @@ import { UNIT_CLASS_DEFS } from '@shared/data/unitClassDefs.ts';
 import { SKILL_DEFS } from '@shared/data/skillDefs.ts';
 import { EQUIPMENT_DEFS, EQUIPMENT_GRADE_COLORS, EQUIPMENT_SELL_PRICE } from '@shared/data/equipmentDefs.ts';
 import { DAILY_MISSIONS, ALL_COMPLETE_BONUS, areAllMissionsComplete, LOGIN_BONUS_TABLE } from '@shared/data/dailyMissionDefs.ts';
-import { getNextAwakening, AWAKENING_TIERS } from '@shared/data/awakeningDefs.ts';
+import { getNextAwakening, AWAKENING_TIERS, getAwakeningStatMultiplier } from '@shared/data/awakeningDefs.ts';
 import { PROMOTION_PATHS } from '@shared/data/promotionDefs.ts';
 import { getShopItems, getDailyPurchases } from '@shared/data/shopDefs.ts';
 import { getSkillPowerMultiplier, getSkillMpCost, getSkillCooldown, getEnhanceTier, MAX_SKILL_LEVEL } from '@shared/data/skillEnhanceDefs.ts';
@@ -707,14 +707,21 @@ export class LobbyScene extends Phaser.Scene {
     this.add.graphics().fillStyle(0x6666cc, 1).fillRoundedRect(expBarX, 95, expBarW * (exp / 100), 6, 3);
     this.add.text(GW - 38, 92, `${exp}/100`, { fontSize: '12px', color: '#8888aa' });
 
-    // 스탯 카드 — 전체 12개 스탯
+    // 스탯 카드 — 전체 12개 스탯 (각성 보너스 반영)
+    const awakeMult = getAwakeningStatMultiplier(unit.awakeningLevel ?? 0);
+    const awakeLabel = awakeMult > 1 ? ` (★${unit.awakeningLevel} +${Math.round((awakeMult - 1) * 100)}%)` : '';
     const statBg = this.add.graphics();
-    statBg.fillStyle(0x141428, 1).fillRoundedRect(15, 108, GW - 30, 100, 6);
+    statBg.fillStyle(0x141428, 1).fillRoundedRect(15, 108, GW - 30, 110, 6);
 
+    if (awakeLabel) {
+      this.add.text(GW - 20, 110, awakeLabel, { fontSize: '10px', color: '#ffd700' }).setOrigin(1, 0);
+    }
+
+    const applyAwake = (v: number) => awakeMult > 1 ? Math.floor(v * awakeMult) : v;
     const statData = [
-      { label: 'HP', value: unit.stats.maxHp, color: '#44ff44' },
-      { label: '공격', value: unit.stats.attack, color: '#ff6644' },
-      { label: '방어', value: unit.stats.defense, color: '#4488ff' },
+      { label: 'HP', value: applyAwake(unit.stats.maxHp), color: '#44ff44' },
+      { label: '공격', value: applyAwake(unit.stats.attack), color: '#ff6644' },
+      { label: '방어', value: applyAwake(unit.stats.defense), color: '#4488ff' },
       { label: '정신', value: unit.stats.spirit ?? 0, color: '#cc88ff' },
       { label: '속도', value: unit.stats.speed, color: '#88ccff' },
       { label: '이동', value: unit.stats.moveRange, color: '#88ff88' },
