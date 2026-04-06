@@ -554,10 +554,10 @@ export class LobbyScene extends Phaser.Scene {
       fontSize: '12px', color: '#888888',
     }).setOrigin(0.5);
 
-    // 그리드 설정 (정사각형)
-    const cols = 4;
-    const pad = 12;
-    const gap = 8;
+    // 그리드 설정 (정사각형 3열)
+    const cols = 3;
+    const pad = 14;
+    const gap = 10;
     const cellW = (GW - pad * 2 - (cols - 1) * gap) / cols;
     const cellH = cellW; // 정사각형
     const clsIcons: Record<string, string> = {
@@ -596,19 +596,24 @@ export class LobbyScene extends Phaser.Scene {
 
         const cls = unit.unitClass ?? 'infantry';
         container.add(this.add.text(x + cellW / 2, y + cellH * 0.28, clsIcons[cls] ?? '⚔️', {
-          fontSize: '24px',
+          fontSize: '30px',
         }).setOrigin(0.5));
 
-        container.add(this.add.text(x + 4, y + 3, grade, {
-          fontSize: '10px', color: gradeColorHex, fontStyle: 'bold',
+        container.add(this.add.text(x + 5, y + 4, grade, {
+          fontSize: '12px', color: gradeColorHex, fontStyle: 'bold',
         }));
 
-        container.add(this.add.text(x + cellW - 4, y + 3, `${unit.level ?? 1}`, {
-          fontSize: '9px', color: '#88aacc',
+        container.add(this.add.text(x + cellW - 5, y + 4, `Lv.${unit.level ?? 1}`, {
+          fontSize: '11px', color: '#88aacc',
         }).setOrigin(1, 0));
 
         container.add(this.add.text(x + cellW / 2, y + cellH * 0.65, unit.name, {
-          fontSize: '11px', color: '#ffffff', fontStyle: 'bold',
+          fontSize: '13px', color: '#ffffff', fontStyle: 'bold',
+        }).setOrigin(0.5));
+
+        const className = unit.promotionClass ?? UNIT_CLASS_DEFS[unit.unitClass ?? 'infantry']?.name ?? '';
+        container.add(this.add.text(x + cellW / 2, y + cellH * 0.82, className, {
+          fontSize: '10px', color: '#666688',
         }).setOrigin(0.5));
 
         const hit = this.add.rectangle(x + cellW / 2, y + cellH / 2, cellW, cellH, 0x000000, 0)
@@ -1314,7 +1319,7 @@ export class LobbyScene extends Phaser.Scene {
     const pad = 14;
     const gap = 10;
     const cellW = (GW - pad * 2 - (cols - 1) * gap) / cols;
-    const cellH = cellW + 36;
+    const cellH = cellW;
     const clsIcons: Record<string, string> = {
       cavalry: '\u{1F40E}', infantry: '\u{1F6E1}\uFE0F', archer: '\u{1F3F9}',
       strategist: '\u{1F4DC}', martial_artist: '\u{1F44A}', bandit: '\u{1F5E1}\uFE0F',
@@ -1351,13 +1356,13 @@ export class LobbyScene extends Phaser.Scene {
         fontSize: '13px', color: gradeColorHex, fontStyle: 'bold',
       }).setAlpha(alpha));
 
-      container.add(this.add.text(x + cellW / 2, y + cellW * 0.62, unit.name, {
-        fontSize: '14px', color: '#ffffff', fontStyle: 'bold',
+      container.add(this.add.text(x + cellW / 2, y + cellH * 0.65, unit.name, {
+        fontSize: '13px', color: '#ffffff', fontStyle: 'bold',
       }).setOrigin(0.5).setAlpha(alpha));
 
       const sub = subLabel(unit);
-      container.add(this.add.text(x + cellW / 2, y + cellW * 0.62 + 18, sub, {
-        fontSize: '11px', color: enabled ? '#88aa88' : '#555555',
+      container.add(this.add.text(x + cellW / 2, y + cellH * 0.82, sub, {
+        fontSize: '10px', color: enabled ? '#88aa88' : '#555555',
       }).setOrigin(0.5));
 
       if (enabled) {

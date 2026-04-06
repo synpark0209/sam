@@ -192,7 +192,7 @@ export class WorldMapScene extends Phaser.Scene {
     const pad = 14;
     const gap = 10;
     const cellW = (GW - pad * 2 - (cols - 1) * gap) / cols;
-    const cellH = cellW + 36;
+    const cellH = cellW;
     const startY = 105;
     const clsIcons: Record<string, string> = {
       cavalry: '🐎', infantry: '🛡️', archer: '🏹',
@@ -228,18 +228,18 @@ export class WorldMapScene extends Phaser.Scene {
         fontSize: '12px', color: '#88aacc',
       }).setOrigin(1, 0);
 
-      this.add.text(x + cellW / 2, y + cellW * 0.62, unit.name, {
-        fontSize: '14px', color: '#ffffff', fontStyle: 'bold',
+      this.add.text(x + cellW / 2, y + cellH * 0.65, unit.name, {
+        fontSize: '13px', color: '#ffffff', fontStyle: 'bold',
       }).setOrigin(0.5);
 
       const clsName = unit.unitClass ? (UNIT_CLASS_DEFS[unit.unitClass]?.name ?? '') : '';
-      this.add.text(x + cellW / 2, y + cellW * 0.62 + 18, clsName, {
-        fontSize: '11px', color: '#88aacc',
+      this.add.text(x + cellW / 2, y + cellH * 0.82, clsName, {
+        fontSize: '10px', color: '#88aacc',
       }).setOrigin(0.5);
 
       if (isLast) {
-        this.add.text(x + cellW / 2, y + cellH - 8, '최근 선택', {
-          fontSize: '9px', color: '#ffd700',
+        this.add.text(x + cellW / 2, y + cellH - 4, '최근 선택', {
+          fontSize: '8px', color: '#ffd700',
         }).setOrigin(0.5);
       }
 
