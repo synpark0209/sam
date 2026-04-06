@@ -1986,7 +1986,7 @@ export class BattleScene extends Phaser.Scene {
 
       // 상태효과 표시
       if (unit.statusEffects && unit.statusEffects.length > 0) {
-        const effects = unit.statusEffects.map(e => `${e.effect}(${e.remainingTurns}턴)`).join(' ');
+        const effects = unit.statusEffects.map(e => `${STATUS_EFFECT_NAMES[e.effect as StatusEffectId] ?? e.effect}(${e.remainingTurns}턴)`).join(' ');
         addText(15, panelY + 137, `상태: ${effects}`, {
           fontSize: '11px', color: '#ffaa44', wordWrap: { width: gw - 30 },
         });
