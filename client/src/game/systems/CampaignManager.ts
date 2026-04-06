@@ -197,31 +197,56 @@ export class CampaignManager {
   private migrateUnitStats(): void {
     if (!this.progress.playerUnits?.length) return;
     let changed = false;
+
+    // 병종별 spirit 성장률
+    const spiritGrowth: Record<string, number> = {
+      [UnitClass.STRATEGIST]: 5,
+      [UnitClass.INFANTRY]: 1, [UnitClass.CAVALRY]: 1,
+      [UnitClass.ARCHER]: 1, [UnitClass.BANDIT]: 1,
+      [UnitClass.MARTIAL_ARTIST]: 1,
+    };
+
     for (const unit of this.progress.playerUnits) {
       const stats = unit.stats;
-      // spirit이 0이거나 undefined면 기본 스탯 정의에서 가져옴
-      if (!stats.spirit) {
-        // 가챠 장수면 정의에서 찾기
-        const def = GACHA_HERO_POOL.find(d => unit.id.startsWith(d.id));
-        if (def?.baseStats.spirit) {
-          stats.spirit = def.baseStats.spirit;
-          stats.agility = stats.agility || def.baseStats.agility || 20;
-          stats.critical = stats.critical || def.baseStats.critical || 20;
-          stats.morale = stats.morale || def.baseStats.morale || 25;
-          stats.penetration = stats.penetration || def.baseStats.penetration || 5;
-          stats.resist = stats.resist || def.baseStats.resist || 10;
-          changed = true;
-        } else {
-          // 시나리오 장수나 매칭 안 되면 병종 기반 기본값
-          const isStrategist = unit.unitClass === UnitClass.STRATEGIST;
-          stats.spirit = isStrategist ? 30 : 10;
-          stats.agility = stats.agility || 20;
-          stats.critical = stats.critical || 20;
-          stats.morale = stats.morale || 25;
-          stats.penetration = stats.penetration || 5;
-          stats.resist = stats.resist || 10;
-          changed = true;
-        }
+      const level = unit.level ?? 1;
+
+      // 기본 spirit 설정
+      let baseSpirit = 10;
+      const def = GACHA_HERO_POOL.find(d => unit.id.startsWith(d.id));
+      if (def?.baseStats.spirit) {
+        baseSpirit = def.baseStats.spirit;
+      } else if (unit.unitClass === UnitClass.STRATEGIST) {
+        baseSpirit = 30;
+      }
+
+      // spirit이 base 이하면 레벨업 성장분 소급 보정
+      if (!stats.spirit || stats.spirit <= baseSpirit) {
+        const growth = spiritGrowth[unit.unitClass ?? UnitClass.INFANTRY] ?? 1;
+        const levelGrowth = (level - 1) * growth;
+        stats.spirit = baseSpirit + levelGrowth;
+        changed = true;
+      }
+
+      // 기타 누락 스탯 보정
+      if (!stats.agility) {
+        stats.agility = def?.baseStats.agility || 20;
+        changed = true;
+      }
+      if (!stats.critical) {
+        stats.critical = def?.baseStats.critical || 20;
+        changed = true;
+      }
+      if (!stats.morale) {
+        stats.morale = def?.baseStats.morale || 25;
+        changed = true;
+      }
+      if (stats.penetration === undefined) {
+        stats.penetration = def?.baseStats.penetration || 5;
+        changed = true;
+      }
+      if (stats.resist === undefined) {
+        stats.resist = def?.baseStats.resist || 10;
+        changed = true;
       }
     }
     if (changed) this.save();
