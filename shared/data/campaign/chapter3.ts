@@ -33,6 +33,8 @@ function enemy(id: string, name: string, cls: UnitClass, x: number, y: number, l
   stats.hp = stats.maxHp;
   stats.attack += (level - 1) * 3;
   stats.defense += (level - 1) * 2;
+  const spiritClasses = [UnitClass.STRATEGIST, UnitClass.DANCER, UnitClass.TAOIST, UnitClass.GEOMANCER];
+  stats.spirit = (stats.spirit ?? 0) + (level - 1) * (spiritClasses.includes(cls) ? 4 : 1);
   return {
     id, name, faction: 'enemy', unitClass: cls,
     level, exp: 0, mp: cls === UnitClass.STRATEGIST ? 30 : 10, maxMp: cls === UnitClass.STRATEGIST ? 30 : 10,
