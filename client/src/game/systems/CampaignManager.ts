@@ -217,6 +217,19 @@ export class CampaignManager {
     if (!this.progress.playerUnits?.length) return;
     let changed = false;
 
+    // 시나리오 합류 장수 병종/스킬 수정 (이전 세이브 호환)
+    const scenarioFixes: Record<string, { unitClass: UnitClass; classSkillId: string }> = {
+      p5: { unitClass: UnitClass.DANCER, classSkillId: 'class_dancer_1' },
+    };
+    for (const unit of this.progress.playerUnits) {
+      const fix = scenarioFixes[unit.id];
+      if (fix && unit.unitClass !== fix.unitClass) {
+        unit.unitClass = fix.unitClass;
+        unit.classSkillId = fix.classSkillId;
+        changed = true;
+      }
+    }
+
     // 병종별 spirit 성장률
     const spiritGrowth: Record<string, number> = {
       [UnitClass.STRATEGIST]: 5,

@@ -383,25 +383,40 @@ export class BattleScene extends Phaser.Scene {
 
     const uc = unit.unitClass ?? UnitClass.INFANTRY;
 
-    let sprite: Phaser.GameObjects.Sprite;
+    let sprite: Phaser.GameObjects.Sprite | null = null;
     // 0. PixelLab 캐릭터 (최우선)
     if (hasPixelLabCharacter(this, unit.id, uc)) {
-      sprite = createPixelLabSprite(this, unit.id, uc)!;
-      this.pixelLabUnits.set(unit.id, unit.id);
+      sprite = createPixelLabSprite(this, unit.id, uc);
+      if (sprite) this.pixelLabUnits.set(unit.id, unit.id);
+    }
     // 1. 스프라이트 시트 (장수별)
-    } else if (hasSpriteSheet(this, unit.id)) {
-      sprite = createSpriteSheetSprite(this, unit.id)!;
-      this.spriteSheetUnits.set(unit.id, unit.id);
+    if (!sprite && hasSpriteSheet(this, unit.id)) {
+      sprite = createSpriteSheetSprite(this, unit.id);
+      if (sprite) this.spriteSheetUnits.set(unit.id, unit.id);
+    }
     // 2. 단일 이미지 (병종별)
-    } else if (hasUnitImage(this, uc, unit.faction)) {
-      sprite = createImageSprite(this, uc, unit.faction)!;
-      this.imageUnits.add(unit.id);
-      playImageAnim(this, container, sprite, 'idle');
-    // 3. 프로시저럴
-    } else {
+    if (!sprite && hasUnitImage(this, uc, unit.faction)) {
+      sprite = createImageSprite(this, uc, unit.faction);
+      if (sprite) {
+        this.imageUnits.add(unit.id);
+        playImageAnim(this, container, sprite, 'idle');
+      }
+    }
+    // 3. 프로시저럴 폴백
+    if (!sprite) {
       const texKey = `unit_${uc}_${unit.faction}`;
-      sprite = this.add.sprite(0, 0, texKey, 0);
-      sprite.play(`${texKey}_idle`);
+      if (this.textures.exists(texKey)) {
+        sprite = this.add.sprite(0, 0, texKey, 0);
+        sprite.play(`${texKey}_idle`);
+      } else {
+        // 최후 폴백: 단색 원
+        const fallbackGfx = this.add.graphics();
+        const color = unit.faction === 'player' ? 0x3366ff : 0xdd3333;
+        fallbackGfx.fillStyle(color, 1).fillCircle(0, 0, TILE_SIZE * 0.3);
+        container.add(fallbackGfx);
+        sprite = this.add.sprite(0, 0, '__DEFAULT');
+        sprite.setVisible(false);
+      }
     }
 
     // 진영 표시 베이스 (유닛 발밑 타원)
