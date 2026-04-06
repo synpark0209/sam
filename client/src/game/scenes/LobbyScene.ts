@@ -614,9 +614,19 @@ export class LobbyScene extends Phaser.Scene {
         }).setOrigin(0.5));
 
         const className = unit.promotionClass ?? UNIT_CLASS_DEFS[unit.unitClass ?? 'infantry']?.name ?? '';
-        container.add(this.add.text(x + cellW / 2, y + cellH * 0.82, className, {
+        container.add(this.add.text(x + cellW / 2, y + cellH * 0.80, className, {
           fontSize: '10px', color: '#666688',
         }).setOrigin(0.5));
+
+        // EXP 바
+        const exp = unit.exp ?? 0;
+        const barW = cellW - 12;
+        const barX = x + 6;
+        const barY = y + cellH - 8;
+        const expBar = this.add.graphics();
+        expBar.fillStyle(0x222233, 1).fillRoundedRect(barX, barY, barW, 4, 2);
+        expBar.fillStyle(0x6666cc, 1).fillRoundedRect(barX, barY, barW * (exp / 100), 4, 2);
+        container.add(expBar);
 
         const hit = this.add.rectangle(x + cellW / 2, y + cellH / 2, cellW, cellH, 0x000000, 0)
           .setInteractive({ useHandCursor: true });
