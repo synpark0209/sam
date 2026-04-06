@@ -636,7 +636,7 @@ export class LobbyScene extends Phaser.Scene {
     // 스크롤 처리
     if (totalH > scrollableH) {
       const mask = this.add.graphics();
-      mask.fillRect(0, startY, GW, scrollableH);
+      mask.fillRect(0, 58, GW, scrollableH);
       container.setMask(new Phaser.Display.Masks.GeometryMask(this, mask));
 
       let scrollY = 0;
