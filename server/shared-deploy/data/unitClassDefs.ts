@@ -16,7 +16,7 @@ export const UNIT_CLASS_DEFS: Record<UnitClass, UnitClassDef> = {
     defaultAttackRange: 1,
     diagonalAttack: true, // 8방향 공격
     skillSlots: 2,
-    growthRates: { maxHp: 8, attack: 4, defense: 4, speed: 2, maxMp: 2 },
+    growthRates: { maxHp: 8, attack: 4, defense: 4, speed: 2, maxMp: 2, spirit: 1 },
   },
   [UnitClass.CAVALRY]: {
     id: UnitClass.CAVALRY,
@@ -31,7 +31,7 @@ export const UNIT_CLASS_DEFS: Record<UnitClass, UnitClassDef> = {
     defaultAttackRange: 1,
     diagonalAttack: false,
     skillSlots: 1,
-    growthRates: { maxHp: 9, attack: 5, defense: 3, speed: 3, maxMp: 1 },
+    growthRates: { maxHp: 9, attack: 5, defense: 3, speed: 3, maxMp: 1, spirit: 1 },
   },
   [UnitClass.ARCHER]: {
     id: UnitClass.ARCHER,
@@ -46,7 +46,7 @@ export const UNIT_CLASS_DEFS: Record<UnitClass, UnitClassDef> = {
     defaultAttackRange: 2,
     diagonalAttack: false,
     skillSlots: 2,
-    growthRates: { maxHp: 6, attack: 4, defense: 2, speed: 3, maxMp: 2 },
+    growthRates: { maxHp: 6, attack: 4, defense: 2, speed: 3, maxMp: 2, spirit: 1 },
   },
   [UnitClass.STRATEGIST]: {
     id: UnitClass.STRATEGIST,
@@ -61,7 +61,7 @@ export const UNIT_CLASS_DEFS: Record<UnitClass, UnitClassDef> = {
     defaultAttackRange: 1,
     diagonalAttack: false,
     skillSlots: 4,
-    growthRates: { maxHp: 5, attack: 2, defense: 2, speed: 2, maxMp: 5 },
+    growthRates: { maxHp: 5, attack: 2, defense: 2, speed: 2, maxMp: 5, spirit: 5 },
   },
   [UnitClass.BANDIT]: {
     id: UnitClass.BANDIT,
@@ -77,7 +77,7 @@ export const UNIT_CLASS_DEFS: Record<UnitClass, UnitClassDef> = {
     defaultAttackRange: 1,
     diagonalAttack: false,
     skillSlots: 2,
-    growthRates: { maxHp: 7, attack: 4, defense: 2, speed: 4, maxMp: 1 },
+    growthRates: { maxHp: 7, attack: 4, defense: 2, speed: 4, maxMp: 1, spirit: 1 },
   },
   [UnitClass.MARTIAL_ARTIST]: {
     id: UnitClass.MARTIAL_ARTIST,
@@ -93,7 +93,7 @@ export const UNIT_CLASS_DEFS: Record<UnitClass, UnitClassDef> = {
     defaultAttackRange: 1,
     diagonalAttack: false,
     skillSlots: 2,
-    growthRates: { maxHp: 7, attack: 5, defense: 3, speed: 4, maxMp: 2 },
+    growthRates: { maxHp: 7, attack: 5, defense: 3, speed: 4, maxMp: 2, spirit: 1 },
   },
 };
 

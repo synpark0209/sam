@@ -37,6 +37,7 @@ export class ExperienceSystem {
       unit.stats.attack += statGains.attack ?? 0;
       unit.stats.defense += statGains.defense ?? 0;
       unit.stats.speed += statGains.speed ?? 0;
+      unit.stats.spirit = (unit.stats.spirit ?? 0) + (statGains.spirit ?? 0);
       if (statGains.maxMp) {
         unit.maxMp = (unit.maxMp ?? 0) + statGains.maxMp;
         unit.mp = (unit.mp ?? 0) + statGains.maxMp;
@@ -70,6 +71,7 @@ export class ExperienceSystem {
       defense: vary(growth.defense),
       speed: vary(growth.speed),
       maxMp: growth.maxMp > 0 ? vary(growth.maxMp) : 0,
+      spirit: (growth as Record<string, number>).spirit > 0 ? vary((growth as Record<string, number>).spirit) : 0,
     };
   }
 }
