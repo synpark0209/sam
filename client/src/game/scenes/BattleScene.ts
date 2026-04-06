@@ -3,6 +3,8 @@ import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT } from '@shared/constants.ts';
 import type { Position, UnitData, BattleState, Faction } from '@shared/types/index.ts';
 import { UnitClass } from '@shared/types/index.ts';
 import { getEquipmentDef } from '@shared/data/equipmentDefs.ts';
+import { STATUS_EFFECT_NAMES } from '@shared/types/statusEffect.ts';
+import type { StatusEffectId } from '@shared/types/statusEffect.ts';
 import type { SkillDef } from '@shared/types/skill.ts';
 import { SkillEffectType } from '@shared/types/skill.ts';
 import { GridSystem } from '../systems/GridSystem.ts';
@@ -1383,7 +1385,10 @@ export class BattleScene extends Phaser.Scene {
           this.showFloatingText(pos.x, pos.y, `+${effect.healingDone}`, '#44ff44');
         }
         if (effect.statusApplied) {
-          this.showFloatingText(pos.x, pos.y + 15, effect.statusApplied, '#ffff44');
+          const statusNames = effect.statusApplied.split(', ').map(
+            s => STATUS_EFFECT_NAMES[s as StatusEffectId] ?? s
+          ).join(' ');
+          this.showFloatingText(pos.x, pos.y + 15, statusNames, '#ffff44');
         }
         if (effect.unitDied) {
           this.playUnitAnim(unit, 'die');
