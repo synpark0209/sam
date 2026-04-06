@@ -145,8 +145,7 @@ export class CampaignManager {
       }
     }
 
-    this.progress.gold += stage.rewards.gold ?? 0; // optimistic UI update
-    if ((stage.rewards.gold ?? 0) > 0) battleComplete(stage.id).catch(() => {}); // server sync
+    this.progress.gold += stage.rewards.gold ?? 0;
     if (stage.rewards.items) {
       this.progress.equipmentBag.push(...stage.rewards.items);
     }
@@ -173,7 +172,10 @@ export class CampaignManager {
       }
     }
 
-    this.save();
+    // 서버에 gold 동기화 후 전체 세이브 저장 (순서 보장)
+    battleComplete(stage.id).catch(() => {}).finally(() => {
+      this.save();
+    });
   }
 
   save(): void {
