@@ -74,7 +74,7 @@ const PIXELLAB_CHARACTERS: Record<string, PixelLabCharacterDef> = {
   p1: { // 여포
     key: 'pl_lubu',
     basePath: 'assets/characters/lubu',
-    size: 96, displayScale: 1.4,
+    size: 96, displayScale: 1.1,
     anims: {
       idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
       walk:   { folder: 'walking-4-frames',   frames: 4, frameRate: 6 },
@@ -87,7 +87,7 @@ const PIXELLAB_CHARACTERS: Record<string, PixelLabCharacterDef> = {
   p2: { // 장료
     key: 'pl_zhangliao',
     basePath: 'assets/characters/zhangliao',
-    size: 96, displayScale: 1.4,
+    size: 96, displayScale: 1.1,
     anims: {
       idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
       walk:   { folder: 'walking-4-frames',   frames: 4, frameRate: 6 },
@@ -116,7 +116,7 @@ const PIXELLAB_CHARACTERS: Record<string, PixelLabCharacterDef> = {
 const PIXELLAB_CLASS_UNITS: Record<string, PixelLabCharacterDef> = {
   [UnitClass.INFANTRY]: {
     key: 'pl_infantry',
-    basePath: 'assets/characters/infantry', displayScale: 1.4,
+    basePath: 'assets/characters/infantry', displayScale: 1.1,
     size: 96,
     anims: {
       idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
@@ -128,7 +128,7 @@ const PIXELLAB_CLASS_UNITS: Record<string, PixelLabCharacterDef> = {
   },
   [UnitClass.CAVALRY]: {
     key: 'pl_cavalry',
-    basePath: 'assets/characters/cavalry', displayScale: 1.4,
+    basePath: 'assets/characters/cavalry', displayScale: 1.1,
     size: 96,
     anims: {
       idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
@@ -140,7 +140,7 @@ const PIXELLAB_CLASS_UNITS: Record<string, PixelLabCharacterDef> = {
   },
   [UnitClass.ARCHER]: {
     key: 'pl_archer',
-    basePath: 'assets/characters/archer', displayScale: 1.4,
+    basePath: 'assets/characters/archer', displayScale: 1.1,
     size: 96,
     anims: {
       idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
@@ -152,7 +152,7 @@ const PIXELLAB_CLASS_UNITS: Record<string, PixelLabCharacterDef> = {
   },
   [UnitClass.STRATEGIST]: {
     key: 'pl_strategist',
-    basePath: 'assets/characters/strategist', displayScale: 1.4,
+    basePath: 'assets/characters/strategist', displayScale: 1.1,
     size: 96,
     anims: {
       idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
@@ -164,7 +164,7 @@ const PIXELLAB_CLASS_UNITS: Record<string, PixelLabCharacterDef> = {
   },
   [UnitClass.BANDIT]: {
     key: 'pl_bandit',
-    basePath: 'assets/characters/bandit', displayScale: 1.4,
+    basePath: 'assets/characters/bandit', displayScale: 1.1,
     size: 96,
     anims: {
       idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
@@ -176,7 +176,7 @@ const PIXELLAB_CLASS_UNITS: Record<string, PixelLabCharacterDef> = {
   },
   [UnitClass.MARTIAL_ARTIST]: {
     key: 'pl_martial_artist',
-    basePath: 'assets/characters/martial_artist', displayScale: 1.4,
+    basePath: 'assets/characters/martial_artist', displayScale: 1.1,
     size: 96,
     anims: {
       idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
@@ -189,7 +189,7 @@ const PIXELLAB_CLASS_UNITS: Record<string, PixelLabCharacterDef> = {
   // 새 병종: 전용 스프라이트 없으면 유사 병종 스프라이트 재사용
   [UnitClass.DANCER]: {
     key: 'pl_strategist', // 책사 스프라이트 재사용 (초선은 p5로 전용 매핑)
-    basePath: 'assets/characters/strategist', displayScale: 1.4,
+    basePath: 'assets/characters/strategist', displayScale: 1.1,
     size: 96,
     anims: {
       idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
@@ -201,7 +201,7 @@ const PIXELLAB_CLASS_UNITS: Record<string, PixelLabCharacterDef> = {
   },
   [UnitClass.TAOIST]: {
     key: 'pl_strategist', // 책사 스프라이트 재사용
-    basePath: 'assets/characters/strategist', displayScale: 1.4,
+    basePath: 'assets/characters/strategist', displayScale: 1.1,
     size: 96,
     anims: {
       idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
@@ -213,7 +213,7 @@ const PIXELLAB_CLASS_UNITS: Record<string, PixelLabCharacterDef> = {
   },
   [UnitClass.GEOMANCER]: {
     key: 'pl_strategist',
-    basePath: 'assets/characters/strategist', displayScale: 1.4, // 책사 스프라이트 재사용
+    basePath: 'assets/characters/strategist', displayScale: 1.1, // 책사 스프라이트 재사용
     size: 96,
     anims: {
       idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
