@@ -54,6 +54,7 @@ interface PixelLabCharacterDef {
   key: string;          // 고유 키 (예: 'pl_lubu')
   basePath: string;     // 에셋 기본 경로
   size: number;         // 캔버스 크기 (96 등)
+  displayScale?: number; // 표시 배율 보정 (기본 1.0)
   // 게임 애니메이션 → PixelLab 폴더 매핑
   anims: {
     idle: PixelLabAnimDef;
@@ -73,7 +74,7 @@ const PIXELLAB_CHARACTERS: Record<string, PixelLabCharacterDef> = {
   p1: { // 여포
     key: 'pl_lubu',
     basePath: 'assets/characters/lubu',
-    size: 96,
+    size: 96, displayScale: 1.4,
     anims: {
       idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
       walk:   { folder: 'walking-4-frames',   frames: 4, frameRate: 6 },
@@ -86,7 +87,7 @@ const PIXELLAB_CHARACTERS: Record<string, PixelLabCharacterDef> = {
   p2: { // 장료
     key: 'pl_zhangliao',
     basePath: 'assets/characters/zhangliao',
-    size: 96,
+    size: 96, displayScale: 1.4,
     anims: {
       idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
       walk:   { folder: 'walking-4-frames',   frames: 4, frameRate: 6 },
@@ -115,7 +116,7 @@ const PIXELLAB_CHARACTERS: Record<string, PixelLabCharacterDef> = {
 const PIXELLAB_CLASS_UNITS: Record<string, PixelLabCharacterDef> = {
   [UnitClass.INFANTRY]: {
     key: 'pl_infantry',
-    basePath: 'assets/characters/infantry',
+    basePath: 'assets/characters/infantry', displayScale: 1.4,
     size: 96,
     anims: {
       idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
@@ -127,7 +128,7 @@ const PIXELLAB_CLASS_UNITS: Record<string, PixelLabCharacterDef> = {
   },
   [UnitClass.CAVALRY]: {
     key: 'pl_cavalry',
-    basePath: 'assets/characters/cavalry',
+    basePath: 'assets/characters/cavalry', displayScale: 1.4,
     size: 96,
     anims: {
       idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
@@ -139,7 +140,7 @@ const PIXELLAB_CLASS_UNITS: Record<string, PixelLabCharacterDef> = {
   },
   [UnitClass.ARCHER]: {
     key: 'pl_archer',
-    basePath: 'assets/characters/archer',
+    basePath: 'assets/characters/archer', displayScale: 1.4,
     size: 96,
     anims: {
       idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
@@ -151,7 +152,7 @@ const PIXELLAB_CLASS_UNITS: Record<string, PixelLabCharacterDef> = {
   },
   [UnitClass.STRATEGIST]: {
     key: 'pl_strategist',
-    basePath: 'assets/characters/strategist',
+    basePath: 'assets/characters/strategist', displayScale: 1.4,
     size: 96,
     anims: {
       idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
@@ -163,7 +164,7 @@ const PIXELLAB_CLASS_UNITS: Record<string, PixelLabCharacterDef> = {
   },
   [UnitClass.BANDIT]: {
     key: 'pl_bandit',
-    basePath: 'assets/characters/bandit',
+    basePath: 'assets/characters/bandit', displayScale: 1.4,
     size: 96,
     anims: {
       idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
@@ -175,7 +176,7 @@ const PIXELLAB_CLASS_UNITS: Record<string, PixelLabCharacterDef> = {
   },
   [UnitClass.MARTIAL_ARTIST]: {
     key: 'pl_martial_artist',
-    basePath: 'assets/characters/martial_artist',
+    basePath: 'assets/characters/martial_artist', displayScale: 1.4,
     size: 96,
     anims: {
       idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
@@ -188,7 +189,7 @@ const PIXELLAB_CLASS_UNITS: Record<string, PixelLabCharacterDef> = {
   // 새 병종: 전용 스프라이트 없으면 유사 병종 스프라이트 재사용
   [UnitClass.DANCER]: {
     key: 'pl_strategist', // 책사 스프라이트 재사용 (초선은 p5로 전용 매핑)
-    basePath: 'assets/characters/strategist',
+    basePath: 'assets/characters/strategist', displayScale: 1.4,
     size: 96,
     anims: {
       idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
@@ -200,7 +201,7 @@ const PIXELLAB_CLASS_UNITS: Record<string, PixelLabCharacterDef> = {
   },
   [UnitClass.TAOIST]: {
     key: 'pl_strategist', // 책사 스프라이트 재사용
-    basePath: 'assets/characters/strategist',
+    basePath: 'assets/characters/strategist', displayScale: 1.4,
     size: 96,
     anims: {
       idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
@@ -212,7 +213,7 @@ const PIXELLAB_CLASS_UNITS: Record<string, PixelLabCharacterDef> = {
   },
   [UnitClass.GEOMANCER]: {
     key: 'pl_strategist',
-    basePath: 'assets/characters/strategist', // 책사 스프라이트 재사용
+    basePath: 'assets/characters/strategist', displayScale: 1.4, // 책사 스프라이트 재사용
     size: 96,
     anims: {
       idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
@@ -436,7 +437,7 @@ export function createPixelLabSprite(
   }
 
   const sprite = scene.add.sprite(0, 0, firstFrameKey);
-  const scale = TILE_SIZE / def.size * 1.3;
+  const scale = TILE_SIZE / def.size * 1.3 * (def.displayScale ?? 1.0);
   sprite.setScale(scale);
   sprite.setData('plDirection', PL_DEFAULT_DIR);
 
