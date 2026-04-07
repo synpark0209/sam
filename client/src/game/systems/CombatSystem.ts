@@ -21,7 +21,7 @@ export interface CombatResult {
 }
 
 /** 상성 배율: 유리 1.2, 불리 0.8, 중립 1.0 */
-function getTypeMultiplier(attacker: UnitClass | undefined, defender: UnitClass | undefined): { multiplier: number; advantage: 'strong' | 'weak' | 'neutral' } {
+export function getTypeMultiplier(attacker: UnitClass | undefined, defender: UnitClass | undefined): { multiplier: number; advantage: 'strong' | 'weak' | 'neutral' } {
   if (!attacker || !defender) return { multiplier: 1, advantage: 'neutral' };
 
   const strong: [UnitClass, UnitClass][] = [

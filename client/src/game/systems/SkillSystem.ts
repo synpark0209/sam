@@ -6,6 +6,7 @@ import { getClassSkillId } from '@shared/data/classSkillDefs.ts';
 import { getSkillPowerMultiplier, getSkillMpCost, getSkillCooldown } from '@shared/data/skillEnhanceDefs.ts';
 import type { GridSystem } from './GridSystem.ts';
 import type { CombatSystem } from './CombatSystem.ts';
+import { getTypeMultiplier } from './CombatSystem.ts';
 
 export class SkillSystem {
   /** CombatSystem 참조 (getEffectiveStats용) */
@@ -149,10 +150,10 @@ export class SkillSystem {
             case 'damage': {
               const scaling = sub.scaling === 'spirit' ? (casterStats.spirit ?? 0) : casterStats.attack;
               const defStat = sub.scaling === 'spirit' ? (targetStats.resist ?? 0) : targetStats.defense;
-              // 스킬 데미지 = (스탯 - 방어 * 0.5) × power/100 × 강화배율
-              // power 100 = 일반 공격과 동급, 150 = 1.5배
               const baseDmg = scaling - defStat * 0.5;
-              const dmg = Math.max(1, Math.floor(baseDmg * (sub.power ?? 100) / 100 * powerMult));
+              // 상성 보정 적용
+              const typeResult = getTypeMultiplier(caster.unitClass, target.unitClass);
+              const dmg = Math.max(1, Math.floor(baseDmg * (sub.power ?? 100) / 100 * powerMult * typeResult.multiplier));
               target.stats.hp = Math.max(0, target.stats.hp - dmg);
               effectResult.damageDealt = (effectResult.damageDealt ?? 0) + dmg;
               if (target.stats.hp <= 0) { target.isAlive = false; effectResult.unitDied = true; }
