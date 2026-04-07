@@ -345,7 +345,10 @@ export function createSpriteSheetAnimations(scene: Phaser.Scene): void {
         const animKey = `${def.key}_${animName}_${dir}`;
         if (scene.anims.exists(animKey)) continue;
         const firstFrameKey = `${def.key}_${animName}_${dir}_0`;
-        if (!scene.textures.exists(firstFrameKey)) continue;
+        if (!scene.textures.exists(firstFrameKey)) {
+          if (def.key === 'pl_diaochan') console.warn(`[ANIM] Missing frame: ${firstFrameKey}`);
+          continue;
+        }
 
         const frames: Phaser.Types.Animations.AnimationFrame[] = [];
         for (let i = 0; i < animDef.frames; i++) {
@@ -460,23 +463,25 @@ export function setPixelLabDirection(
   if (currentDir === direction) return;
 
   sprite.setData('plDirection', direction);
-  sprite.setFlipX(false); // 방향 프레임 사용하므로 flipX 해제
+  sprite.setFlipX(false);
 
   // 현재 재생 중인 애니메이션을 새 방향으로 전환
   const currentAnim = sprite.anims.currentAnim;
   if (currentAnim) {
-    // 애니메이션 키에서 animName 추출 (pl_lubu_idle_south → idle)
-    const parts = currentAnim.key.split('_');
-    // key format: pl_lubu_{animName}_{direction}
-    // 마지막이 direction, 그 앞이 animName
-    parts.pop(); // direction 제거
     const prefix = `${def.key}_`;
     const animName = currentAnim.key.slice(prefix.length, currentAnim.key.lastIndexOf('_'));
-
     const newAnimKey = `${def.key}_${animName}_${direction}`;
     if (scene.anims.exists(newAnimKey)) {
       sprite.play(newAnimKey);
+      return;
     }
+  }
+
+  // 애니메이션이 없으면 정지 이미지(rotation)로 폴백
+  const rotKey = `${def.key}_rotation_${direction}`;
+  if (scene.textures.exists(rotKey)) {
+    sprite.stop();
+    sprite.setTexture(rotKey);
   }
 }
 
@@ -506,8 +511,16 @@ export function playPixelLabAnim(
       sprite.once('animationcomplete', () => {
         const idleKey = `${def.key}_idle_${dir}`;
         if (scene.anims.exists(idleKey)) sprite.play(idleKey);
+        else {
+          const rotKey = `${def.key}_rotation_${dir}`;
+          if (scene.textures.exists(rotKey)) { sprite.stop(); sprite.setTexture(rotKey); }
+        }
       });
     }
+  } else {
+    // 애니메이션 없으면 정지 이미지로 폴백
+    const rotKey = `${def.key}_rotation_${dir}`;
+    if (scene.textures.exists(rotKey)) { sprite.stop(); sprite.setTexture(rotKey); }
   }
 }
 
