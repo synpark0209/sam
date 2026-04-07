@@ -103,9 +103,10 @@ const PIXELLAB_CHARACTERS: Record<string, PixelLabCharacterDef> = {
     anims: {
       idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
       walk:   { folder: 'walking-4-frames',   frames: 4, frameRate: 6 },
-      attack: { folder: 'cross-punch',        frames: 6, frameRate: 8 },
+      attack: { folder: 'fan-attack',         frames: 4, frameRate: 6 },
       hit:    { folder: 'taking-punch',       frames: 6, frameRate: 8 },
       die:    { folder: 'falling-back-death', frames: 7, frameRate: 5 },
+      skill:  { folder: 'fan-skill',          frames: 4, frameRate: 6 },
     },
   },
 };
