@@ -1272,34 +1272,31 @@ export class BattleScene extends Phaser.Scene {
     const attackerTile = this.battleState.tiles[attacker.position.y][attacker.position.x];
     const result = this.combatSystem.executeAttack(attacker, defender, defenderTile, attackerTile, this.battleState.units);
 
-    // 상성/협공 표시
-    const atkPos = this.gridToPixel(attacker.position);
-    if (result.typeAdvantage === 'strong') {
-      this.showFloatingText(atkPos.x, atkPos.y - 30, '유리!', '#44ff44');
-    } else if (result.typeAdvantage === 'weak') {
-      this.showFloatingText(atkPos.x, atkPos.y - 30, '불리...', '#ff6666');
-    }
-    if (result.flanking) {
-      this.showFloatingText(atkPos.x, atkPos.y - 45, '협공!', '#ffaa00');
-    }
+    // 데미지 + 전투 정보 표시
+    const defPos = this.gridToPixel(defender.position);
+
     if (result.missed) {
-      const defPos2 = this.gridToPixel(defender.position);
-      this.showFloatingText(defPos2.x, defPos2.y - 30, 'MISS!', '#888888');
-    }
-    if (result.critical) {
-      this.showFloatingText(atkPos.x, atkPos.y - 55, '크리티컬!', '#ffaa00');
-    }
-    if (result.doubleAttack) {
-      this.showFloatingText(atkPos.x, atkPos.y - 65, '2회 공격!', '#44aaff');
+      this.showFloatingText(defPos.x, defPos.y - 20, 'MISS', '#888888');
+    } else {
+      // 데미지 숫자 + 보너스 태그
+      const tags: string[] = [];
+      if (result.critical) tags.push('크리!');
+      if (result.flanking) tags.push('협공!');
+      if (result.doubleAttack) tags.push('연격!');
+      if (result.typeAdvantage === 'strong') tags.push('유리');
+      if (result.typeAdvantage === 'weak') tags.push('불리');
+
+      this.showDamageText(defPos.x, defPos.y, result.damage);
+      if (tags.length > 0) {
+        const tagColor = result.critical ? '#ffaa00' : result.flanking ? '#44aaff' : '#44ff44';
+        this.showFloatingText(defPos.x, defPos.y - 30, tags.join(' '), tagColor);
+      }
     }
 
     this.time.delayedCall(200, () => {
       this.faceToward(defender, attacker.position);
       this.playUnitAnim(defender, 'hit');
     });
-
-    const defPos = this.gridToPixel(defender.position);
-    this.showDamageText(defPos.x, defPos.y, result.damage);
     this.updateUnitSprite(attacker);
     this.updateUnitSprite(defender);
 
@@ -1418,7 +1415,7 @@ export class BattleScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(50);
     this.ignoreFromUiCam(text);
     this.tweens.add({
-      targets: text, y: y - 45, alpha: 0, duration: 1000, ease: 'Power2',
+      targets: text, y: y - 45, alpha: 0, duration: 1500, delay: 300, ease: 'Power2',
       onComplete: () => text.destroy(),
     });
   }
@@ -1461,7 +1458,7 @@ export class BattleScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(50);
     this.ignoreFromUiCam(text);
     this.tweens.add({
-      targets: text, y: y - 50, alpha: 0, duration: 800, ease: 'Power2',
+      targets: text, y: y - 50, alpha: 0, duration: 1500, delay: 300, ease: 'Power2',
       onComplete: () => text.destroy(),
     });
   }
