@@ -5,8 +5,12 @@ import { SKILL_DEFS } from '@shared/data/skillDefs.ts';
 import { getClassSkillId } from '@shared/data/classSkillDefs.ts';
 import { getSkillPowerMultiplier, getSkillMpCost, getSkillCooldown } from '@shared/data/skillEnhanceDefs.ts';
 import type { GridSystem } from './GridSystem.ts';
+import type { CombatSystem } from './CombatSystem.ts';
 
 export class SkillSystem {
+  /** CombatSystem 참조 (getEffectiveStats용) */
+  combatSystem?: CombatSystem;
+
   /** 전투 모드 */
   private mode: 'scenario' | 'pvp' | 'dungeon' | 'full' = 'full';
 
@@ -131,16 +135,20 @@ export class SkillSystem {
       targets = target ? [target] : [];
     }
 
+    // 시전자 유효 스탯 (장비+각성+버프 반영)
+    const casterStats = this.combatSystem ? this.combatSystem.getEffectiveStats(caster) : caster.stats;
+
     // 효과 적용
     if (skill.effects && skill.effects.length > 0) {
       // 복합 효과 처리
       for (const target of targets) {
         const effectResult: SkillEffectResult = { unitId: target.id };
+        const targetStats = this.combatSystem ? this.combatSystem.getEffectiveStats(target) : target.stats;
         for (const sub of skill.effects) {
           switch (sub.type) {
             case 'damage': {
-              const scaling = sub.scaling === 'spirit' ? (caster.stats.spirit ?? 0) : caster.stats.attack;
-              const defStat = sub.scaling === 'spirit' ? (target.stats.resist ?? 0) : target.stats.defense;
+              const scaling = sub.scaling === 'spirit' ? (casterStats.spirit ?? 0) : casterStats.attack;
+              const defStat = sub.scaling === 'spirit' ? (targetStats.resist ?? 0) : targetStats.defense;
               // 스킬 데미지 = (스탯 - 방어 * 0.5) × power/100 × 강화배율
               // power 100 = 일반 공격과 동급, 150 = 1.5배
               const baseDmg = scaling - defStat * 0.5;
@@ -151,7 +159,7 @@ export class SkillSystem {
               break;
             }
             case 'heal': {
-              const heal = Math.floor(caster.stats.spirit * (sub.power ?? 0) / 100 * powerMult);
+              const heal = Math.floor((casterStats.spirit ?? 0) * (sub.power ?? 0) / 100 * powerMult);
               const actual = Math.min(heal, target.stats.maxHp - target.stats.hp);
               target.stats.hp += actual;
               effectResult.healingDone = (effectResult.healingDone ?? 0) + actual;

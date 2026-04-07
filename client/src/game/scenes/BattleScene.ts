@@ -194,6 +194,7 @@ export class BattleScene extends Phaser.Scene {
     this.turnSystem = new TurnSystem(this.battleState);
     this.aiSystem = new AISystem(this.gridSystem, this.combatSystem, this.turnSystem);
     this.skillSystem = new SkillSystem();
+    this.skillSystem.combatSystem = this.combatSystem;
     this.skillSystem.setMode(this.campaignMode ? 'scenario' : this.pvpMode ? 'pvp' : 'dungeon');
     this.expSystem = new ExperienceSystem();
 
