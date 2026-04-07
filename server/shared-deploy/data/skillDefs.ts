@@ -86,16 +86,16 @@ export const SKILL_DEFS: Record<string, SkillDef> = {
   // 병종 기본 스킬 (3단계 자동 진화)
   // ═══════════════════════════════════════
   // 기병
-  class_cavalry_1: { id: 'class_cavalry_1', name: '돌격', description: '강력한 돌격 공격', mpCost: 5, range: 1, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 40, cooldown: 0,
+  class_cavalry_1: { id: 'class_cavalry_1', name: '돌격', description: '강력한 돌격 공격', mpCost: 5, range: 1, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 120, cooldown: 0,
     effects: [{ type: 'damage', scaling: 'attack', power: 40 }],
   },
-  class_cavalry_2: { id: 'class_cavalry_2', name: '기마돌파', description: '적 방어를 뚫는 돌격', mpCost: 8, range: 1, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 55, cooldown: 0,
+  class_cavalry_2: { id: 'class_cavalry_2', name: '기마돌파', description: '적 방어를 뚫는 돌격', mpCost: 8, range: 1, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 150, cooldown: 0,
     effects: [
       { type: 'damage', scaling: 'attack', power: 55 },
       { type: 'debuff', statusEffect: 'defense_down', statusDuration: 2, statusMagnitude: 5 },
     ],
   },
-  class_cavalry_3: { id: 'class_cavalry_3', name: '추격', description: '도망가는 적을 추격하여 강타', mpCost: 10, range: 2, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 70, cooldown: 1,
+  class_cavalry_3: { id: 'class_cavalry_3', name: '추격', description: '도망가는 적을 추격하여 강타', mpCost: 10, range: 2, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 180, cooldown: 1,
     effects: [{ type: 'damage', scaling: 'attack', power: 70 }],
   },
   // 보병
@@ -112,49 +112,49 @@ export const SKILL_DEFS: Record<string, SkillDef> = {
     ],
   },
   // 궁병
-  class_archer_1: { id: 'class_archer_1', name: '조준사격', description: '정확한 사격으로 적 1체 공격', mpCost: 5, range: 3, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 35, cooldown: 0,
+  class_archer_1: { id: 'class_archer_1', name: '조준사격', description: '정확한 사격으로 적 1체 공격', mpCost: 5, range: 3, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 110, cooldown: 0,
     effects: [{ type: 'damage', scaling: 'attack', power: 35 }],
   },
-  class_archer_2: { id: 'class_archer_2', name: '정밀사격', description: '급소를 노린 사격', mpCost: 8, range: 3, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 50, cooldown: 0,
+  class_archer_2: { id: 'class_archer_2', name: '정밀사격', description: '급소를 노린 사격', mpCost: 8, range: 3, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 140, cooldown: 0,
     effects: [{ type: 'damage', scaling: 'attack', power: 50 }],
   },
-  class_archer_3: { id: 'class_archer_3', name: '백보천양', description: '100보 밖의 버들잎을 꿰뚫는 신궁', mpCost: 12, range: 4, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 70, cooldown: 1,
+  class_archer_3: { id: 'class_archer_3', name: '백보천양', description: '100보 밖의 버들잎을 꿰뚫는 신궁', mpCost: 12, range: 4, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 180, cooldown: 1,
     effects: [{ type: 'damage', scaling: 'attack', power: 70 }],
   },
   // 책사
-  class_strategist_1: { id: 'class_strategist_1', name: '화진', description: '불로 적을 공격', mpCost: 6, range: 3, aoeRadius: 1, targetType: SkillTargetType.AREA_ENEMY, effectType: SkillEffectType.DAMAGE, power: 30, cooldown: 0,
+  class_strategist_1: { id: 'class_strategist_1', name: '화진', description: '불로 적을 공격', mpCost: 6, range: 3, aoeRadius: 1, targetType: SkillTargetType.AREA_ENEMY, effectType: SkillEffectType.DAMAGE, power: 100, cooldown: 0,
     effects: [{ type: 'damage', scaling: 'spirit', power: 30 }],
   },
-  class_strategist_2: { id: 'class_strategist_2', name: '초열', description: '맹렬한 화염', mpCost: 10, range: 3, aoeRadius: 1, targetType: SkillTargetType.AREA_ENEMY, effectType: SkillEffectType.DAMAGE, power: 45, cooldown: 0,
+  class_strategist_2: { id: 'class_strategist_2', name: '초열', description: '맹렬한 화염', mpCost: 10, range: 3, aoeRadius: 1, targetType: SkillTargetType.AREA_ENEMY, effectType: SkillEffectType.DAMAGE, power: 130, cooldown: 0,
     effects: [{ type: 'damage', scaling: 'spirit', power: 45 }],
   },
-  class_strategist_3: { id: 'class_strategist_3', name: '폭염', description: '모든 것을 태우는 극한의 화염', mpCost: 15, range: 4, aoeRadius: 2, targetType: SkillTargetType.AREA_ENEMY, effectType: SkillEffectType.DAMAGE, power: 65, cooldown: 1,
+  class_strategist_3: { id: 'class_strategist_3', name: '폭염', description: '모든 것을 태우는 극한의 화염', mpCost: 15, range: 4, aoeRadius: 2, targetType: SkillTargetType.AREA_ENEMY, effectType: SkillEffectType.DAMAGE, power: 170, cooldown: 1,
     effects: [{ type: 'damage', scaling: 'spirit', power: 65 }],
   },
   // 무도가
-  class_martial_1: { id: 'class_martial_1', name: '강타', description: '강력한 일격', mpCost: 4, range: 1, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 38, cooldown: 0,
+  class_martial_1: { id: 'class_martial_1', name: '강타', description: '강력한 일격', mpCost: 4, range: 1, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 115, cooldown: 0,
     effects: [{ type: 'damage', scaling: 'attack', power: 38 }],
   },
-  class_martial_2: { id: 'class_martial_2', name: '연타', description: '연속 타격', mpCost: 7, range: 1, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 52, cooldown: 0,
+  class_martial_2: { id: 'class_martial_2', name: '연타', description: '연속 타격', mpCost: 7, range: 1, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 145, cooldown: 0,
     effects: [{ type: 'damage', scaling: 'attack', power: 52 }],
   },
-  class_martial_3: { id: 'class_martial_3', name: '회심격', description: '전력을 다한 일격', mpCost: 10, range: 1, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 75, cooldown: 1,
+  class_martial_3: { id: 'class_martial_3', name: '회심격', description: '전력을 다한 일격', mpCost: 10, range: 1, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 190, cooldown: 1,
     effects: [{ type: 'damage', scaling: 'attack', power: 75 }],
   },
   // 도적
-  class_bandit_1: { id: 'class_bandit_1', name: '암습', description: '기습 공격', mpCost: 4, range: 1, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 35, cooldown: 0,
+  class_bandit_1: { id: 'class_bandit_1', name: '암습', description: '기습 공격', mpCost: 4, range: 1, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 110, cooldown: 0,
     effects: [
       { type: 'damage', scaling: 'attack', power: 35 },
       { type: 'debuff', statusEffect: 'attack_down', statusDuration: 1, statusMagnitude: 5 },
     ],
   },
-  class_bandit_2: { id: 'class_bandit_2', name: '기습', description: '방심한 틈을 노린 공격', mpCost: 7, range: 1, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 48, cooldown: 0,
+  class_bandit_2: { id: 'class_bandit_2', name: '기습', description: '방심한 틈을 노린 공격', mpCost: 7, range: 1, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 135, cooldown: 0,
     effects: [
       { type: 'damage', scaling: 'attack', power: 48 },
       { type: 'debuff', statusEffect: 'attack_down', statusDuration: 2, statusMagnitude: 8 },
     ],
   },
-  class_bandit_3: { id: 'class_bandit_3', name: '급소공격', description: '치명적인 급소를 노린다', mpCost: 10, range: 1, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 68, cooldown: 1,
+  class_bandit_3: { id: 'class_bandit_3', name: '급소공격', description: '치명적인 급소를 노린다', mpCost: 10, range: 1, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 170, cooldown: 1,
     effects: [
       { type: 'damage', scaling: 'attack', power: 68 },
       { type: 'debuff', statusEffect: 'defense_down', statusDuration: 2, statusMagnitude: 12 },
@@ -174,13 +174,13 @@ export const SKILL_DEFS: Record<string, SkillDef> = {
     ],
   },
   // 도사
-  class_taoist_1: { id: 'class_taoist_1', name: '뇌법', description: '번개로 적을 공격', mpCost: 8, range: 3, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 35, cooldown: 0,
+  class_taoist_1: { id: 'class_taoist_1', name: '뇌법', description: '번개로 적을 공격', mpCost: 8, range: 3, aoeRadius: 0, targetType: SkillTargetType.SINGLE_ENEMY, effectType: SkillEffectType.DAMAGE, power: 110, cooldown: 0,
     effects: [
       { type: 'damage', scaling: 'spirit', power: 35 },
       { type: 'status', statusEffect: 'stun', statusDuration: 1, statusMagnitude: 0 },
     ],
   },
-  class_taoist_2: { id: 'class_taoist_2', name: '천뇌', description: '범위 번개 + 기절', mpCost: 14, range: 3, aoeRadius: 1, targetType: SkillTargetType.AREA_ENEMY, effectType: SkillEffectType.DAMAGE, power: 50, cooldown: 1,
+  class_taoist_2: { id: 'class_taoist_2', name: '천뇌', description: '범위 번개 + 기절', mpCost: 14, range: 3, aoeRadius: 1, targetType: SkillTargetType.AREA_ENEMY, effectType: SkillEffectType.DAMAGE, power: 140, cooldown: 1,
     effects: [
       { type: 'damage', scaling: 'spirit', power: 50 },
       { type: 'status', statusEffect: 'stun', statusDuration: 1, statusMagnitude: 0 },
@@ -198,7 +198,7 @@ export const SKILL_DEFS: Record<string, SkillDef> = {
     ],
   },
   // 공성차
-  class_siege_1: { id: 'class_siege_1', name: '포격', description: '넓은 범위 폭격', mpCost: 10, range: 3, aoeRadius: 2, targetType: SkillTargetType.AREA_ENEMY, effectType: SkillEffectType.DAMAGE, power: 45, cooldown: 2,
+  class_siege_1: { id: 'class_siege_1', name: '포격', description: '넓은 범위 폭격', mpCost: 10, range: 3, aoeRadius: 2, targetType: SkillTargetType.AREA_ENEMY, effectType: SkillEffectType.DAMAGE, power: 130, cooldown: 2,
     effects: [
       { type: 'damage', scaling: 'attack', power: 45 },
       { type: 'debuff', statusEffect: 'defense_down', statusDuration: 2, statusMagnitude: 10 },

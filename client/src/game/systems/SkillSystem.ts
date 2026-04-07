@@ -141,8 +141,10 @@ export class SkillSystem {
             case 'damage': {
               const scaling = sub.scaling === 'spirit' ? (caster.stats.spirit ?? 0) : caster.stats.attack;
               const defStat = sub.scaling === 'spirit' ? (target.stats.resist ?? 0) : target.stats.defense;
-              const rawDmg = scaling * (sub.power ?? 0) / 100 * powerMult;
-              const dmg = Math.max(1, Math.floor(rawDmg - defStat * 0.3));
+              // 스킬 데미지 = (스탯 - 방어 * 0.5) × power/100 × 강화배율
+              // power 100 = 일반 공격과 동급, 150 = 1.5배
+              const baseDmg = scaling - defStat * 0.5;
+              const dmg = Math.max(1, Math.floor(baseDmg * (sub.power ?? 100) / 100 * powerMult));
               target.stats.hp = Math.max(0, target.stats.hp - dmg);
               effectResult.damageDealt = (effectResult.damageDealt ?? 0) + dmg;
               if (target.stats.hp <= 0) { target.isAlive = false; effectResult.unitDied = true; }
