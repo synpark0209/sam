@@ -155,8 +155,12 @@ export class WorldMapScene extends Phaser.Scene {
     }
   }
 
+  private selectedGuests: string[] = [];
+
   private showGuestSelect(stage: import('@shared/types/campaign.ts').Stage, guests: import('@shared/types/index.ts').UnitData[]): void {
     this.children.removeAll();
+    const maxGuests = this.campaignManager.getMaxGuests();
+
     const bg = this.add.graphics();
     bg.fillGradientStyle(0x0e1420, 0x0e1420, 0x1a2030, 0x1a2030, 1);
     bg.fillRect(0, 0, GW, GH);
@@ -166,26 +170,25 @@ export class WorldMapScene extends Phaser.Scene {
       stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0.5);
 
-    this.add.text(GW / 2, 48, '시나리오 장수 외 1명을 선택하세요', {
+    this.add.text(GW / 2, 48, `최대 ${maxGuests}명 선택 (${this.selectedGuests.length}/${maxGuests})`, {
       fontSize: '13px', color: '#aaaaaa',
     }).setOrigin(0.5);
 
-    // 선택 안 함 버튼
-    const noneBg = this.add.graphics();
-    noneBg.fillStyle(0x1a1a2a, 1).fillRoundedRect(GW / 2 - 120, 65, 240, 30, 6);
-    noneBg.lineStyle(1, 0x333355, 0.5).strokeRoundedRect(GW / 2 - 120, 65, 240, 30, 6);
-    const noneBtn = this.add.text(GW / 2, 80, '기본 장수만 출전', {
-      fontSize: '12px', color: '#888888',
+    // 출전 버튼
+    const goReady = this.selectedGuests.length > 0;
+    const goBg = this.add.graphics();
+    goBg.fillStyle(goReady ? 0x228833 : 0x1a1a2a, 1).fillRoundedRect(GW / 2 - 120, 65, 240, 32, 6);
+    goBg.lineStyle(1, goReady ? 0x44ff44 : 0x333355, 0.5).strokeRoundedRect(GW / 2 - 120, 65, 240, 32, 6);
+    const goLabel = this.selectedGuests.length > 0
+      ? `출전! (시나리오 + ${this.selectedGuests.length}명)`
+      : '기본 장수만 출전';
+    const goBtn = this.add.text(GW / 2, 81, goLabel, {
+      fontSize: '13px', color: goReady ? '#ffffff' : '#888888', fontStyle: 'bold',
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    noneBtn.on('pointerdown', () => this.launchBattle(stage, undefined));
+    goBtn.on('pointerdown', () => this.launchBattle(stage, this.selectedGuests.length > 0 ? this.selectedGuests : undefined));
 
-    // 최근 선택 장수 맨 앞 + 레벨 내림차순 정렬
-    const lastGuestId = this.campaignManager.getProgress().lastGuestId;
-    guests.sort((a, b) => {
-      if (a.id === lastGuestId) return -1;
-      if (b.id === lastGuestId) return 1;
-      return (b.level ?? 1) - (a.level ?? 1);
-    });
+    // 레벨 내림차순 정렬
+    guests.sort((a, b) => (b.level ?? 1) - (a.level ?? 1));
 
     // 게스트 그리드
     const cols = 3;
@@ -193,7 +196,7 @@ export class WorldMapScene extends Phaser.Scene {
     const gap = 10;
     const cellW = (GW - pad * 2 - (cols - 1) * gap) / cols;
     const cellH = cellW;
-    const startY = 105;
+    const startY = 108;
     const clsIcons: Record<string, string> = {
       cavalry: '🐎', infantry: '🛡️', archer: '🏹',
       strategist: '📜', martial_artist: '👊', bandit: '🗡️',
@@ -210,10 +213,16 @@ export class WorldMapScene extends Phaser.Scene {
       const gradeColorHex = getGradeColor(grade as HeroGrade);
       const gradeColorNum = Phaser.Display.Color.HexStringToColor(gradeColorHex).color;
 
-      const isLast = unit.id === lastGuestId;
+      const isSelected = this.selectedGuests.includes(unit.id);
       const card = this.add.graphics();
-      card.fillStyle(isLast ? 0x1a2840 : 0x141428, 1).fillRoundedRect(x, y, cellW, cellH, 8);
-      card.lineStyle(2, isLast ? 0xffd700 : gradeColorNum, 0.8).strokeRoundedRect(x, y, cellW, cellH, 8);
+      card.fillStyle(isSelected ? 0x1a3a1a : 0x141428, 1).fillRoundedRect(x, y, cellW, cellH, 8);
+      card.lineStyle(2, isSelected ? 0x44ff44 : gradeColorNum, 0.8).strokeRoundedRect(x, y, cellW, cellH, 8);
+
+      if (isSelected) {
+        this.add.text(x + cellW - 6, y + cellH - 6, '✓', {
+          fontSize: '16px', color: '#44ff44', fontStyle: 'bold',
+        }).setOrigin(1, 1);
+      }
 
       const cls = unit.unitClass ?? 'infantry';
       this.add.text(x + cellW / 2, y + cellW * 0.30, clsIcons[cls] ?? '⚔️', {
@@ -237,24 +246,26 @@ export class WorldMapScene extends Phaser.Scene {
         fontSize: '10px', color: '#88aacc',
       }).setOrigin(0.5);
 
-      if (isLast) {
-        this.add.text(x + cellW / 2, y + cellH - 4, '최근 선택', {
-          fontSize: '8px', color: '#ffd700',
-        }).setOrigin(0.5);
-      }
-
       const hit = this.add.rectangle(x + cellW / 2, y + cellH / 2, cellW, cellH, 0x000000, 0)
         .setInteractive({ useHandCursor: true });
-      hit.on('pointerdown', () => this.launchBattle(stage, unit.id));
+      hit.on('pointerdown', () => {
+        if (isSelected) {
+          this.selectedGuests = this.selectedGuests.filter(id => id !== unit.id);
+        } else if (this.selectedGuests.length < maxGuests) {
+          this.selectedGuests.push(unit.id);
+        }
+        this.showGuestSelect(stage, guests);
+      });
     }
   }
 
-  private launchBattle(stage: import('@shared/types/campaign.ts').Stage, guestUnitId?: string): void {
-    if (guestUnitId) {
-      this.campaignManager.getProgress().lastGuestId = guestUnitId;
+  private launchBattle(stage: import('@shared/types/campaign.ts').Stage, guestUnitIds?: string[]): void {
+    if (guestUnitIds && guestUnitIds.length > 0) {
+      this.campaignManager.getProgress().lastGuestId = guestUnitIds[0];
       this.campaignManager.save();
     }
-    const playerUnits = this.campaignManager.prepareBattle(stage.battleConfig, guestUnitId);
+    this.selectedGuests = [];
+    const playerUnits = this.campaignManager.prepareBattle(stage.battleConfig, guestUnitIds);
     this.registry.set('pendingBattle', {
       campaignMode: true,
       campaignManager: this.campaignManager,

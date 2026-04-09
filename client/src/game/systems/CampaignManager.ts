@@ -104,16 +104,25 @@ export class CampaignManager {
     return 'locked';
   }
 
-  /** 시나리오 전투용 출전 장수 준비 (시나리오 장수 + 게스트 1명) */
-  prepareBattle(battleConfig: BattleConfig, guestUnitId?: string): UnitData[] {
-    // 시나리오 기본 장수만 선택
+  /** 챕터별 게스트 장수 허용 수 */
+  getMaxGuests(): number {
+    const chapterIdx = ALL_CHAPTERS.findIndex(c => c.id === this.progress.currentChapterId);
+    if (chapterIdx <= 2) return 1;       // 프롤로그~2장: 1명
+    if (chapterIdx <= 4) return 2;       // 3~4장: 2명
+    if (chapterIdx <= 7) return 3;       // 5~7장: 3명
+    return 4;                            // 8~10장: 4명
+  }
+
+  /** 시나리오 전투용 출전 장수 준비 (시나리오 장수 + 게스트) */
+  prepareBattle(battleConfig: BattleConfig, guestUnitIds?: string[]): UnitData[] {
     const scenarioUnits = this.progress.playerUnits.filter(u => u.isScenarioUnit);
 
-    // 게스트 장수 추가 (가챠/이벤트 장수 중 1명)
     const battleUnits = [...scenarioUnits];
-    if (guestUnitId) {
-      const guest = this.progress.playerUnits.find(u => u.id === guestUnitId && !u.isScenarioUnit);
-      if (guest) battleUnits.push(guest);
+    if (guestUnitIds) {
+      for (const guestId of guestUnitIds) {
+        const guest = this.progress.playerUnits.find(u => u.id === guestId && !u.isScenarioUnit);
+        if (guest) battleUnits.push(guest);
+      }
     }
 
     const usedPositions = new Set<string>();
