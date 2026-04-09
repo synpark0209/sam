@@ -113,7 +113,7 @@ const PIXELLAB_CHARACTERS: Record<string, PixelLabCharacterDef> = {
   gacha_guanyu: { // 관우
     key: 'pl_guanyu',
     basePath: 'assets/characters/guanyu',
-    size: 96,
+    size: 96, displayScale: 0.8,
     anims: {
       idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
       walk:   { folder: 'walking-4-frames',   frames: 4, frameRate: 6 },
