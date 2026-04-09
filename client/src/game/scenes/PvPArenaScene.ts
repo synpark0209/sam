@@ -1172,7 +1172,7 @@ export class PvPArenaScene extends Phaser.Scene {
   /** 유닛의 PixelLab 텍스처 키 (정적 프레임) */
   private getUnitTextureKey(unit: ArenaUnit, direction: string, anim = 'idle'): string {
     const heroId = unit.data.id;
-    const heroKeys: Record<string, string> = { p1: 'pl_lubu', p2: 'pl_zhangliao', p5: 'pl_diaochan' };
+    const heroKeys: Record<string, string> = { p1: 'pl_lubu', p2: 'pl_zhangliao', p5: 'pl_diaochan', gacha_guanyu: 'pl_guanyu' };
     const heroKey = heroKeys[heroId];
     if (heroKey) {
       const key = `${heroKey}_${anim}_${direction}_0`;
@@ -1193,7 +1193,7 @@ export class PvPArenaScene extends Phaser.Scene {
   /** 유닛의 PixelLab 애니메이션 키 반환 (Phaser anim key) */
   private getUnitAnimKey(unit: ArenaUnit, anim: string, direction: string): string | null {
     const heroId = unit.data.id;
-    const heroKeys: Record<string, string> = { p1: 'pl_lubu', p2: 'pl_zhangliao', p5: 'pl_diaochan' };
+    const heroKeys: Record<string, string> = { p1: 'pl_lubu', p2: 'pl_zhangliao', p5: 'pl_diaochan', gacha_guanyu: 'pl_guanyu' };
     const heroKey = heroKeys[heroId];
     if (heroKey) {
       const key = `${heroKey}_${anim}_${direction}`;

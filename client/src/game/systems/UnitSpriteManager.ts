@@ -110,6 +110,19 @@ const PIXELLAB_CHARACTERS: Record<string, PixelLabCharacterDef> = {
       skill:  { folder: 'fan-skill',          frames: 4, frameRate: 6 },
     },
   },
+  gacha_guanyu: { // 관우
+    key: 'pl_guanyu',
+    basePath: 'assets/characters/guanyu',
+    size: 96,
+    anims: {
+      idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
+      walk:   { folder: 'walking-4-frames',   frames: 4, frameRate: 6 },
+      attack: { folder: 'blade-attack',       frames: 4, frameRate: 6 },
+      hit:    { folder: 'taking-punch',       frames: 6, frameRate: 8 },
+      die:    { folder: 'falling-back-death', frames: 7, frameRate: 5 },
+      skill:  { folder: 'blade-skill',        frames: 4, frameRate: 6 },
+    },
+  },
 };
 
 /** 병종 → PixelLab 캐릭터 매핑 (장수 ID에 매칭 안 될 때 폴백) */
@@ -249,9 +262,13 @@ export function hasUnitImage(scene: Phaser.Scene, unitClass: UnitClass, faction:
 
 /** 장수 ID 또는 병종으로 PixelLab 캐릭터 정의 가져오기 */
 function getPixelLabDef(heroId: string, unitClass?: UnitClass): PixelLabCharacterDef | undefined {
-  // 1. 장수 ID로 매칭
+  // 1. 장수 ID로 정확히 매칭
   if (PIXELLAB_CHARACTERS[heroId]) return PIXELLAB_CHARACTERS[heroId];
-  // 2. 병종으로 폴백
+  // 2. 가챠 장수: ID prefix로 매칭 (gacha_guanyu_123456 → gacha_guanyu)
+  for (const [key, def] of Object.entries(PIXELLAB_CHARACTERS)) {
+    if (heroId.startsWith(key)) return def;
+  }
+  // 3. 병종으로 폴백
   if (unitClass && PIXELLAB_CLASS_UNITS[unitClass]) return PIXELLAB_CLASS_UNITS[unitClass];
   return undefined;
 }

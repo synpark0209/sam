@@ -324,7 +324,7 @@ export class DeploymentUI {
   /** Render a unit sprite in a cell */
   private renderUnitInCell(unit: UnitData, cx: number, cy: number): void {
     // Try PixelLab rotation image first
-    const heroKeys: Record<string, string> = { p1: 'pl_lubu', p2: 'pl_zhangliao', p5: 'pl_diaochan' };
+    const heroKeys: Record<string, string> = { p1: 'pl_lubu', p2: 'pl_zhangliao', p5: 'pl_diaochan', gacha_guanyu: 'pl_guanyu' };
     const heroKey = heroKeys[unit.id];
     let texKey: string | null = null;
 
