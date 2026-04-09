@@ -75,6 +75,8 @@ const stage1Battle: BattleConfig = {
     enemy('e5_3', '흑산적 도적', UnitClass.BANDIT, 8, 6, 10),
     enemy('e5_4', '흑산적 졸병', UnitClass.BANDIT, 9, 2, 9),
     enemy('e5_5', '흑산적 도적', UnitClass.BANDIT, 9, 7, 8),
+    enemy('e5_6', '흑산적 궁수', UnitClass.ARCHER, 10, 5, 9),
+    enemy('e5_7', '흑산적 두목', UnitClass.MARTIAL_ARTIST, 10, 3, 10),
   ],
   playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 3 }, { x: 1, y: 5 }, { x: 2, y: 4 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }, { x: 4, y: 2 }],
 };
@@ -103,6 +105,8 @@ const stage2Battle: BattleConfig = {
     enemy('e6_3', '원소군 궁병', UnitClass.ARCHER, 1, 6, 10),
     enemy('e6_4', '원소군 궁병', UnitClass.ARCHER, 8, 6, 9),
     enemy('e6_5', '원소군 매복병', UnitClass.INFANTRY, 4, 1, 9),
+    enemy('e6_6', '원소군 기병', UnitClass.CAVALRY, 5, 7, 10),
+    enemy('e6_7', '원소군 매복병', UnitClass.INFANTRY, 4, 8, 9),
   ],
   playerStartPositions: [{ x: 4, y: 4 }, { x: 5, y: 4 }, { x: 4, y: 5 }, { x: 5, y: 5 }, { x: 4, y: 2 }, { x: 5, y: 2 }, { x: 6, y: 2 }, { x: 7, y: 2 }],
 };
@@ -126,6 +130,10 @@ const stage3Battle: BattleConfig = {
     enemy('e7_2', '도적', UnitClass.BANDIT, 9, 3, 9),
     enemy('e7_3', '도적', UnitClass.BANDIT, 9, 6, 9),
     enemy('e7_4', '도적', UnitClass.BANDIT, 10, 7, 8),
+    enemy('e7_5', '도적 궁수', UnitClass.ARCHER, 7, 4, 9),
+    enemy('e7_6', '도적 무사', UnitClass.MARTIAL_ARTIST, 10, 2, 10),
+    enemy('e7_7', '도적', UnitClass.BANDIT, 7, 7, 8),
+    enemy('e7_8', '도적 궁수', UnitClass.ARCHER, 11, 5, 9),
   ],
   playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 5 }, { x: 2, y: 3 }, { x: 2, y: 6 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }, { x: 4, y: 2 }],
 };

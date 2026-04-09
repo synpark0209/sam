@@ -70,6 +70,9 @@ const stage1Battle: BattleConfig = {
     enemy('e7_3', '유비군 보병', UnitClass.INFANTRY, 8, 6, 19),
     enemy('e7_4', '유비군 궁병', UnitClass.ARCHER, 10, 4, 18),
     enemy('e7_5', '유비군 궁병', UnitClass.ARCHER, 10, 5, 18),
+    enemy('e7_5b', '유비군 보병', UnitClass.INFANTRY, 7, 4, 19),
+    enemy('e7_5c', '유비군 보병', UnitClass.INFANTRY, 7, 5, 18),
+    enemy('e7_5d', '유비군 군사', UnitClass.STRATEGIST, 10, 3, 20),
   ],
   playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 3 }, { x: 1, y: 5 }, { x: 2, y: 4 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }, { x: 4, y: 2 }],
 };
@@ -92,6 +95,10 @@ const stage2Battle: BattleConfig = {
     enemy('e7_8', '조조군 선봉보병', UnitClass.INFANTRY, 9, 6, 20),
     enemy('e7_9', '조조군 선봉기병', UnitClass.CAVALRY, 10, 2, 19),
     enemy('e7_10', '조조군 선봉기병', UnitClass.CAVALRY, 10, 7, 19),
+    enemy('e7_10b', '조조군 선봉궁병', UnitClass.ARCHER, 11, 4, 19),
+    enemy('e7_10c', '조조군 선봉궁병', UnitClass.ARCHER, 11, 5, 19),
+    enemy('e7_10d', '조조군 군사', UnitClass.STRATEGIST, 8, 4, 20),
+    enemy('e7_10e', '조조군 선봉보병', UnitClass.INFANTRY, 8, 5, 19),
   ],
   playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 3 }, { x: 1, y: 5 }, { x: 2, y: 4 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }, { x: 4, y: 2 }],
 };
@@ -120,6 +127,10 @@ const stage3Battle: BattleConfig = {
     enemy('e7_14', '조조군 야영궁병', UnitClass.ARCHER, 8, 7, 18),
     enemy('e7_15', '조조군 야영보병', UnitClass.INFANTRY, 9, 5, 19),
     enemy('e7_16', '곽가', UnitClass.STRATEGIST, 9, 3, 21, { maxHp: 240, hp: 240, spirit: 70, defense: 15 }),
+    enemy('e7_17', '조조군 야영기병', UnitClass.CAVALRY, 9, 7, 19),
+    enemy('e7_18', '조조군 야영궁병', UnitClass.ARCHER, 7, 4, 18),
+    enemy('e7_19', '조조군 야영보병', UnitClass.INFANTRY, 6, 6, 19),
+    enemy('e7_20', '조조군 야영보병', UnitClass.INFANTRY, 9, 1, 18),
   ],
   playerStartPositions: [{ x: 0, y: 4 }, { x: 0, y: 3 }, { x: 0, y: 5 }, { x: 1, y: 4 }, { x: 0, y: 2 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }],
 };

@@ -68,6 +68,8 @@ const stage1Battle: BattleConfig = {
     enemy('e10_4', '도적', UnitClass.INFANTRY, 10, 3, 15),
     enemy('e10_5', '도적', UnitClass.INFANTRY, 10, 6, 15),
     enemy('e10_6', '도적', UnitClass.BANDIT, 8, 5, 14),
+    enemy('e10_7', '도적 궁수', UnitClass.ARCHER, 10, 1, 15),
+    enemy('e10_8', '도적 무사', UnitClass.MARTIAL_ARTIST, 10, 8, 14),
   ],
   playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 5 }, { x: 2, y: 3 }, { x: 2, y: 6 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }, { x: 4, y: 2 }],
 };
@@ -96,6 +98,10 @@ const stage2Battle: BattleConfig = {
     enemy('e11_3', '원술군 선봉기병', UnitClass.CAVALRY, 8, 6, 16),
     enemy('e11_4', '원술군 보병', UnitClass.INFANTRY, 7, 4, 15),
     enemy('e11_5', '원술군 보병', UnitClass.INFANTRY, 7, 5, 14),
+    enemy('e11_6', '원술군 궁병', UnitClass.ARCHER, 10, 2, 15),
+    enemy('e11_7', '원술군 궁병', UnitClass.ARCHER, 10, 7, 15),
+    enemy('e11_8', '원술군 보병', UnitClass.INFANTRY, 8, 5, 14),
+    enemy('e11_9', '원술군 군사', UnitClass.STRATEGIST, 11, 4, 16),
   ],
   playerStartPositions: [{ x: 1, y: 3 }, { x: 1, y: 6 }, { x: 2, y: 4 }, { x: 2, y: 5 }, { x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 }, { x: 4, y: 1 }],
 };

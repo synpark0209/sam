@@ -74,6 +74,8 @@ const stage1Battle: BattleConfig = {
     enemy('e8_3', '연주 수비병', UnitClass.INFANTRY, 7, 5, 13),
     enemy('e8_4', '연주 궁수', UnitClass.ARCHER, 9, 3, 12),
     enemy('e8_5', '연주 궁수', UnitClass.ARCHER, 9, 6, 12),
+    enemy('e8_6', '연주 수비병', UnitClass.INFANTRY, 7, 2, 12),
+    enemy('e8_7', '연주 수비병', UnitClass.INFANTRY, 7, 7, 11),
   ],
   playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 5 }, { x: 2, y: 3 }, { x: 2, y: 6 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }, { x: 4, y: 2 }],
 };
@@ -105,6 +107,9 @@ const stage2Battle: BattleConfig = {
     enemy('e9_3', '전위', UnitClass.MARTIAL_ARTIST, 8, 6, 15, { maxHp: 290, hp: 290, attack: 66, defense: 24 }),
     enemy('e9_4', '하후돈', UnitClass.INFANTRY, 9, 2, 14, { maxHp: 280, hp: 280, attack: 62, defense: 28 }),
     enemy('e9_5', '악진', UnitClass.INFANTRY, 9, 7, 13, { maxHp: 260, hp: 260, attack: 58, defense: 22 }),
+    enemy('e9_6', '조조군 궁수', UnitClass.ARCHER, 10, 2, 13),
+    enemy('e9_7', '조조군 보병', UnitClass.INFANTRY, 10, 7, 12),
+    enemy('e9_8', '조조군 군사', UnitClass.STRATEGIST, 11, 5, 14),
   ],
   playerStartPositions: [{ x: 1, y: 4 }, { x: 1, y: 5 }, { x: 1, y: 3 }, { x: 1, y: 6 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }, { x: 4, y: 2 }],
 };
