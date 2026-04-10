@@ -658,11 +658,12 @@ export class LobbyScene extends Phaser.Scene {
 
       let dragStartY = 0;
       let dragScrollY = 0;
+      const contentTop = 58;
       this.addScrollListener('pointerdown', (p: Phaser.Input.Pointer) => {
-        if (p.y >= startY) { dragStartY = p.y; dragScrollY = scrollY; }
+        if (p.y >= contentTop) { dragStartY = p.y; dragScrollY = scrollY; }
       });
       this.addScrollListener('pointermove', (p: Phaser.Input.Pointer) => {
-        if (p.isDown && p.y >= startY) {
+        if (p.isDown && p.y >= contentTop) {
           scrollY = Phaser.Math.Clamp(dragScrollY + (dragStartY - p.y), 0, maxScroll);
           container.y = -scrollY;
         }
