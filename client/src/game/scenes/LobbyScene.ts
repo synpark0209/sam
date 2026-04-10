@@ -1438,15 +1438,150 @@ export class LobbyScene extends Phaser.Scene {
       const cur = unit.equipment?.[slotKey as 'weapon' | 'armor' | 'accessory'];
       return cur ? EQUIPMENT_DEFS[cur]?.name ?? '?' : '-';
     }, (unit) => {
-      if (unit.equipment?.[slotKey as 'weapon' | 'armor' | 'accessory']) {
-        bag.push(unit.equipment[slotKey as 'weapon' | 'armor' | 'accessory']!);
+      this.showEquipCompare(bag, bagIdx, itemId, unit, slotKey as 'weapon' | 'armor' | 'accessory');
+    }, canEquipItem);
+  }
+
+  /** 장비 비교 화면 */
+  private showEquipCompare(bag: string[], bagIdx: number, newItemId: string, unit: UnitData, slotKey: 'weapon' | 'armor' | 'accessory'): void {
+    const newDef = EQUIPMENT_DEFS[newItemId];
+    if (!newDef) return;
+    const curItemId = unit.equipment?.[slotKey];
+    const curDef = curItemId ? EQUIPMENT_DEFS[curItemId] : null;
+
+    // 오버레이
+    const overlay = this.add.graphics().setDepth(500);
+    overlay.fillStyle(0x000000, 0.75).fillRect(0, 0, GW, GH);
+    overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, GW, GH), Phaser.Geom.Rectangle.Contains);
+
+    const panelW = GW - 40;
+    const panelH = 320;
+    const px = 20;
+    const py = (GH - panelH) / 2;
+
+    const panelBg = this.add.graphics().setDepth(501);
+    panelBg.fillStyle(0x1a1a30, 1).fillRoundedRect(px, py, panelW, panelH, 10);
+    panelBg.lineStyle(2, 0xffd700, 0.6).strokeRoundedRect(px, py, panelW, panelH, 10);
+
+    const items = [overlay, panelBg];
+    const addT = (x: number, y: number, text: string, opts: Phaser.Types.GameObjects.Text.TextStyle) => {
+      const t = this.add.text(x, y, text, opts).setDepth(502);
+      items.push(t);
+      return t;
+    };
+
+    // 타이틀
+    addT(GW / 2, py + 15, `${unit.name} - 장비 비교`, {
+      fontSize: '16px', color: '#ffd700', fontStyle: 'bold',
+    }).setOrigin(0.5);
+
+    const slotLabel = slotKey === 'weapon' ? '무기' : slotKey === 'armor' ? '방어구' : '보조';
+    addT(GW / 2, py + 38, `[ ${slotLabel} ]`, {
+      fontSize: '12px', color: '#aaaaaa',
+    }).setOrigin(0.5);
+
+    // 비교 영역 (좌: 현재, 우: 새 장비)
+    const colW = (panelW - 30) / 2;
+    const leftX = px + 10;
+    const rightX = px + colW + 20;
+    const headerY = py + 58;
+
+    // 현재 장비
+    addT(leftX + colW / 2, headerY, '현재 장비', {
+      fontSize: '12px', color: '#888888',
+    }).setOrigin(0.5);
+
+    const curName = curDef ? curDef.name : '없음';
+    const curGradeColor = curDef ? (EQUIPMENT_GRADE_COLORS[curDef.grade] ?? '#aaaaaa') : '#555555';
+    addT(leftX + colW / 2, headerY + 18, curName, {
+      fontSize: '14px', color: curGradeColor, fontStyle: 'bold',
+    }).setOrigin(0.5);
+
+    // 새 장비
+    addT(rightX + colW / 2, headerY, '새 장비', {
+      fontSize: '12px', color: '#ffd700',
+    }).setOrigin(0.5);
+
+    const newGradeColor = EQUIPMENT_GRADE_COLORS[newDef.grade] ?? '#ffffff';
+    addT(rightX + colW / 2, headerY + 18, newDef.name, {
+      fontSize: '14px', color: newGradeColor, fontStyle: 'bold',
+    }).setOrigin(0.5);
+
+    // 화살표
+    addT(px + panelW / 2, headerY + 18, '→', {
+      fontSize: '18px', color: '#ffd700',
+    }).setOrigin(0.5);
+
+    // 스탯 비교
+    const allKeys = new Set<string>();
+    if (curDef) Object.keys(curDef.statModifiers).forEach(k => allKeys.add(k));
+    Object.keys(newDef.statModifiers).forEach(k => allKeys.add(k));
+
+    let row = 0;
+    const statY = headerY + 45;
+    for (const key of allKeys) {
+      const curVal = curDef ? ((curDef.statModifiers as Record<string, number>)[key] ?? 0) : 0;
+      const newVal = (newDef.statModifiers as Record<string, number>)[key] ?? 0;
+      const diff = newVal - curVal;
+      const label = STAT_LABELS[key] ?? key;
+
+      addT(leftX + 10, statY + row * 22, `${label}: ${curVal > 0 ? '+' : ''}${curVal || '-'}`, {
+        fontSize: '13px', color: '#aaaaaa',
+      });
+      addT(rightX + 10, statY + row * 22, `${label}: ${newVal > 0 ? '+' : ''}${newVal || '-'}`, {
+        fontSize: '13px', color: '#ffffff',
+      });
+
+      // 차이 표시
+      if (diff !== 0) {
+        const diffColor = diff > 0 ? '#44ff44' : '#ff4444';
+        const diffStr = diff > 0 ? `▲${diff}` : `▼${Math.abs(diff)}`;
+        addT(rightX + colW - 10, statY + row * 22, diffStr, {
+          fontSize: '12px', color: diffColor, fontStyle: 'bold',
+        }).setOrigin(1, 0);
+      }
+      row++;
+    }
+
+    // 버튼 영역
+    const btnY = py + panelH - 50;
+
+    // 장착 버튼
+    const confirmBg = this.add.graphics().setDepth(502);
+    confirmBg.fillStyle(0x228833, 1).fillRoundedRect(px + 15, btnY, colW - 10, 36, 6);
+    items.push(confirmBg);
+    const confirmBtn = addT(leftX + colW / 2, btnY + 18, '장착', {
+      fontSize: '15px', color: '#ffffff', fontStyle: 'bold',
+    }).setOrigin(0.5);
+    const confirmHit = this.add.rectangle(leftX + colW / 2, btnY + 18, colW - 10, 36, 0x000000, 0)
+      .setInteractive({ useHandCursor: true }).setDepth(503);
+    items.push(confirmHit);
+    confirmHit.on('pointerdown', () => {
+      // 기존 장비 인벤토리로
+      if (unit.equipment?.[slotKey]) {
+        bag.push(unit.equipment[slotKey]!);
       }
       if (!unit.equipment) unit.equipment = {};
-      (unit.equipment as Record<string, string | undefined>)[slotKey] = itemId;
+      (unit.equipment as Record<string, string | undefined>)[slotKey] = newItemId;
       bag.splice(bagIdx, 1);
       this.campaignManager.save();
+      for (const item of items) { try { item.destroy(); } catch { /* */ } }
       this.showInventory('equipment');
-    }, canEquipItem);
+    });
+
+    // 취소 버튼
+    const cancelBg = this.add.graphics().setDepth(502);
+    cancelBg.fillStyle(0x333344, 1).fillRoundedRect(rightX + 5, btnY, colW - 10, 36, 6);
+    items.push(cancelBg);
+    addT(rightX + colW / 2, btnY + 18, '취소', {
+      fontSize: '15px', color: '#aaaaaa', fontStyle: 'bold',
+    }).setOrigin(0.5);
+    const cancelHit = this.add.rectangle(rightX + colW / 2, btnY + 18, colW - 10, 36, 0x000000, 0)
+      .setInteractive({ useHandCursor: true }).setDepth(503);
+    items.push(cancelHit);
+    cancelHit.on('pointerdown', () => {
+      for (const item of items) { try { item.destroy(); } catch { /* */ } }
+    });
   }
 
   /** 스킬 장착 대상 장수 선택 */
