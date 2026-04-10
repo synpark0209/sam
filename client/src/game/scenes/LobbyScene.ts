@@ -1463,7 +1463,7 @@ export class LobbyScene extends Phaser.Scene {
     panelBg.fillStyle(0x1a1a30, 1).fillRoundedRect(px, py, panelW, panelH, 10);
     panelBg.lineStyle(2, 0xffd700, 0.6).strokeRoundedRect(px, py, panelW, panelH, 10);
 
-    const items = [overlay, panelBg];
+    const items: Phaser.GameObjects.GameObject[] = [overlay, panelBg];
     const addT = (x: number, y: number, text: string, opts: Phaser.Types.GameObjects.Text.TextStyle) => {
       const t = this.add.text(x, y, text, opts).setDepth(502);
       items.push(t);
@@ -1550,7 +1550,7 @@ export class LobbyScene extends Phaser.Scene {
     const confirmBg = this.add.graphics().setDepth(502);
     confirmBg.fillStyle(0x228833, 1).fillRoundedRect(px + 15, btnY, colW - 10, 36, 6);
     items.push(confirmBg);
-    const confirmBtn = addT(leftX + colW / 2, btnY + 18, '장착', {
+    addT(leftX + colW / 2, btnY + 18, '장착', {
       fontSize: '15px', color: '#ffffff', fontStyle: 'bold',
     }).setOrigin(0.5);
     const confirmHit = this.add.rectangle(leftX + colW / 2, btnY + 18, colW - 10, 36, 0x000000, 0)
