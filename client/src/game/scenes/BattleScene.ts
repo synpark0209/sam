@@ -1925,6 +1925,19 @@ export class BattleScene extends Phaser.Scene {
     const hpRatio = hp / maxHp;
     const hpColor = hpRatio > 0.5 ? '#44ff44' : hpRatio > 0.25 ? '#ffff44' : '#ff4444';
     addText(15, panelY + 26, `HP: ${hp}/${maxHp}`, { fontSize: '13px', color: hpColor });
+    // EXP 바 (아군만)
+    if (unit.faction === 'player') {
+      const exp = unit.exp ?? 0;
+      const expBarW = 60;
+      const expBarX = gw - 70;
+      const expBarY = panelY + 30;
+      const expBg = this.add.graphics().setDepth(181);
+      expBg.fillStyle(0x222233, 1).fillRoundedRect(expBarX, expBarY, expBarW, 5, 2);
+      expBg.fillStyle(0x6666cc, 1).fillRoundedRect(expBarX, expBarY, expBarW * (exp / 100), 5, 2);
+      this.unitInfoPanel.push(expBg);
+      this.cameras.main.ignore(expBg);
+      addText(expBarX - 30, expBarY - 3, `${exp}/100`, { fontSize: '9px', color: '#8888cc' });
+    }
     if (unit.maxMp && unit.maxMp > 0) {
       addText(150, panelY + 26, `MP: ${unit.mp ?? 0}/${unit.maxMp}`, { fontSize: '13px', color: '#4488ff' });
     }
