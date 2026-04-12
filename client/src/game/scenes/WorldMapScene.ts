@@ -190,7 +190,7 @@ export class WorldMapScene extends Phaser.Scene {
     // 레벨 내림차순 정렬
     guests.sort((a, b) => (b.level ?? 1) - (a.level ?? 1));
 
-    // 게스트 그리드
+    // 게스트 그리드 (스크롤 지원)
     const cols = 3;
     const pad = 14;
     const gap = 10;
@@ -202,6 +202,11 @@ export class WorldMapScene extends Phaser.Scene {
       strategist: '📜', martial_artist: '👊', bandit: '🗡️',
       dancer: '💃', taoist: '🔮', geomancer: '🌀', siege: '🏗️',
     };
+
+    const container = this.add.container(0, 0);
+    const totalRows = Math.ceil(guests.length / cols);
+    const totalH = totalRows * (cellH + gap);
+    const scrollableH = GH - startY - 10;
 
     for (let i = 0; i < guests.length; i++) {
       const unit = guests[i];
@@ -217,34 +222,35 @@ export class WorldMapScene extends Phaser.Scene {
       const card = this.add.graphics();
       card.fillStyle(isSelected ? 0x1a3a1a : 0x141428, 1).fillRoundedRect(x, y, cellW, cellH, 8);
       card.lineStyle(2, isSelected ? 0x44ff44 : gradeColorNum, 0.8).strokeRoundedRect(x, y, cellW, cellH, 8);
+      container.add(card);
 
       if (isSelected) {
-        this.add.text(x + cellW - 6, y + cellH - 6, '✓', {
+        container.add(this.add.text(x + cellW - 6, y + cellH - 6, '✓', {
           fontSize: '16px', color: '#44ff44', fontStyle: 'bold',
-        }).setOrigin(1, 1);
+        }).setOrigin(1, 1));
       }
 
       const cls = unit.unitClass ?? 'infantry';
-      this.add.text(x + cellW / 2, y + cellW * 0.30, clsIcons[cls] ?? '⚔️', {
+      container.add(this.add.text(x + cellW / 2, y + cellW * 0.30, clsIcons[cls] ?? '⚔️', {
         fontSize: '34px',
-      }).setOrigin(0.5);
+      }).setOrigin(0.5));
 
-      this.add.text(x + 6, y + 4, grade, {
+      container.add(this.add.text(x + 6, y + 4, grade, {
         fontSize: '13px', color: gradeColorHex, fontStyle: 'bold',
-      });
+      }));
 
-      this.add.text(x + cellW - 6, y + 4, `Lv.${unit.level ?? 1}`, {
+      container.add(this.add.text(x + cellW - 6, y + 4, `Lv.${unit.level ?? 1}`, {
         fontSize: '12px', color: '#88aacc',
-      }).setOrigin(1, 0);
+      }).setOrigin(1, 0));
 
-      this.add.text(x + cellW / 2, y + cellH * 0.65, unit.name, {
+      container.add(this.add.text(x + cellW / 2, y + cellH * 0.65, unit.name, {
         fontSize: '13px', color: '#ffffff', fontStyle: 'bold',
-      }).setOrigin(0.5);
+      }).setOrigin(0.5));
 
       const clsName = unit.unitClass ? (UNIT_CLASS_DEFS[unit.unitClass]?.name ?? '') : '';
-      this.add.text(x + cellW / 2, y + cellH * 0.82, clsName, {
+      container.add(this.add.text(x + cellW / 2, y + cellH * 0.82, clsName, {
         fontSize: '10px', color: '#88aacc',
-      }).setOrigin(0.5);
+      }).setOrigin(0.5));
 
       const hit = this.add.rectangle(x + cellW / 2, y + cellH / 2, cellW, cellH, 0x000000, 0)
         .setInteractive({ useHandCursor: true });
@@ -255,6 +261,33 @@ export class WorldMapScene extends Phaser.Scene {
           this.selectedGuests.push(unit.id);
         }
         this.showGuestSelect(stage, guests);
+      });
+      container.add(hit);
+    }
+
+    // 스크롤
+    if (totalH > scrollableH) {
+      const mask = this.add.graphics();
+      mask.fillRect(0, startY, GW, scrollableH);
+      container.setMask(new Phaser.Display.Masks.GeometryMask(this, mask));
+
+      let scrollY = 0;
+      const maxScroll = totalH - scrollableH;
+
+      this.input.on('wheel', (_p: unknown, _gx: unknown, _gy: unknown, _gz: unknown, dy: number) => {
+        scrollY = Phaser.Math.Clamp(scrollY + dy * 0.5, 0, maxScroll);
+        container.y = -scrollY;
+      });
+
+      let dragStartY = 0, dragScrollY = 0;
+      this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+        if (p.y >= startY) { dragStartY = p.y; dragScrollY = scrollY; }
+      });
+      this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
+        if (p.isDown && p.y >= startY) {
+          scrollY = Phaser.Math.Clamp(dragScrollY + (dragStartY - p.y), 0, maxScroll);
+          container.y = -scrollY;
+        }
       });
     }
   }
