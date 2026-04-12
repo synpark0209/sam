@@ -1231,20 +1231,27 @@ export class PvPArenaScene extends Phaser.Scene {
     overlay.fillRect(0, 0, gw, gh);
     allObjs.push(overlay);
 
-    // 공격자 스프라이트 (동쪽 방향, idle로 시작)
-    const atkIdleKey = this.getUnitTextureKey(attacker, 'east', 'idle');
-    const atkSprite = this.add.sprite(gw * 0.25, centerY, atkIdleKey).setScale(2.0).setDepth(201);
+    // 공격자/방어자 진영에 따라 위치와 방향 결정
+    const atkIsPlayer = attacker.data.faction === 'player';
+    const atkX = atkIsPlayer ? gw * 0.25 : gw * 0.75;
+    const defX = atkIsPlayer ? gw * 0.75 : gw * 0.25;
+    const atkDir = atkIsPlayer ? 'east' : 'west';
+    const defDir = atkIsPlayer ? 'west' : 'east';
+
+    // 공격자 스프라이트
+    const atkIdleKey = this.getUnitTextureKey(attacker, atkDir, 'idle');
+    const atkSprite = this.add.sprite(atkX, centerY, atkIdleKey).setScale(2.0).setDepth(201);
     allObjs.push(atkSprite);
 
-    // 방어자 스프라이트 (서쪽 방향, idle로 시작)
-    const defIdleKey = this.getUnitTextureKey(defender, 'west', 'idle');
-    const defSprite = this.add.sprite(gw * 0.75, centerY, defIdleKey).setScale(2.0).setDepth(201);
+    // 방어자 스프라이트
+    const defIdleKey = this.getUnitTextureKey(defender, defDir, 'idle');
+    const defSprite = this.add.sprite(defX, centerY, defIdleKey).setScale(2.0).setDepth(201);
     allObjs.push(defSprite);
 
     // idle 애니메이션 재생
-    const atkIdleAnim = this.getUnitAnimKey(attacker, 'idle', 'east');
+    const atkIdleAnim = this.getUnitAnimKey(attacker, 'idle', atkDir);
     if (atkIdleAnim) atkSprite.play(atkIdleAnim);
-    const defIdleAnim = this.getUnitAnimKey(defender, 'idle', 'west');
+    const defIdleAnim = this.getUnitAnimKey(defender, 'idle', defDir);
     if (defIdleAnim) defSprite.play(defIdleAnim);
 
     // 이름 라벨
@@ -1273,13 +1280,13 @@ export class PvPArenaScene extends Phaser.Scene {
     // 0.4초 후 → 공격 모션
     this.time.delayedCall(400 / this.battleSpeed, () => {
       // 공격자: attack 애니메이션 재생
-      const atkAttackAnim = this.getUnitAnimKey(attacker, 'attack', 'east');
+      const atkAttackAnim = this.getUnitAnimKey(attacker, 'attack', atkDir);
       if (atkAttackAnim) atkSprite.play(atkAttackAnim);
 
       // 원거리 유닛(궁병/책사)은 제자리, 근접은 돌진
       const atkCls = attacker.data.unitClass ?? 'infantry';
       const isRanged = atkCls === 'archer' || atkCls === 'strategist';
-      const dashTargetX = isRanged ? gw * 0.25 : gw * 0.50;
+      const dashTargetX = isRanged ? atkX : gw * 0.50;
 
       // 공격자 이동 (근접: 돌진, 원거리: 제자리)
       this.tweens.add({
@@ -1290,29 +1297,31 @@ export class PvPArenaScene extends Phaser.Scene {
           this.cameras.main.flash(100, 255, 255, 255, false);
 
           // 타격 이펙트 (흰색 + 주황 원)
+          // 임팩트 이펙트 (방어자 근처)
+          const impactX = atkIsPlayer ? gw * 0.68 : gw * 0.32;
           const impactG = this.add.graphics().setDepth(204);
           impactG.fillStyle(0xffffff, 0.8);
-          impactG.fillCircle(gw * 0.68, centerY, 22);
+          impactG.fillCircle(impactX, centerY, 22);
           impactG.fillStyle(0xff8844, 0.5);
-          impactG.fillCircle(gw * 0.68, centerY, 12);
+          impactG.fillCircle(impactX, centerY, 12);
           allObjs.push(impactG);
           this.tweens.add({ targets: impactG, alpha: 0, duration: 200, onComplete: () => impactG.destroy() });
 
           // 방어자: hit 애니메이션 재생
-          const defHitAnim = this.getUnitAnimKey(defender, 'hit', 'west');
+          const defHitAnim = this.getUnitAnimKey(defender, 'hit', defDir);
           if (defHitAnim) defSprite.play(defHitAnim);
 
           // 방어자 뒤로 밀림
+          const pushX = atkIsPlayer ? defX + gw * 0.07 : defX - gw * 0.07;
           this.tweens.add({
-            targets: defSprite, x: gw * 0.82, duration: 150 / this.battleSpeed, ease: 'Power2',
+            targets: defSprite, x: pushX, duration: 150 / this.battleSpeed, ease: 'Power2',
             onComplete: () => {
-              // 밀린 후 원위치 복귀 (살아있으면)
               if (defender.hp - damage > 0) {
                 this.tweens.add({
-                  targets: defSprite, x: gw * 0.75, duration: 200 / this.battleSpeed,
+                  targets: defSprite, x: defX, duration: 200 / this.battleSpeed,
                   delay: 100,
                   onComplete: () => {
-                    const defBackIdle = this.getUnitAnimKey(defender, 'idle', 'west');
+                    const defBackIdle = this.getUnitAnimKey(defender, 'idle', defDir);
                     if (defBackIdle) defSprite.play(defBackIdle);
                   },
                 });
@@ -1323,7 +1332,7 @@ export class PvPArenaScene extends Phaser.Scene {
           // 데미지 숫자 팝업
           const dmgColor = isHeal ? '#44ff44' : '#ff4444';
           const dmgPrefix = isHeal ? '+' : '-';
-          const dmgText = this.add.text(gw * 0.75, centerY - 40, `${dmgPrefix}${damage}`, {
+          const dmgText = this.add.text(defX, centerY - 40, `${dmgPrefix}${damage}`, {
             fontSize: '32px', color: dmgColor, fontStyle: 'bold',
             stroke: '#000000', strokeThickness: 5,
           }).setOrigin(0.5).setDepth(203);
@@ -1333,7 +1342,7 @@ export class PvPArenaScene extends Phaser.Scene {
           // 사망 시 die 애니메이션
           if (defender.hp - damage <= 0) {
             this.time.delayedCall(200 / this.battleSpeed, () => {
-              const defDieAnim = this.getUnitAnimKey(defender, 'die', 'west');
+              const defDieAnim = this.getUnitAnimKey(defender, 'die', defDir);
               if (defDieAnim) defSprite.play(defDieAnim);
               this.tweens.add({
                 targets: defSprite, alpha: 0, angle: 20, y: centerY + 15,
