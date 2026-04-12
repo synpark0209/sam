@@ -151,13 +151,13 @@ export function isPatternSlot(formation: FormationDef, row: number, col: number)
   return formation.pattern[row]?.[col] ?? false;
 }
 
-/** 첫 번째 빈 패턴 칸 인덱스 (-1 = 없음) */
+/** 첫 번째 빈 패턴 칸 인덱스 (-1 = 없음) — 전열(col2) → 중열(col1) → 후열(col0) 순 */
 export function getFirstEmptyPatternSlot(
   formation: FormationDef,
   slots: (unknown | null)[],
 ): number {
-  for (let row = 0; row < 3; row++) {
-    for (let col = 0; col < 3; col++) {
+  for (let col = 2; col >= 0; col--) {
+    for (let row = 0; row < 3; row++) {
       const idx = row * 3 + col;
       if (formation.pattern[row][col] && !slots[idx]) return idx;
     }
