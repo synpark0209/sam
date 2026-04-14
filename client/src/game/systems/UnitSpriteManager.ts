@@ -71,17 +71,17 @@ const HERO_SPRITE_SHEETS: Record<string, SpriteSheetDef> = {};
 
 /** 장수 ID → PixelLab 캐릭터 매핑 */
 const PIXELLAB_CHARACTERS: Record<string, PixelLabCharacterDef> = {
-  p1: { // 여포
+  p1: { // 여포 (48px 고전 도트)
     key: 'pl_lubu',
     basePath: 'assets/characters/lubu',
-    size: 96, displayScale: 1.1,
+    size: 48,
     anims: {
       idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
       walk:   { folder: 'walking-4-frames',   frames: 4, frameRate: 6 },
-      attack: { folder: 'halberd-attack',     frames: 4, frameRate: 6 },
+      attack: { folder: 'halberd-attack',     frames: 16, frameRate: 12 },
       hit:    { folder: 'taking-punch',       frames: 6, frameRate: 8 },
       die:    { folder: 'falling-back-death', frames: 7, frameRate: 5 },
-      skill:  { folder: 'halberd-skill',      frames: 4, frameRate: 6 },
+      skill:  { folder: 'halberd-skill',      frames: 16, frameRate: 12 },
     },
   },
   p2: { // 장료
