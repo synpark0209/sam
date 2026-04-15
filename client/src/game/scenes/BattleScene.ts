@@ -306,12 +306,12 @@ export class BattleScene extends Phaser.Scene {
     const worldH = this.mapH * TILE_SIZE;
 
     // 모바일에서 적절한 줌 레벨 계산
-    // 화면에 가로 6~7칸 정도 보이도록 줌
+    // 화면에 가로 5칸 정도 보이도록 줌 (캐릭터를 크게 표시)
     const viewW = this.scale.width;
     const viewH = this.scale.height - UI_BAR_H;
-    const desiredVisibleTiles = 7;
+    const desiredVisibleTiles = 5;
     const zoomByWidth = viewW / (desiredVisibleTiles * TILE_SIZE);
-    const maxZoom = Math.min(viewW / (4 * TILE_SIZE), viewH / (4 * TILE_SIZE)); // 최소 4칸은 보이게
+    const maxZoom = Math.min(viewW / (3 * TILE_SIZE), viewH / (3 * TILE_SIZE)); // 최소 3칸은 보이게
     const zoom = Math.min(Math.max(zoomByWidth, 1), maxZoom);
 
     this.cameras.main.setZoom(zoom);

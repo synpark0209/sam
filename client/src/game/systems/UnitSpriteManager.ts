@@ -519,7 +519,7 @@ export function createPixelLabSprite(
   }
 
   const sprite = scene.add.sprite(0, 0, firstFrameKey);
-  const scale = TILE_SIZE / def.size * (def.displayScale ?? 1.0);
+  const scale = TILE_SIZE / def.size * 1.2 * (def.displayScale ?? 1.0);
   sprite.setScale(scale);
   sprite.setData('plDirection', PL_DEFAULT_DIR);
 
