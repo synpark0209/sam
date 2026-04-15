@@ -71,10 +71,10 @@ const HERO_SPRITE_SHEETS: Record<string, SpriteSheetDef> = {};
 
 /** 장수 ID → PixelLab 캐릭터 매핑 */
 const PIXELLAB_CHARACTERS: Record<string, PixelLabCharacterDef> = {
-  p1: { // 여포 (48px 고전 도트)
+  p1: { // 여포 (36px 고전 도트)
     key: 'pl_lubu',
     basePath: 'assets/characters/lubu',
-    size: 48,
+    size: 36,
     anims: {
       idle:   { folder: 'breathing-idle',     frames: 4, frameRate: 4 },
       walk:   { folder: 'walking-4-frames',   frames: 4, frameRate: 6 },
